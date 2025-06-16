@@ -1,12 +1,9 @@
+
 import os
 import requests
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
-
-@app.route("/")
-def index():
-    return "Trainer AI is live!"
 
 # Set environment variable for your Groq API key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -29,11 +26,10 @@ def ask_agent(prompt):
     response.raise_for_status()
     return response.json()["choices"][0]["message"]["content"]
 
-# ✅ Health check route for Replit to verify app is alive
 @app.route("/", methods=["GET"])
 def health_check():
-    return "OK", 200
-# ✅ Webhook endpoint for Zapier or external calls
+    return "Trainer AI is live!", 200
+
 @app.route("/webhook", methods=["POST"])
 def webhook():
     data = request.get_json()
@@ -44,27 +40,7 @@ def webhook():
     appt_time = data.get("appointment_time", "")
     prompt_type = data.get("prompt_type", "welcome")
 
- # Build a custom AI prompt based on type
- @app.route("/onboard", methods=["POST"])
-def onboard():
-    data = request.get_json()
-
-    name = data.get("name", "client").strip().split()[0] if data.get("name") else "client"
-
-    goal = data.get("goal", "your fitness goals")
-    source = data.get("source", "website")
-
-    # Build welcome message
-    sms_text = (
-        f"Hey {name}! 👋 Thanks for joining WillpowerFitness AI via {source}.\n"
-        f"I've logged your goal: *{goal}*. I'm here to guide your journey 💪\n"
-        "Expect a custom workout + nutrition plan soon. Reply anytime!"
-    )
-
-    # Optional: save to file/db here
-    return jsonify({"sms_text": sms_text}), 200
-
-    
+    # Build a custom AI prompt based on type
     if prompt_type == "motivation":
         prompt = f"Give a motivational message for a client named {client_name} who just booked a {appt_type} at {appt_time}."
     elif prompt_type == "recovery":
@@ -81,7 +57,22 @@ def onboard():
         "client": client_name,
         "response": reply
     })
-# ✅ Start server on Replit-required host/port
+
+@app.route("/onboard", methods=["POST"])
+def onboard():
+    data = request.get_json()
+    name = data.get("name", "client").strip().split()[0] if data.get("name") else "client"
+    goal = data.get("goal", "your fitness goals")
+    source = data.get("source", "website")
+
+    # Build welcome message
+    sms_text = (
+        f"Hey {name}! 👋 Thanks for joining WillpowerFitness AI via {source}.\n"
+        f"I've logged your goal: *{goal}*. I'm here to guide your journey 💪\n"
+        "Expect a custom workout + nutrition plan soon. Reply anytime!"
+    )
+
+    return jsonify({"sms_text": sms_text}), 200
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
-
