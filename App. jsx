@@ -1,0 +1,19 @@
+import { useState } from 'react';
+import Login from './components/lib/Login';
+import ChatBox from './components/lib/ChatBox';
+
+function App() {
+const [user, setUser] = useState(null);
+
+return (
+<div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+<h1>WillpowerFitness AI</h1>
+{!user ? (
+ <Login onLogin={setUser} />
+  ) : (
+   <ChatBox user={user} />
+   )}
+   </div>
+   );
+   }
+   export default App;

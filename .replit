@@ -1,9 +1,9 @@
-entrypoint = "main.py"
+entrypoint = "index.html"
 modules = ["python-3.11"]
 [nix]
 channel = "stable-24_05"
 [deployment]
-run = ["python3", "main.py"]
+run = "npx serve -s ."
 deploymentTarget = "cloudrun"
 
 [[ports]]
