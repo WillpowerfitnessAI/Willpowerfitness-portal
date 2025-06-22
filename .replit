@@ -1,10 +1,10 @@
-entrypoint = "index.html"
 modules = ["python-3.11"]
 [nix]
 channel = "stable-24_05"
 [deployment]
-run = "npx serve -s ."
-deploymentTarget = "cloudrun"
+build = "pip install -r requirements.txt"
+run = "python main.py"
+deploymentTarget = "autoscale"
 
 [[ports]]
 localPort = 8080
