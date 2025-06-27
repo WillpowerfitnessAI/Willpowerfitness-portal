@@ -1,3 +1,4 @@
+
 import os
 import requests
 from flask import Flask, request, jsonify
@@ -8,8 +9,6 @@ try:
 except ImportError:
     db = None
 # Handle accordingly, maybe define a mock db or log the issue if outside Replit
-app = Flask(__name__)
-from flask import Flask, request, jsonify
 
 app = Flask(__name__)
 
@@ -63,7 +62,8 @@ def chat():
     db[messages_key] = history
 
     return jsonify({ "reply": reply })
-    @app.route("/set_name", methods=["POST"])
+
+@app.route("/set_name", methods=["POST"])
 def set_name():
     data = request.get_json()
     name = data.get("name")
@@ -167,4 +167,3 @@ def onboard():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
-
