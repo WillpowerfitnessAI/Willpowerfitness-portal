@@ -3,8 +3,86 @@ import requests
 from flask import Flask, request, jsonify
 from supabase import create_client, Client
 from datetime import datetime
+try:
+    from replit import db
+except ImportError:
+    db = None
+# Handle accordingly, maybe define a mock db or log the issue if outside Replit
+app = Flask(__name__)
+from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json()
+    user_input = data.get("message", "").strip()
+    user_id = data.get("user_id", "default")  # fallback if none provided
+
+    if not user_input:
+        return jsonify({"reply": "Please enter a message."}), 400
+
+    # Memory keys
+    name_key = f"user:{user_id}:name"
+    goal_key = f"user:{user_id}:goal"
+    messages_key = f"user:{user_id}:messages"
+
+    # Load from memory or fallback
+    name = db.get(name_key, "Friend")
+    goal = db.get(goal_key, "your fitness goals")
+    history = db.get(messages_key, [])
+
+    # Save new user message
+    history.append({ "role": "user", "content": user_input })
+
+    # Build prompt from history + user profile
+    prompt = f"You are a fitness coach named Willpower. You're coaching {name} whose goal is {goal}. Respond like a caring trainer.\n\n"
+    for msg in history[-10:]:
+        prompt += f"{msg['role'].capitalize()}: {msg['content']}\n"
+    prompt += "AI:"
+
+    # Groq API call
+    try:
+        response = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "mixtral-8x7b-32768",
+                "messages": [{"role": "user", "content": prompt}]
+            }
+        )
+        reply = response.json()['choices'][0]['message']['content']
+    except Exception as e:
+        reply = f"Sorry, there was a problem generating a response: {e}"
+
+    # Save reply to memory
+    history.append({ "role": "ai", "content": reply })
+    db[messages_key] = history
+
+    return jsonify({ "reply": reply })
+    @app.route("/set_name", methods=["POST"])
+def set_name():
+    data = request.get_json()
+    name = data.get("name")
+    user_id = data.get("user_id", "default")
+    if name:
+        db[f"user:{user_id}:name"] = name
+        return jsonify({"message": f"Name set to {name}"}), 200
+    return jsonify({"error": "No name provided"}), 400
+
+@app.route("/set_goal", methods=["POST"])
+def set_goal():
+    data = request.get_json()
+    goal = data.get("goal")
+    user_id = data.get("user_id", "default")
+    if goal:
+        db[f"user:{user_id}:goal"] = goal
+        return jsonify({"message": f"Goal set to {goal}"}), 200
+    return jsonify({"error": "No goal provided"}), 400
+
 
 # Set environment variable for your Groq API key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
@@ -67,9 +145,16 @@ def webhook():
 @app.route("/onboard", methods=["POST"])
 def onboard():
     data = request.get_json()
+    user_id = data.get("user_id", "default")
     name = data.get("name", "client").strip().split()[0] if data.get("name") else "client"
     goal = data.get("goal", "your fitness goals")
     source = data.get("source", "website")
+
+    # Save memory
+    db[f"user:{user_id}:name"] = name
+    db[f"user:{user_id}:goal"] = goal
+    db[f"user:{user_id}:source"] = source
+    db[f"user:{user_id}:messages"] = []
 
     # Build welcome message
     sms_text = (
