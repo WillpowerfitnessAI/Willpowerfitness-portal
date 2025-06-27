@@ -4,3 +4,4 @@
     pkgs.python311Packages.pip
      ];
   }
+pip install replit
