@@ -1,18 +1,19 @@
 import os
-import requests
-from flask import Flask, request, jsonify
-from flask_cors import CORS  # ✅ Import here
-from supabase import create_client, Client
-from datetime import datetime
+import openai  # Groq uses OpenAI-compatible API
 
-try:
-    from replit import db
-except ImportError:
-    db = None  # Handle accordingly, maybe define a mock db or log the issue if outside Replit
+openai.api_key = os.environ.get("GROQ_API_KEY", "your-groq-api-key-here")  # replace if not using secrets
 
-app = Flask(__name__)       # ✅ Only initialize once
-CORS(app)                   # ✅ Enable cross-origin requests
-
+def ask_groq_ai(user_input, user_id="default"):
+    response = openai.ChatCompletion.create(
+        model="mixtral-8x7b-32768",  # You can also try llama3-70b-8192
+        messages=[
+            {"role": "system", "content": "You are a friendly and knowledgeable AI fitness assistant."},
+            {"role": "user", "content": user_input},
+        ],
+        temperature=0.7,
+        max_tokens=500,
+    )
+    return response.choices[0].message["content"]
 
 @app.route("/chat", methods=["POST"])
 def chat():
@@ -22,6 +23,11 @@ def chat():
 
     if not user_input:
         return jsonify({"reply": "Please enter a message."}), 400
+    # Temporary placeholder reply
+    reply_text = ask_groq_ai(user_input, user_id)
+
+
+    return jsonify({"reply": reply_text})
 
     # Memory keys
     name_key = f"user:{user_id}:name"
