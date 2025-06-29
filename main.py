@@ -1,34 +1,33 @@
-import os
-import openai  # Groq uses OpenAI-compatible API
 
-openai.api_key = os.environ.get("GROQ_API_KEY", "your-groq-api-key-here")  # replace if not using secrets
+import os
+import requests
+from datetime import datetime
+from flask import Flask, request, jsonify
+from flask_cors import CORS
+from supabase import create_client, Client
+
+# Initialize Flask app
+app = Flask(__name__)
+CORS(app)
+
+# In-memory database for user data (you can replace with a proper database)
+db = {}
+
+# Environment variables
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jxylbuwtjvsdavetryjx.supabase.co")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+# Initialize Supabase client (optional - only if you have Supabase credentials)
+supabase = None
+if SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        print(f"Supabase initialization failed: {e}")
 
 def ask_groq_ai(user_input, user_id="default"):
-    response = openai.ChatCompletion.create(
-        model="mixtral-8x7b-32768",  # You can also try llama3-70b-8192
-        messages=[
-            {"role": "system", "content": "You are a friendly and knowledgeable AI fitness assistant."},
-            {"role": "user", "content": user_input},
-        ],
-        temperature=0.7,
-        max_tokens=500,
-    )
-    return response.choices[0].message["content"]
-
-@app.route("/chat", methods=["POST"])
-def chat():
-    data = request.get_json()
-    user_input = data.get("message", "").strip()
-    user_id = data.get("user_id", "default")  # fallback if none provided
-
-    if not user_input:
-        return jsonify({"reply": "Please enter a message."}), 400
-    # Temporary placeholder reply
-    reply_text = ask_groq_ai(user_input, user_id)
-
-
-    return jsonify({"reply": reply_text})
-
+    """Main AI function that handles personalized responses with memory"""
     # Memory keys
     name_key = f"user:{user_id}:name"
     goal_key = f"user:{user_id}:goal"
@@ -40,36 +39,77 @@ def chat():
     history = db.get(messages_key, [])
 
     # Save new user message
-    history.append({ "role": "user", "content": user_input })
+    history.append({"role": "user", "content": user_input})
 
     # Build prompt from history + user profile
-    prompt = f"You are a fitness coach named Willpower. You're coaching {name} whose goal is {goal}. Respond like a caring trainer.\n\n"
-    for msg in history[-10:]:
+    prompt = f"You are Will Power, a fitness coach. You're coaching {name} whose goal is {goal}. Respond like a caring but tough trainer.\n\n"
+    for msg in history[-10:]:  # Last 10 messages for context
         prompt += f"{msg['role'].capitalize()}: {msg['content']}\n"
     prompt += "AI:"
 
-    # Groq API call
     try:
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "Authorization": f"Bearer {os.environ.get('GROQ_API_KEY')}",
+                "Authorization": f"Bearer {GROQ_API_KEY}",
                 "Content-Type": "application/json"
             },
             json={
                 "model": "mixtral-8x7b-32768",
-                "messages": [{"role": "user", "content": prompt}]
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.7,
+                "max_tokens": 500
             }
         )
-        reply = response.json()['choices'][0]['message']['content']
+        
+        if response.status_code == 200:
+            reply = response.json()['choices'][0]['message']['content']
+        else:
+            reply = "Sorry, I'm having trouble connecting right now. Try again!"
+            
     except Exception as e:
-        reply = f"Sorry, there was a problem generating a response: {e}"
+        reply = f"Sorry, there was a problem generating a response: {str(e)}"
 
     # Save reply to memory
-    history.append({ "role": "ai", "content": reply })
+    history.append({"role": "ai", "content": reply})
     db[messages_key] = history
 
-    return jsonify({ "reply": reply })
+    # Save to Supabase if available
+    if supabase:
+        try:
+            timestamp = datetime.utcnow().isoformat()
+            supabase.table("messages").insert({
+                "user_id": user_id,
+                "sender": "user",
+                "message": user_input,
+                "timestamp": timestamp
+            }).execute()
+            supabase.table("messages").insert({
+                "user_id": user_id,
+                "sender": "ai", 
+                "message": reply,
+                "timestamp": timestamp
+            }).execute()
+        except Exception as e:
+            print(f"Error saving to Supabase: {e}")
+
+    return reply
+
+@app.route("/", methods=["GET"])
+def health_check():
+    return "WillpowerFitness AI is live!", 200
+
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json()
+    user_input = data.get("message", "").strip()
+    user_id = data.get("user_id", "default")
+
+    if not user_input:
+        return jsonify({"reply": "Please enter a message."}), 400
+
+    reply_text = ask_groq_ai(user_input, user_id)
+    return jsonify({"reply": reply_text})
 
 @app.route("/set_name", methods=["POST"])
 def set_name():
@@ -91,65 +131,6 @@ def set_goal():
         return jsonify({"message": f"Goal set to {goal}"}), 200
     return jsonify({"error": "No goal provided"}), 400
 
-
-# Set environment variable for your Groq API key
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-MODEL = "llama3-70b-8192"
-GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-
-# Supabase config
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jxylbuwtjvsdavetryjx.supabase.co")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-
-def ask_agent(prompt):
-    headers = {
-        "Authorization": f"Bearer {GROQ_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    payload = {
-        "model": MODEL,
-        "messages": [
-            {"role": "system", "content": "You are Will Power, a no-nonsense personal trainer who gives tough love, clear answers, and daily motivation to fitness clients."},
-            {"role": "user", "content": prompt}
-        ]
-    }
-    response = requests.post(GROQ_URL, headers=headers, json=payload)
-    if response.status_code == 200:
-        return response.json()["choices"][0]["message"]["content"].strip()
-    else:
-        return "Sorry, something went wrong."
-
-def save_message_to_supabase(user_id, sender, message, timestamp):
-    try:
-        supabase.table("messages").insert({
-            "user_id": user_id,
-            "sender": sender,
-            "message": message,
-            "timestamp": timestamp
-        }).execute()
-    except Exception as e:
-        print(f"Error saving to Supabase: {e}")
-
-@app.route("/", methods=["GET"])
-def health_check():
-    return "Trainer AI is live!", 200
-
-@app.route("/webhook", methods=["POST"])
-def webhook():
-    data = request.get_json()
-    user_id = data.get("user_id", "unknown")
-    user_input = data.get("message", "Hello")
-
-    ai_reply = ask_agent(user_input)
-
-    # Save message with timestamp
-    timestamp = datetime.utcnow().isoformat()
-    save_message_to_supabase(user_id, "user", user_input, timestamp)
-    save_message_to_supabase(user_id, "ai", ai_reply, timestamp)
-
-    return jsonify({"reply": ai_reply})
-
 @app.route("/onboard", methods=["POST"])
 def onboard():
     data = request.get_json()
@@ -165,13 +146,23 @@ def onboard():
     db[f"user:{user_id}:messages"] = []
 
     # Build welcome message
-    sms_text = (
+    welcome_message = (
         f"Hey {name}! 👋 Thanks for joining WillpowerFitness AI via {source}.\n"
         f"I've logged your goal: *{goal}*. I'm here to guide your journey 💪\n"
-        "Expect a custom workout + nutrition plan soon. Reply anytime!"
+        "Ready to get started? Ask me anything about fitness, nutrition, or workouts!"
     )
 
-    return jsonify({"sms_text": sms_text}), 200
+    return jsonify({"message": welcome_message}), 200
+
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    """For external integrations like SMS or other services"""
+    data = request.get_json()
+    user_id = data.get("user_id", "unknown")
+    user_input = data.get("message", "Hello")
+
+    ai_reply = ask_groq_ai(user_input, user_id)
+    return jsonify({"reply": ai_reply})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)

@@ -1,19 +1,59 @@
+
 import { useState } from 'react';
 import Login from './components/lib/Login';
 import ChatBox from './components/lib/ChatBox';
 
 function App() {
-const [user, setUser] = useState(null);
+  const [user, setUser] = useState(null);
 
-return (
-<div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-<h1>WillpowerFitness AI</h1>
-{!user ? (
- <Login onLogin={setUser} />
-  ) : (
-   <ChatBox user={user} />
-   )}
-   </div>
-   );
-   }
-   export default App;
+  return (
+    <div style={{ 
+      minHeight: '100vh',
+      backgroundColor: '#f8f9fa',
+      padding: '2rem', 
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    }}>
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <h1 style={{ 
+          fontSize: '2.5rem', 
+          margin: '0 0 0.5rem 0',
+          background: 'linear-gradient(45deg, #007bff, #28a745)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          fontWeight: 'bold'
+        }}>
+          WillpowerFitness AI 🏋️
+        </h1>
+        <p style={{ fontSize: '1.2rem', color: '#666', margin: 0 }}>
+          Your Personal AI Fitness Coach
+        </p>
+      </div>
+
+      {!user ? (
+        <Login onLogin={setUser} />
+      ) : (
+        <div>
+          <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            <button
+              onClick={() => setUser(null)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: '#6c757d',
+                color: 'white',
+                border: 'none',
+                borderRadius: '20px',
+                cursor: 'pointer',
+                fontSize: '0.9rem'
+              }}
+            >
+              ← Start Over
+            </button>
+          </div>
+          <ChatBox user={user} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default App;
