@@ -61,7 +61,7 @@ def ask_groq_ai(user_input, user_id="default"):
                 "Content-Type": "application/json"
             },
             json={
-                "model": "mixtral-8x7b-32768",
+                "model": "llama3-8b-8192",
                 "messages": messages,
                 "temperature": 0.7,
                 "max_tokens": 500
