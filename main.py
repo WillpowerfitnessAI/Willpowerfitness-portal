@@ -28,6 +28,9 @@ if SUPABASE_KEY:
 
 def ask_groq_ai(user_input, user_id="default"):
     """Main AI function that handles personalized responses with memory"""
+    if not GROQ_API_KEY:
+        return "Error: GROQ_API_KEY environment variable not set. Please configure it in your deployment settings."
+    
     # Memory keys
     name_key = f"user:{user_id}:name"
     goal_key = f"user:{user_id}:goal"
@@ -41,11 +44,14 @@ def ask_groq_ai(user_input, user_id="default"):
     # Save new user message
     history.append({"role": "user", "content": user_input})
 
-    # Build prompt from history + user profile
-    prompt = f"You are Will Power, a fitness coach. You're coaching {name} whose goal is {goal}. Respond like a caring but tough trainer.\n\n"
+    # Build proper messages array for Groq API
+    messages = [
+        {"role": "system", "content": f"You are Will Power, a fitness coach. You're coaching {name} whose goal is {goal}. Respond like a caring but tough trainer."}
+    ]
+    
+    # Add recent conversation history
     for msg in history[-10:]:  # Last 10 messages for context
-        prompt += f"{msg['role'].capitalize()}: {msg['content']}\n"
-    prompt += "AI:"
+        messages.append({"role": msg["role"], "content": msg["content"]})
 
     try:
         response = requests.post(
@@ -56,7 +62,7 @@ def ask_groq_ai(user_input, user_id="default"):
             },
             json={
                 "model": "mixtral-8x7b-32768",
-                "messages": [{"role": "user", "content": prompt}],
+                "messages": messages,
                 "temperature": 0.7,
                 "max_tokens": 500
             }
@@ -65,13 +71,15 @@ def ask_groq_ai(user_input, user_id="default"):
         if response.status_code == 200:
             reply = response.json()['choices'][0]['message']['content']
         else:
-            reply = "Sorry, I'm having trouble connecting right now. Try again!"
+            print(f"Groq API Error: {response.status_code} - {response.text}")
+            reply = "Sorry, I'm having trouble connecting to the AI service right now. Try again!"
             
     except Exception as e:
-        reply = f"Sorry, there was a problem generating a response: {str(e)}"
+        print(f"Error calling Groq API: {e}")
+        reply = f"Sorry, there was a problem generating a response. Please try again."
 
     # Save reply to memory
-    history.append({"role": "ai", "content": reply})
+    history.append({"role": "assistant", "content": reply})
     db[messages_key] = history
 
     # Save to Supabase if available
