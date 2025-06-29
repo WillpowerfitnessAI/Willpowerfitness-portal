@@ -1,16 +1,18 @@
-
 import os
 import requests
 from flask import Flask, request, jsonify
+from flask_cors import CORS  # ✅ Import here
 from supabase import create_client, Client
 from datetime import datetime
+
 try:
     from replit import db
 except ImportError:
-    db = None
-# Handle accordingly, maybe define a mock db or log the issue if outside Replit
+    db = None  # Handle accordingly, maybe define a mock db or log the issue if outside Replit
 
-app = Flask(__name__)
+app = Flask(__name__)       # ✅ Only initialize once
+CORS(app)                   # ✅ Enable cross-origin requests
+
 
 @app.route("/chat", methods=["POST"])
 def chat():
