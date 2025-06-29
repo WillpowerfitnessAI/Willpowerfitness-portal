@@ -12,6 +12,7 @@ requiredFiles = [".replit", "replit.nix"]
 
 [env]
 REPLIT_KEEP_PACKAGE_DEV_DEPENDENCIES = "1"
+REPLIT_DISABLE_PACKAGE_LAYER = "1"
 
 [deployment]
 run = ["python3", "main.py"]
