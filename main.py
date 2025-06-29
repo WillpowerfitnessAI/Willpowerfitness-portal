@@ -8,7 +8,7 @@ from supabase import create_client, Client
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["*"])  # Allow all origins for development
 
 # In-memory database for user data (you can replace with a proper database)
 db = {}
@@ -99,19 +99,26 @@ def ask_groq_ai(user_input, user_id="default"):
 def health_check():
     return "WillpowerFitness AI is live!", 200
 
-@app.route("/chat", methods=["POST"])
+@app.route("/api/chat", methods=["POST"])
 def chat():
-    data = request.get_json()
-    user_input = data.get("message", "").strip()
-    user_id = data.get("user_id", "default")
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+            
+        user_input = data.get("message", "").strip()
+        user_id = data.get("user_id", "default")
 
-    if not user_input:
-        return jsonify({"reply": "Please enter a message."}), 400
+        if not user_input:
+            return jsonify({"reply": "Please enter a message."}), 400
 
-    reply_text = ask_groq_ai(user_input, user_id)
-    return jsonify({"reply": reply_text})
+        reply_text = ask_groq_ai(user_input, user_id)
+        return jsonify({"reply": reply_text})
+    except Exception as e:
+        print(f"Chat error: {e}")
+        return jsonify({"error": "Server error occurred"}), 500
 
-@app.route("/set_name", methods=["POST"])
+@app.route("/api/set_name", methods=["POST"])
 def set_name():
     data = request.get_json()
     name = data.get("name")
@@ -121,7 +128,7 @@ def set_name():
         return jsonify({"message": f"Name set to {name}"}), 200
     return jsonify({"error": "No name provided"}), 400
 
-@app.route("/set_goal", methods=["POST"])
+@app.route("/api/set_goal", methods=["POST"])
 def set_goal():
     data = request.get_json()
     goal = data.get("goal")
@@ -131,30 +138,37 @@ def set_goal():
         return jsonify({"message": f"Goal set to {goal}"}), 200
     return jsonify({"error": "No goal provided"}), 400
 
-@app.route("/onboard", methods=["POST"])
+@app.route("/api/onboard", methods=["POST"])
 def onboard():
-    data = request.get_json()
-    user_id = data.get("user_id", "default")
-    name = data.get("name", "client").strip().split()[0] if data.get("name") else "client"
-    goal = data.get("goal", "your fitness goals")
-    source = data.get("source", "website")
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+            
+        user_id = data.get("user_id", "default")
+        name = data.get("name", "client").strip().split()[0] if data.get("name") else "client"
+        goal = data.get("goal", "your fitness goals")
+        source = data.get("source", "website")
 
-    # Save memory
-    db[f"user:{user_id}:name"] = name
-    db[f"user:{user_id}:goal"] = goal
-    db[f"user:{user_id}:source"] = source
-    db[f"user:{user_id}:messages"] = []
+        # Save memory
+        db[f"user:{user_id}:name"] = name
+        db[f"user:{user_id}:goal"] = goal
+        db[f"user:{user_id}:source"] = source
+        db[f"user:{user_id}:messages"] = []
 
-    # Build welcome message
-    welcome_message = (
-        f"Hey {name}! 👋 Thanks for joining WillpowerFitness AI via {source}.\n"
-        f"I've logged your goal: *{goal}*. I'm here to guide your journey 💪\n"
-        "Ready to get started? Ask me anything about fitness, nutrition, or workouts!"
-    )
+        # Build welcome message
+        welcome_message = (
+            f"Hey {name}! 👋 Thanks for joining WillpowerFitness AI via {source}.\n"
+            f"I've logged your goal: *{goal}*. I'm here to guide your journey 💪\n"
+            "Ready to get started? Ask me anything about fitness, nutrition, or workouts!"
+        )
 
-    return jsonify({"message": welcome_message}), 200
+        return jsonify({"message": welcome_message}), 200
+    except Exception as e:
+        print(f"Onboard error: {e}")
+        return jsonify({"error": "Server error occurred"}), 500
 
-@app.route("/webhook", methods=["POST"])
+@app.route("/api/webhook", methods=["POST"])
 def webhook():
     """For external integrations like SMS or other services"""
     data = request.get_json()
