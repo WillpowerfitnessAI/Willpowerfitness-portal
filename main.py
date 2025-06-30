@@ -104,8 +104,12 @@ def ask_groq_ai(user_input, user_id="default"):
     return reply
 
 @app.route("/", methods=["GET"])
-def health_check():
-    return "WillpowerFitness AI is live!", 200
+def home():
+    try:
+        with open('index.html', 'r') as f:
+            return f.read()
+    except FileNotFoundError:
+        return "WillpowerFitness AI is live!", 200
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
