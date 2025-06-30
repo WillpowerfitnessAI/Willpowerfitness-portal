@@ -22,9 +22,12 @@
   </head>
   <body>
     <div id="root"></div>
-    
+
     <script type="text/babel">
       const { useState, useEffect, useRef } = React;
+
+      // API base URL - adjust this if needed
+      const API_BASE = window.location.origin;
 
       function Login({ onLogin }) {
         const [name, setName] = useState('');
@@ -33,19 +36,16 @@
 
         const handleSubmit = async (e) => {
           e.preventDefault();
-          if (!name.trim() || !goal.trim()) {
-            alert('Please fill in both fields');
-            return;
-          }
-
+          if (!name.trim() || !goal.trim()) return;
+          
           setLoading(true);
           try {
-            const userId = `user_${Date.now()}`;
-            const response = await fetch('/api/onboard', {
+            const user_id = 'user_' + Date.now();
+            const response = await fetch(`${API_BASE}/api/onboard`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                user_id: userId,
+                user_id,
                 name: name.trim(),
                 goal: goal.trim(),
                 source: 'website'
@@ -54,37 +54,29 @@
 
             if (response.ok) {
               const data = await response.json();
-              onLogin({ userId, name: name.trim(), goal: goal.trim(), welcomeMessage: data.message });
+              onLogin({ user_id, name: name.trim(), goal: goal.trim(), welcomeMessage: data.message });
             } else {
-              alert('Failed to connect. Please try again.');
+              alert('Failed to set up your profile. Please try again.');
             }
           } catch (error) {
-            console.error('Login error:', error);
-            alert('Connection error. Please try again.');
+            console.error('Onboard error:', error);
+            alert('Connection error. Please check your internet and try again.');
           } finally {
             setLoading(false);
           }
         };
 
         return React.createElement('div', {
-          style: { 
-            maxWidth: '400px', 
-            margin: '0 auto', 
+          style: {
+            maxWidth: '400px',
+            margin: '0 auto',
+            backgroundColor: 'rgba(255,255,255,0.95)',
             padding: '2rem',
-            backgroundColor: 'white',
             borderRadius: '10px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
           }
-        }, [
-          React.createElement('h2', {
-            key: 'title',
-            style: { textAlign: 'center', marginBottom: '1.5rem', color: '#333' }
-          }, 'Get Started'),
-          
-          React.createElement('form', {
-            key: 'form',
-            onSubmit: handleSubmit
-          }, [
+        },
+          React.createElement('form', { onSubmit: handleSubmit }, [
             React.createElement('div', {
               key: 'name-field',
               style: { marginBottom: '1rem' }
@@ -98,7 +90,7 @@
                 type: 'text',
                 value: name,
                 onChange: (e) => setName(e.target.value),
-                placeholder: 'Enter your name',
+                placeholder: 'Enter your first name',
                 style: {
                   width: '100%',
                   padding: '0.75rem',
@@ -136,21 +128,21 @@
             React.createElement('button', {
               key: 'submit-btn',
               type: 'submit',
-              disabled: loading,
+              disabled: loading || !name.trim() || !goal.trim(),
               style: {
                 width: '100%',
                 padding: '0.75rem',
-                backgroundColor: loading ? '#ccc' : '#007bff',
+                backgroundColor: loading || !name.trim() || !goal.trim() ? '#ccc' : '#007bff',
                 color: 'white',
                 border: 'none',
                 borderRadius: '5px',
                 fontSize: '1.1rem',
-                cursor: loading ? 'not-allowed' : 'pointer',
+                cursor: loading || !name.trim() || !goal.trim() ? 'not-allowed' : 'pointer',
                 fontWeight: 'bold'
               }
             }, loading ? 'Setting up...' : 'Start Training! 💪')
           ])
-        ]);
+        );
       }
 
       function ChatBox({ user }) {
@@ -159,140 +151,123 @@
         const [loading, setLoading] = useState(false);
         const messagesEndRef = useRef(null);
 
-        const scrollToBottom = () => {
-          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-        };
-
         useEffect(() => {
           if (user.welcomeMessage) {
-            setMessages([{ 
-              role: 'assistant', 
-              content: user.welcomeMessage,
-              timestamp: new Date().toLocaleTimeString() 
+            setMessages([{
+              sender: 'ai',
+              text: user.welcomeMessage,
+              timestamp: new Date().toLocaleTimeString()
             }]);
           }
         }, [user.welcomeMessage]);
 
-        useEffect(scrollToBottom, [messages]);
+        useEffect(() => {
+          messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        }, [messages]);
 
         const sendMessage = async (e) => {
           e.preventDefault();
           if (!input.trim() || loading) return;
 
           const userMessage = {
-            role: 'user',
-            content: input.trim(),
+            sender: 'user',
+            text: input.trim(),
             timestamp: new Date().toLocaleTimeString()
           };
 
           setMessages(prev => [...prev, userMessage]);
+          const messageText = input.trim();
           setInput('');
           setLoading(true);
 
           try {
-            const response = await fetch('/api/chat', {
+            const response = await fetch(`${API_BASE}/api/chat`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                message: input.trim(),
-                user_id: user.userId
+                message: messageText,
+                user_id: user.user_id
               })
             });
 
             if (response.ok) {
               const data = await response.json();
-              setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: data.reply,
+              const aiMessage = {
+                sender: 'ai',
+                text: data.reply,
                 timestamp: new Date().toLocaleTimeString()
-              }]);
+              };
+              setMessages(prev => [...prev, aiMessage]);
             } else {
-              setMessages(prev => [...prev, {
-                role: 'assistant',
-                content: 'Sorry, I had trouble processing that. Please try again.',
+              const errorMessage = {
+                sender: 'ai',
+                text: 'Sorry, I had trouble processing that. Please try again.',
                 timestamp: new Date().toLocaleTimeString()
-              }]);
+              };
+              setMessages(prev => [...prev, errorMessage]);
             }
           } catch (error) {
             console.error('Chat error:', error);
-            setMessages(prev => [...prev, {
-              role: 'assistant',
-              content: 'Error contacting AI assistant. Please check your connection.',
+            const errorMessage = {
+              sender: 'ai',
+              text: 'Connection error. Please check your internet and try again.',
               timestamp: new Date().toLocaleTimeString()
-            }]);
+            };
+            setMessages(prev => [...prev, errorMessage]);
           } finally {
             setLoading(false);
           }
         };
 
         return React.createElement('div', {
-          style: { 
-            maxWidth: '700px', 
+          style: {
+            maxWidth: '800px',
             margin: '0 auto',
-            backgroundColor: 'white',
+            backgroundColor: 'rgba(255,255,255,0.95)',
             borderRadius: '10px',
-            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-            overflow: 'hidden'
+            overflow: 'hidden',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+            height: '500px',
+            display: 'flex',
+            flexDirection: 'column'
           }
         }, [
           React.createElement('div', {
-            key: 'header',
+            key: 'messages-container',
             style: {
-              backgroundColor: '#007bff',
-              color: 'white',
-              padding: '1rem',
-              textAlign: 'center'
-            }
-          }, [
-            React.createElement('h3', {
-              key: 'title',
-              style: { margin: 0 }
-            }, 'Chat with Will Power 💪'),
-            React.createElement('p', {
-              key: 'subtitle',
-              style: { margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.9 }
-            }, `Hi ${user.name}! Ready to work on: ${user.goal}`)
-          ]),
-
-          React.createElement('div', {
-            key: 'messages',
-            style: {
-              height: '400px',
+              flex: 1,
               overflowY: 'auto',
-              padding: '1rem',
-              borderBottom: '1px solid #eee'
+              padding: '1rem'
             }
           }, [
-            ...messages.map((msg, index) => 
+            ...messages.map((msg, index) =>
               React.createElement('div', {
                 key: index,
                 style: {
                   marginBottom: '1rem',
                   display: 'flex',
-                  flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
+                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start'
                 }
-              }, 
+              },
                 React.createElement('div', {
                   style: {
-                    maxWidth: '80%',
+                    maxWidth: '70%',
                     padding: '0.75rem',
-                    borderRadius: '15px',
-                    backgroundColor: msg.role === 'user' ? '#007bff' : '#f1f3f4',
-                    color: msg.role === 'user' ? 'white' : '#333',
-                    marginLeft: msg.role === 'user' ? '1rem' : '0',
-                    marginRight: msg.role === 'assistant' ? '1rem' : '0'
+                    borderRadius: '18px',
+                    backgroundColor: msg.sender === 'user' ? '#007bff' : '#f1f1f1',
+                    color: msg.sender === 'user' ? 'white' : 'black'
                   }
                 }, [
                   React.createElement('div', {
-                    key: 'content',
-                    style: { whiteSpace: 'pre-wrap' }
-                  }, msg.content),
+                    key: 'text',
+                    style: { marginBottom: '0.25rem' }
+                  }, msg.text),
                   React.createElement('div', {
                     key: 'timestamp',
                     style: {
-                      fontSize: '0.75rem',
+                      fontSize: '0.8rem',
                       opacity: 0.7,
-                      marginTop: '0.25rem'
+                      textAlign: 'right'
                     }
                   }, msg.timestamp)
                 ])
