@@ -190,6 +190,135 @@ def webhook():
     ai_reply = ask_groq_ai(user_input, user_id)
     return jsonify({"reply": ai_reply})
 
+@app.route("/api/thumbtack", methods=["POST"])
+def thumbtack_inquiry():
+    """Handle Thumbtack fitness training inquiries"""
+    data = request.get_json()
+    
+    customer_name = data.get("customer_name", "Friend")
+    customer_email = data.get("customer_email")
+    inquiry_message = data.get("message", "I'm interested in personal training")
+    
+    # Generate AI response for consultation offer
+    ai_response = ask_groq_ai(
+        f"A potential client named {customer_name} contacted us through Thumbtack with this inquiry: '{inquiry_message}'. Respond professionally offering either AI coaching consultation or human trainer consultation, and explain our $225/month membership program.",
+        customer_email or "thumbtack_lead"
+    )
+    
+    # Store lead info
+    db[f"lead:{customer_email}:source"] = "thumbtack"
+    db[f"lead:{customer_email}:status"] = "consultation_offered"
+    
+    return jsonify({
+        "reply": ai_response,
+        "next_action": "consultation_booking",
+        "customer_email": customer_email
+    })
+
+@app.route("/api/email-inquiry", methods=["POST"])
+def email_inquiry():
+    """Handle email fitness inquiries"""
+    data = request.get_json()
+    
+    sender_email = data.get("from_email")
+    subject = data.get("subject", "")
+    email_body = data.get("body", "")
+    
+    # Generate AI response
+    ai_response = ask_groq_ai(
+        f"Someone emailed us about fitness training. Subject: '{subject}', Message: '{email_body}'. Respond professionally offering consultation options and our $225/month membership.",
+        sender_email
+    )
+    
+    # Store lead
+    db[f"lead:{sender_email}:source"] = "email"
+    db[f"lead:{sender_email}:inquiry"] = email_body
+    
+    return jsonify({
+        "reply": ai_response,
+        "send_to": sender_email,
+        "next_action": "consultation_booking"
+    })
+
+@app.route("/api/book-consultation", methods=["POST"])
+def book_consultation():
+    """Handle consultation booking requests"""
+    data = request.get_json()
+    
+    customer_email = data.get("customer_email")
+    consultation_type = data.get("type", "ai")  # "ai" or "human"
+    preferred_time = data.get("preferred_time")
+    
+    if consultation_type == "ai":
+        response = "Great! I can start your AI fitness consultation right now. Let's begin with understanding your fitness goals and current situation."
+        next_action = "start_ai_consultation"
+    else:
+        response = f"I've scheduled your consultation with one of our human trainers for {preferred_time}. You'll receive a calendar invite shortly. To complete your booking, please secure your spot with our $225/month membership."
+        next_action = "payment_required"
+    
+    # Update lead status
+    db[f"lead:{customer_email}:consultation_type"] = consultation_type
+    db[f"lead:{customer_email}:status"] = "consultation_booked"
+    
+    return jsonify({
+        "reply": response,
+        "next_action": next_action,
+        "payment_link": "https://buy.stripe.com/your-payment-link" if next_action == "payment_required" else None
+    })
+
+@app.route("/api/stripe-success", methods=["POST"])
+def stripe_payment_success():
+    """Handle successful Stripe payments"""
+    data = request.get_json()
+    
+    customer_email = data.get("customer_email")
+    subscription_id = data.get("subscription_id")
+    amount = data.get("amount", 225)
+    
+    # Update customer status
+    db[f"customer:{customer_email}:subscription_id"] = subscription_id
+    db[f"customer:{customer_email}:status"] = "active_member"
+    db[f"customer:{customer_email}:monthly_amount"] = amount
+    
+    # Generate welcome message for paying customer
+    welcome_message = ask_groq_ai(
+        f"A new customer just paid ${amount}/month for our fitness coaching program! Send them an enthusiastic welcome message and ask them to tell me about their fitness goals so we can create their personalized training plan.",
+        customer_email
+    )
+    
+    return jsonify({
+        "reply": welcome_message,
+        "customer_status": "active_member",
+        "next_action": "start_training_program"
+    })
+
+@app.route("/api/leads", methods=["GET"])
+def get_leads():
+    """Get all leads and customers for admin dashboard"""
+    leads = {}
+    customers = {}
+    
+    for key, value in db.items():
+        if key.startswith("lead:"):
+            email = key.split(":")[1]
+            if email not in leads:
+                leads[email] = {}
+            field = key.split(":")[2]
+            leads[email][field] = value
+        elif key.startswith("customer:"):
+            email = key.split(":")[1]
+            if email not in customers:
+                customers[email] = {}
+            field = key.split(":")[2]
+            customers[email][field] = value
+    
+    return jsonify({
+        "leads": leads,
+        "customers": customers,
+        "total_leads": len(leads),
+        "active_customers": len(customers)
+    })
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
