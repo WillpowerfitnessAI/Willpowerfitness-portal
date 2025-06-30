@@ -1,6 +1,7 @@
 
 import os
 import requests
+import stripe
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -17,6 +18,11 @@ db = {}
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jxylbuwtjvsdavetryjx.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+STRIPE_SECRET_KEY = os.getenv("Stripe_payment_key")
+
+# Initialize Stripe
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
 
 # Initialize Supabase client (optional - only if you have Supabase credentials)
 supabase = None
@@ -199,9 +205,12 @@ def thumbtack_inquiry():
     customer_email = data.get("customer_email")
     inquiry_message = data.get("message", "I'm interested in personal training")
     
+    # Generate payment link
+    payment_link = create_stripe_payment_link(customer_email, customer_name)
+    
     # Generate AI response for consultation offer
     ai_response = ask_groq_ai(
-        f"A potential client named {customer_name} contacted us through Thumbtack with this inquiry: '{inquiry_message}'. Respond professionally offering either AI coaching consultation or human trainer consultation, and explain our $225/month membership program.",
+        f"A potential client named {customer_name} contacted us through Thumbtack with this inquiry: '{inquiry_message}'. Respond professionally offering either AI coaching consultation or human trainer consultation, and explain our $225/month membership program. Include this payment link in your response: {payment_link}",
         customer_email or "thumbtack_lead"
     )
     
@@ -211,8 +220,39 @@ def thumbtack_inquiry():
     
     return jsonify({
         "reply": ai_response,
-        "next_action": "consultation_booking",
+        "payment_link": payment_link,
+        "next_action": "payment_required",
         "customer_email": customer_email
+    })
+
+@app.route("/api/sms-inquiry", methods=["POST"])
+def sms_inquiry():
+    """Handle SMS/text message fitness inquiries"""
+    data = request.get_json()
+    
+    phone_number = data.get("from_number")
+    message_body = data.get("body", "")
+    sender_name = data.get("sender_name", "Friend")
+    
+    # Generate payment link (use phone as identifier)
+    payment_link = create_stripe_payment_link(phone_number, sender_name)
+    
+    # Generate AI response
+    ai_response = ask_groq_ai(
+        f"Someone texted us about fitness training. Message: '{message_body}'. Respond professionally offering consultation options and our $225/month membership. Include this payment link: {payment_link}",
+        phone_number
+    )
+    
+    # Store lead
+    db[f"lead:{phone_number}:source"] = "sms"
+    db[f"lead:{phone_number}:inquiry"] = message_body
+    db[f"lead:{phone_number}:status"] = "consultation_offered"
+    
+    return jsonify({
+        "reply": ai_response,
+        "send_to": phone_number,
+        "payment_link": payment_link,
+        "next_action": "payment_required"
     })
 
 @app.route("/api/email-inquiry", methods=["POST"])
@@ -248,12 +288,16 @@ def book_consultation():
     customer_email = data.get("customer_email")
     consultation_type = data.get("type", "ai")  # "ai" or "human"
     preferred_time = data.get("preferred_time")
+    customer_name = data.get("customer_name", "Friend")
+    
+    # Generate payment link
+    payment_link = create_stripe_payment_link(customer_email, customer_name)
     
     if consultation_type == "ai":
-        response = "Great! I can start your AI fitness consultation right now. Let's begin with understanding your fitness goals and current situation."
-        next_action = "start_ai_consultation"
+        response = f"Great! I can start your AI fitness consultation right now, but first please secure your $225/month membership to access all features: {payment_link}"
+        next_action = "payment_required"
     else:
-        response = f"I've scheduled your consultation with one of our human trainers for {preferred_time}. You'll receive a calendar invite shortly. To complete your booking, please secure your spot with our $225/month membership."
+        response = f"I've scheduled your consultation with one of our human trainers for {preferred_time}. To complete your booking, please secure your spot with our $225/month membership: {payment_link}"
         next_action = "payment_required"
     
     # Update lead status
@@ -263,7 +307,7 @@ def book_consultation():
     return jsonify({
         "reply": response,
         "next_action": next_action,
-        "payment_link": "https://buy.stripe.com/your-payment-link" if next_action == "payment_required" else None
+        "payment_link": payment_link
     })
 
 @app.route("/api/stripe-success", methods=["POST"])
@@ -291,6 +335,88 @@ def stripe_payment_success():
         "customer_status": "active_member",
         "next_action": "start_training_program"
     })
+
+def create_stripe_payment_link(customer_email, customer_name="Customer"):
+    """Create a Stripe payment link for the fitness membership"""
+    if not STRIPE_SECRET_KEY:
+        return "https://willpowerfitness.com/payment"  # Fallback URL
+    
+    try:
+        # Create or retrieve customer
+        customers = stripe.Customer.list(email=customer_email, limit=1)
+        if customers.data:
+            customer = customers.data[0]
+        else:
+            customer = stripe.Customer.create(
+                email=customer_email,
+                name=customer_name,
+                metadata={"source": "willpowerfitness_ai"}
+            )
+        
+        # Create payment link for $225/month subscription
+        payment_link = stripe.PaymentLink.create(
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': 'WillpowerFitness AI Monthly Membership',
+                        'description': 'Monthly access to AI fitness coaching and human trainer consultations'
+                    },
+                    'unit_amount': 22500,  # $225.00 in cents
+                    'recurring': {
+                        'interval': 'month'
+                    }
+                },
+                'quantity': 1,
+            }],
+            metadata={
+                'customer_email': customer_email,
+                'customer_name': customer_name
+            }
+        )
+        
+        return payment_link.url
+    except Exception as e:
+        print(f"Stripe error: {e}")
+        return "https://willpowerfitness.com/payment"  # Fallback URL
+
+@app.route("/api/stripe-webhook", methods=["POST"])
+def stripe_webhook():
+    """Handle Stripe webhook events"""
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    
+    try:
+        # Verify webhook signature if you have webhook secret
+        event = stripe.Event.construct_from(
+            request.get_json(), stripe.api_key
+        )
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return jsonify({"error": "Invalid payload"}), 400
+    
+    # Handle successful payment
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        customer_email = session.get('customer_details', {}).get('email')
+        
+        if customer_email:
+            # Generate welcome message for new member
+            welcome_message = ask_groq_ai(
+                "A new customer just paid $225/month for our fitness coaching program! Send them an enthusiastic welcome message and ask them to tell me about their fitness goals so we can create their personalized training plan.",
+                customer_email
+            )
+            
+            # Update customer status
+            db[f"customer:{customer_email}:subscription_id"] = session.get('subscription')
+            db[f"customer:{customer_email}:status"] = "active_member"
+            db[f"customer:{customer_email}:monthly_amount"] = 225
+            
+            # You can send email here or trigger Zapier webhook
+            # For now, we'll just log it
+            print(f"New member: {customer_email} - Welcome message: {welcome_message}")
+    
+    return jsonify({"status": "success"}), 200
 
 @app.route("/api/leads", methods=["GET"])
 def get_leads():
