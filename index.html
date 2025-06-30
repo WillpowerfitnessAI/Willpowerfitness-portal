@@ -1,0 +1,416 @@
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WillpowerFitness AI</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+      }
+      * {
+        box-sizing: border-box;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    
+    <script type="text/babel">
+      const { useState, useEffect, useRef } = React;
+
+      function Login({ onLogin }) {
+        const [name, setName] = useState('');
+        const [goal, setGoal] = useState('');
+        const [loading, setLoading] = useState(false);
+
+        const handleSubmit = async (e) => {
+          e.preventDefault();
+          if (!name.trim() || !goal.trim()) {
+            alert('Please fill in both fields');
+            return;
+          }
+
+          setLoading(true);
+          try {
+            const userId = `user_${Date.now()}`;
+            const response = await fetch('/api/onboard', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                user_id: userId,
+                name: name.trim(),
+                goal: goal.trim(),
+                source: 'website'
+              })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              onLogin({ userId, name: name.trim(), goal: goal.trim(), welcomeMessage: data.message });
+            } else {
+              alert('Failed to connect. Please try again.');
+            }
+          } catch (error) {
+            console.error('Login error:', error);
+            alert('Connection error. Please try again.');
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return React.createElement('div', {
+          style: { 
+            maxWidth: '400px', 
+            margin: '0 auto', 
+            padding: '2rem',
+            backgroundColor: 'white',
+            borderRadius: '10px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+          }
+        }, [
+          React.createElement('h2', {
+            key: 'title',
+            style: { textAlign: 'center', marginBottom: '1.5rem', color: '#333' }
+          }, 'Get Started'),
+          
+          React.createElement('form', {
+            key: 'form',
+            onSubmit: handleSubmit
+          }, [
+            React.createElement('div', {
+              key: 'name-field',
+              style: { marginBottom: '1rem' }
+            }, [
+              React.createElement('label', {
+                key: 'name-label',
+                style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
+              }, 'Your Name:'),
+              React.createElement('input', {
+                key: 'name-input',
+                type: 'text',
+                value: name,
+                onChange: (e) => setName(e.target.value),
+                placeholder: 'Enter your name',
+                style: {
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #ddd',
+                  borderRadius: '5px',
+                  fontSize: '1rem'
+                }
+              })
+            ]),
+
+            React.createElement('div', {
+              key: 'goal-field',
+              style: { marginBottom: '1.5rem' }
+            }, [
+              React.createElement('label', {
+                key: 'goal-label',
+                style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
+              }, 'Fitness Goal:'),
+              React.createElement('input', {
+                key: 'goal-input',
+                type: 'text',
+                value: goal,
+                onChange: (e) => setGoal(e.target.value),
+                placeholder: 'e.g., lose weight, build muscle, get stronger',
+                style: {
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '2px solid #ddd',
+                  borderRadius: '5px',
+                  fontSize: '1rem'
+                }
+              })
+            ]),
+
+            React.createElement('button', {
+              key: 'submit-btn',
+              type: 'submit',
+              disabled: loading,
+              style: {
+                width: '100%',
+                padding: '0.75rem',
+                backgroundColor: loading ? '#ccc' : '#007bff',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                fontSize: '1.1rem',
+                cursor: loading ? 'not-allowed' : 'pointer',
+                fontWeight: 'bold'
+              }
+            }, loading ? 'Setting up...' : 'Start Training! 💪')
+          ])
+        ]);
+      }
+
+      function ChatBox({ user }) {
+        const [messages, setMessages] = useState([]);
+        const [input, setInput] = useState('');
+        const [loading, setLoading] = useState(false);
+        const messagesEndRef = useRef(null);
+
+        const scrollToBottom = () => {
+          messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+        };
+
+        useEffect(() => {
+          if (user.welcomeMessage) {
+            setMessages([{ 
+              role: 'assistant', 
+              content: user.welcomeMessage,
+              timestamp: new Date().toLocaleTimeString() 
+            }]);
+          }
+        }, [user.welcomeMessage]);
+
+        useEffect(scrollToBottom, [messages]);
+
+        const sendMessage = async (e) => {
+          e.preventDefault();
+          if (!input.trim() || loading) return;
+
+          const userMessage = {
+            role: 'user',
+            content: input.trim(),
+            timestamp: new Date().toLocaleTimeString()
+          };
+
+          setMessages(prev => [...prev, userMessage]);
+          setInput('');
+          setLoading(true);
+
+          try {
+            const response = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: input.trim(),
+                user_id: user.userId
+              })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: data.reply,
+                timestamp: new Date().toLocaleTimeString()
+              }]);
+            } else {
+              setMessages(prev => [...prev, {
+                role: 'assistant',
+                content: 'Sorry, I had trouble processing that. Please try again.',
+                timestamp: new Date().toLocaleTimeString()
+              }]);
+            }
+          } catch (error) {
+            console.error('Chat error:', error);
+            setMessages(prev => [...prev, {
+              role: 'assistant',
+              content: 'Error contacting AI assistant. Please check your connection.',
+              timestamp: new Date().toLocaleTimeString()
+            }]);
+          } finally {
+            setLoading(false);
+          }
+        };
+
+        return React.createElement('div', {
+          style: { 
+            maxWidth: '700px', 
+            margin: '0 auto',
+            backgroundColor: 'white',
+            borderRadius: '10px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+            overflow: 'hidden'
+          }
+        }, [
+          React.createElement('div', {
+            key: 'header',
+            style: {
+              backgroundColor: '#007bff',
+              color: 'white',
+              padding: '1rem',
+              textAlign: 'center'
+            }
+          }, [
+            React.createElement('h3', {
+              key: 'title',
+              style: { margin: 0 }
+            }, 'Chat with Will Power 💪'),
+            React.createElement('p', {
+              key: 'subtitle',
+              style: { margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.9 }
+            }, `Hi ${user.name}! Ready to work on: ${user.goal}`)
+          ]),
+
+          React.createElement('div', {
+            key: 'messages',
+            style: {
+              height: '400px',
+              overflowY: 'auto',
+              padding: '1rem',
+              borderBottom: '1px solid #eee'
+            }
+          }, [
+            ...messages.map((msg, index) => 
+              React.createElement('div', {
+                key: index,
+                style: {
+                  marginBottom: '1rem',
+                  display: 'flex',
+                  flexDirection: msg.role === 'user' ? 'row-reverse' : 'row'
+                }
+              }, 
+                React.createElement('div', {
+                  style: {
+                    maxWidth: '80%',
+                    padding: '0.75rem',
+                    borderRadius: '15px',
+                    backgroundColor: msg.role === 'user' ? '#007bff' : '#f1f3f4',
+                    color: msg.role === 'user' ? 'white' : '#333',
+                    marginLeft: msg.role === 'user' ? '1rem' : '0',
+                    marginRight: msg.role === 'assistant' ? '1rem' : '0'
+                  }
+                }, [
+                  React.createElement('div', {
+                    key: 'content',
+                    style: { whiteSpace: 'pre-wrap' }
+                  }, msg.content),
+                  React.createElement('div', {
+                    key: 'timestamp',
+                    style: {
+                      fontSize: '0.75rem',
+                      opacity: 0.7,
+                      marginTop: '0.25rem'
+                    }
+                  }, msg.timestamp)
+                ])
+              )
+            ),
+            
+            loading && React.createElement('div', {
+              key: 'loading',
+              style: { textAlign: 'center', color: '#666' }
+            }, React.createElement('em', null, 'Will Power is typing...')),
+            
+            React.createElement('div', {
+              key: 'scroll-anchor',
+              ref: messagesEndRef
+            })
+          ]),
+
+          React.createElement('form', {
+            key: 'input-form',
+            onSubmit: sendMessage,
+            style: { padding: '1rem' }
+          },
+            React.createElement('div', {
+              style: { display: 'flex', gap: '0.5rem' }
+            }, [
+              React.createElement('input', {
+                key: 'message-input',
+                type: 'text',
+                value: input,
+                onChange: (e) => setInput(e.target.value),
+                placeholder: 'Ask about workouts, nutrition, motivation...',
+                disabled: loading,
+                style: {
+                  flex: 1,
+                  padding: '0.75rem',
+                  border: '2px solid #ddd',
+                  borderRadius: '25px',
+                  fontSize: '1rem',
+                  outline: 'none'
+                }
+              }),
+              React.createElement('button', {
+                key: 'send-btn',
+                type: 'submit',
+                disabled: loading || !input.trim(),
+                style: {
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: loading || !input.trim() ? '#ccc' : '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '25px',
+                  cursor: loading || !input.trim() ? 'not-allowed' : 'pointer',
+                  fontWeight: 'bold'
+                }
+              }, 'Send')
+            ])
+          )
+        ]);
+      }
+
+      function App() {
+        const [user, setUser] = useState(null);
+
+        return React.createElement('div', {
+          style: { 
+            minHeight: '100vh',
+            padding: '2rem', 
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+          }
+        }, [
+          React.createElement('div', {
+            key: 'header',
+            style: { textAlign: 'center', marginBottom: '2rem' }
+          }, [
+            React.createElement('h1', {
+              key: 'title',
+              style: { 
+                fontSize: '2.5rem', 
+                margin: '0 0 0.5rem 0',
+                color: 'white',
+                fontWeight: 'bold',
+                textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+              }
+            }, 'WillpowerFitness AI 🏋️'),
+            React.createElement('p', {
+              key: 'subtitle',
+              style: { fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', margin: 0 }
+            }, 'Your Personal AI Fitness Coach')
+          ]),
+
+          !user ? 
+            React.createElement(Login, { key: 'login', onLogin: setUser }) :
+            React.createElement('div', { key: 'chat-container' }, [
+              React.createElement('div', {
+                key: 'controls',
+                style: { textAlign: 'center', marginBottom: '1rem' }
+              },
+                React.createElement('button', {
+                  onClick: () => setUser(null),
+                  style: {
+                    padding: '0.5rem 1rem',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    color: 'white',
+                    border: '2px solid white',
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: 'bold'
+                  }
+                }, '← Start Over')
+              ),
+              React.createElement(ChatBox, { key: 'chatbox', user: user })
+            ])
+        ]);
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(React.createElement(App));
+    </script>
+  </body>
+</html>
