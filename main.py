@@ -126,6 +126,7 @@ Be the coach who combines critical thinking, strategic humor, serious dedication
 
     # Save reply to memory
     history.append({"role": "assistant", "content": reply})
+    messages_key = f"user:{user_id}:messages"
     db[messages_key] = history
 
     # Save to Supabase if available
