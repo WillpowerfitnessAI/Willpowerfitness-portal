@@ -23,7 +23,7 @@ function App() {
             style={{ 
               height: '80px', 
               marginRight: '1rem',
-              filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
+              filter: 'brightness(0) invert(1) drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
             }} 
           />
           <h1 style={{ 
