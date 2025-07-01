@@ -148,6 +148,7 @@
       function VideoLibrary() {
         const [videos, setVideos] = useState([]);
         const [loading, setLoading] = useState(true);
+        const [selectedVideo, setSelectedVideo] = useState(null);
 
         useEffect(() => {
           fetch(`${API_BASE}/api/videos`)
@@ -183,6 +184,73 @@
               marginBottom: '2rem'
             }
           }, '🎬 Workout Video Library'),
+
+          // Video Player Modal
+          selectedVideo && React.createElement('div', {
+            key: 'video-modal',
+            style: {
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              backgroundColor: 'rgba(0,0,0,0.8)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 1000
+            },
+            onClick: () => setSelectedVideo(null)
+          }, 
+            React.createElement('div', {
+              style: {
+                backgroundColor: 'white',
+                borderRadius: '10px',
+                padding: '1rem',
+                maxWidth: '90%',
+                maxHeight: '90%',
+                position: 'relative'
+              },
+              onClick: (e) => e.stopPropagation()
+            }, [
+              React.createElement('button', {
+                key: 'close-btn',
+                onClick: () => setSelectedVideo(null),
+                style: {
+                  position: 'absolute',
+                  top: '10px',
+                  right: '15px',
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  cursor: 'pointer'
+                }
+              }, '×'),
+              React.createElement('h3', {
+                key: 'modal-title',
+                style: { marginBottom: '1rem' }
+              }, selectedVideo.title),
+              React.createElement('video', {
+                key: 'video-player',
+                controls: true,
+                autoPlay: true,
+                style: {
+                  width: '100%',
+                  maxWidth: '800px',
+                  height: 'auto'
+                }
+              }, 
+                React.createElement('source', {
+                  src: selectedVideo.url,
+                  type: 'video/mp4'
+                })
+              ),
+              React.createElement('p', {
+                key: 'modal-description',
+                style: { marginTop: '1rem' }
+              }, selectedVideo.description)
+            ])
+          ),
           React.createElement('div', {
             key: 'video-grid',
             style: {
@@ -197,21 +265,52 @@
                 backgroundColor: 'white',
                 borderRadius: '10px',
                 padding: '1rem',
-                boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-              }
+                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                cursor: 'pointer',
+                transition: 'transform 0.2s',
+                ':hover': {
+                  transform: 'scale(1.02)'
+                }
+              },
+              onClick: () => setSelectedVideo(video)
             }, [
-              React.createElement('img', {
-                key: 'thumbnail',
-                src: video.thumbnail,
-                alt: video.title,
+              React.createElement('div', {
+                key: 'thumbnail-container',
                 style: {
-                  width: '100%',
-                  height: '150px',
-                  objectFit: 'cover',
-                  borderRadius: '8px',
+                  position: 'relative',
                   marginBottom: '0.5rem'
                 }
-              }),
+              }, [
+                React.createElement('img', {
+                  key: 'thumbnail',
+                  src: video.thumbnail,
+                  alt: video.title,
+                  style: {
+                    width: '100%',
+                    height: '150px',
+                    objectFit: 'cover',
+                    borderRadius: '8px'
+                  }
+                }),
+                React.createElement('div', {
+                  key: 'play-overlay',
+                  style: {
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    borderRadius: '50%',
+                    width: '60px',
+                    height: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '24px',
+                    color: 'white'
+                  }
+                }, '▶️')
+              ]),
               React.createElement('h3', {
                 key: 'title',
                 style: { margin: '0.5rem 0', color: '#333' }
@@ -621,6 +720,7 @@
                 type: 'button',
                 onClick: startListening,
                 disabled: loading || isListening,
+                title: isListening ? 'Listening... Speak now!' : 'Click to speak',
                 style: {
                   padding: '0.75rem',
                   backgroundColor: isListening ? '#dc3545' : '#6f42c1',
@@ -630,7 +730,10 @@
                   cursor: loading || isListening ? 'not-allowed' : 'pointer',
                   fontSize: '1.2rem',
                   width: '50px',
-                  height: '50px'
+                  height: '50px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }
               }, isListening ? '🔴' : '🎤'),
               React.createElement('button', {
