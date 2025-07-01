@@ -77,14 +77,24 @@ function ContactForm() {
       borderRadius: '10px',
       boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
     }}>
-      <h2 style={{
-        textAlign: 'center',
-        marginBottom: '0.5rem',
-        color: '#333',
-        fontSize: '1.8rem'
-      }}>
-        Get Your Personal Fitness Plan 💪
-      </h2>
+      <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+        <img 
+          src="/attached_assets/WillPowerFitness Profile Image_1751335061013.png" 
+          alt="WillpowerFitness Logo" 
+          style={{ 
+            height: '60px', 
+            marginBottom: '0.5rem',
+            filter: 'drop-shadow(1px 1px 3px rgba(0,0,0,0.2))'
+          }} 
+        />
+        <h2 style={{
+          margin: '0',
+          color: '#333',
+          fontSize: '1.8rem'
+        }}>
+          Get Your Personal Fitness Plan 💪
+        </h2>
+      </div>
       <p style={{
         textAlign: 'center',
         color: '#666',

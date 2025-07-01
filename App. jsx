@@ -16,16 +16,27 @@ function App() {
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ 
-          fontSize: '2.5rem', 
-          margin: '0 0 0.5rem 0',
-          background: 'linear-gradient(45deg, #007bff, #28a745)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontWeight: 'bold'
-        }}>
-          WillpowerFitness AI 🏋️
-        </h1>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }}>
+          <img 
+            src="/attached_assets/WillPowerFitness Profile Image_1751335061013.png" 
+            alt="WillpowerFitness Logo" 
+            style={{ 
+              height: '80px', 
+              marginRight: '1rem',
+              filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
+            }} 
+          />
+          <h1 style={{ 
+            fontSize: '2.5rem', 
+            margin: '0',
+            background: 'linear-gradient(45deg, #007bff, #28a745)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            fontWeight: 'bold'
+          }}>
+            AI Coach
+          </h1>
+        </div>
         <p style={{ fontSize: '1.2rem', color: '#666', margin: 0 }}>
           Your Personal AI Fitness Coach
         </p>

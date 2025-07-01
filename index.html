@@ -342,16 +342,31 @@
             key: 'header',
             style: { textAlign: 'center', marginBottom: '2rem' }
           }, [
-            React.createElement('h1', {
-              key: 'title',
-              style: { 
-                fontSize: '2.5rem', 
-                margin: '0 0 0.5rem 0',
-                color: 'white',
-                fontWeight: 'bold',
-                textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
-              }
-            }, 'WillpowerFitness AI 🏋️'),
+            React.createElement('div', {
+              key: 'logo-header',
+              style: { display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.5rem' }
+            }, [
+              React.createElement('img', {
+                key: 'logo',
+                src: '/attached_assets/WillPowerFitness Profile Image_1751335061013.png',
+                alt: 'WillpowerFitness Logo',
+                style: { 
+                  height: '80px', 
+                  marginRight: '1rem',
+                  filter: 'drop-shadow(2px 2px 4px rgba(0,0,0,0.3))'
+                }
+              }),
+              React.createElement('h1', {
+                key: 'title',
+                style: { 
+                  fontSize: '2.5rem', 
+                  margin: '0',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
+                }
+              }, 'AI Coach')
+            ]),
             React.createElement('p', {
               key: 'subtitle',
               style: { fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', margin: 0 }
