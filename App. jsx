@@ -3,10 +3,12 @@ import { useState } from 'react';
 import Login from './components/lib/Login';
 import ChatBox from './components/lib/ChatBox';
 import ContactForm from './components/pages/ContactForm';
+import VideoLibrary from './components/lib/VideoLibrary';
+import FileManager from './components/lib/FileManager';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [currentView, setCurrentView] = useState('home'); // 'home', 'contact', 'chat'
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'contact', 'chat', 'videos', 'files'
 
   return (
     <div style={{ 
@@ -45,12 +47,11 @@ function App() {
         </p>
 
         {/* Navigation */}
-        <div style={{ marginTop: '1rem' }}>
+        <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }}>
           <button
             onClick={() => setCurrentView('home')}
             style={{
               padding: '0.5rem 1rem',
-              margin: '0 0.5rem',
               backgroundColor: currentView === 'home' ? '#007bff' : '#6c757d',
               color: 'white',
               border: 'none',
@@ -59,13 +60,12 @@ function App() {
               fontSize: '0.9rem'
             }}
           >
-            AI Chat
+            🤖 AI Chat
           </button>
           <button
             onClick={() => setCurrentView('contact')}
             style={{
               padding: '0.5rem 1rem',
-              margin: '0 0.5rem',
               backgroundColor: currentView === 'contact' ? '#28a745' : '#6c757d',
               color: 'white',
               border: 'none',
@@ -74,13 +74,45 @@ function App() {
               fontSize: '0.9rem'
             }}
           >
-            Get Personal Plan
+            📋 Get Personal Plan
+          </button>
+          <button
+            onClick={() => setCurrentView('videos')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: currentView === 'videos' ? '#17a2b8' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            🎬 Video Library
+          </button>
+          <button
+            onClick={() => setCurrentView('files')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: currentView === 'files' ? '#6f42c1' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            📁 Files
           </button>
         </div>
       </div>
 
       {currentView === 'contact' ? (
         <ContactForm />
+      ) : currentView === 'videos' ? (
+        <VideoLibrary user={user} />
+      ) : currentView === 'files' ? (
+        <FileManager user={user} />
       ) : !user ? (
         <Login onLogin={setUser} />
       ) : (

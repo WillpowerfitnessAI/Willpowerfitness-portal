@@ -556,6 +556,162 @@ def get_leads():
         "active_customers": len(customers)
     })
 
+@app.route("/api/videos", methods=["GET"])
+def get_videos():
+    """Get list of workout videos"""
+    # Sample video library - you can expand this
+    videos = [
+        {
+            "id": 1,
+            "title": "Full Body Beginner Workout",
+            "description": "Perfect for those starting their fitness journey",
+            "duration": "20 mins",
+            "category": "beginner",
+            "thumbnail": "/attached_assets/video_thumb_1.jpg",
+            "url": "/attached_assets/workout_beginner.mp4"
+        },
+        {
+            "id": 2,
+            "title": "HIIT Cardio Blast",
+            "description": "High-intensity interval training for fat burn",
+            "duration": "15 mins",
+            "category": "cardio",
+            "thumbnail": "/attached_assets/video_thumb_2.jpg", 
+            "url": "/attached_assets/workout_hiit.mp4"
+        },
+        {
+            "id": 3,
+            "title": "Strength Training Upper Body",
+            "description": "Build muscle in your arms, chest, and back",
+            "duration": "30 mins",
+            "category": "strength",
+            "thumbnail": "/attached_assets/video_thumb_3.jpg",
+            "url": "/attached_assets/workout_strength.mp4"
+        }
+    ]
+    
+    category = request.args.get('category', 'all')
+    if category != 'all':
+        videos = [v for v in videos if v['category'] == category]
+    
+    return jsonify({"videos": videos})
+
+@app.route("/api/upload", methods=["POST"])
+def upload_file():
+    """Handle file uploads (progress photos, documents, etc.)"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "No file provided"}), 400
+        
+        file = request.files['file']
+        user_id = request.form.get('user_id', 'default')
+        file_type = request.form.get('type', 'general')  # 'progress_photo', 'document', 'meal_plan'
+        
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
+        
+        # Save file info to database
+        timestamp = datetime.utcnow().isoformat()
+        file_key = f"upload:{user_id}:{timestamp}:{file.filename}"
+        
+        # In a real implementation, you'd save to Object Storage
+        # For now, we'll save metadata to our in-memory db
+        db[file_key] = {
+            "filename": file.filename,
+            "type": file_type,
+            "user_id": user_id,
+            "timestamp": timestamp,
+            "size": len(file.read())
+        }
+        
+        return jsonify({
+            "success": True,
+            "file_id": file_key,
+            "message": f"File '{file.filename}' uploaded successfully"
+        })
+        
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return jsonify({"error": "Upload failed"}), 500
+
+@app.route("/api/downloads/<user_id>", methods=["GET"])
+def get_user_downloads(user_id):
+    """Get downloadable files for a user (workout plans, progress reports)"""
+    try:
+        # Generate personalized workout plan
+        user_name = db.get(f"user:{user_id}:name", "Friend")
+        user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
+        
+        downloads = [
+            {
+                "id": 1,
+                "title": f"{user_name}'s Personalized Workout Plan",
+                "description": f"Custom workout plan for {user_goal}",
+                "type": "pdf",
+                "size": "2.1 MB",
+                "created": datetime.utcnow().isoformat(),
+                "download_url": f"/api/generate-workout-plan/{user_id}"
+            },
+            {
+                "id": 2,
+                "title": "Nutrition Guidelines",
+                "description": "Complete nutrition guide with meal suggestions",
+                "type": "pdf",
+                "size": "1.8 MB",
+                "created": datetime.utcnow().isoformat(),
+                "download_url": "/api/generate-nutrition-guide"
+            },
+            {
+                "id": 3,
+                "title": "Progress Tracking Sheet",
+                "description": "Track your workouts and measurements",
+                "type": "pdf",
+                "size": "0.5 MB",
+                "created": datetime.utcnow().isoformat(),
+                "download_url": "/api/generate-progress-tracker"
+            }
+        ]
+        
+        return jsonify({"downloads": downloads})
+        
+    except Exception as e:
+        print(f"Downloads error: {e}")
+        return jsonify({"error": "Failed to get downloads"}), 500
+
+@app.route("/api/generate-workout-plan/<user_id>", methods=["GET"])
+def generate_workout_plan(user_id):
+    """Generate and return a personalized workout plan"""
+    try:
+        user_name = db.get(f"user:{user_id}:name", "Friend")
+        user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
+        
+        # Generate AI workout plan
+        plan_prompt = f"""
+        Create a detailed 4-week workout plan for {user_name} whose goal is {user_goal}.
+        Include:
+        - Weekly schedule (3-4 workouts per week)
+        - Specific exercises with sets/reps
+        - Progressive overload recommendations
+        - Rest day activities
+        - Nutrition tips
+        
+        Format it as a comprehensive PDF-ready document.
+        """
+        
+        workout_plan = ask_groq_ai(plan_prompt, user_id)
+        
+        # In a real implementation, you'd generate an actual PDF
+        # For now, return the text content
+        return {
+            "content_type": "text/plain",
+            "filename": f"{user_name}_workout_plan.txt",
+            "content": workout_plan
+        }
+        
+    except Exception as e:
+        print(f"Workout plan generation error: {e}")
+        return jsonify({"error": "Failed to generate workout plan"}), 500
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
