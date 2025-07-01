@@ -147,9 +147,19 @@ def home():
 def attached_assets(filename):
     """Serve files from attached_assets directory"""
     from flask import send_from_directory
+    import os
     try:
-        return send_from_directory('attached_assets', filename)
+        # Handle nested paths like videos/filename.mp4
+        if '/' in filename:
+            directory_parts = filename.split('/')
+            subdirectory = '/'.join(directory_parts[:-1])
+            file_name = directory_parts[-1]
+            full_path = os.path.join('attached_assets', subdirectory)
+            return send_from_directory(full_path, file_name)
+        else:
+            return send_from_directory('attached_assets', filename)
     except FileNotFoundError:
+        print(f"File not found: attached_assets/{filename}")
         return "File not found", 404
 
 @app.route("/api/chat", methods=["POST"])
@@ -568,10 +578,10 @@ def get_videos():
             "duration": "20 mins",
             "category": "beginner",
             "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "/attached_assets/videos/beginner_workout.mp4",
+            "url": "https://sample-videos.com/zip/10/mp4/480/SampleVideo_1280x720_1mb.mp4",
             "instructor": "Will Power",
             "difficulty": "Beginner"
-        },
+        },</old_str>
         {
             "id": 2,
             "title": "HIIT Cardio Blast",
@@ -579,10 +589,10 @@ def get_videos():
             "duration": "15 mins",
             "category": "cardio",
             "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png", 
-            "url": "/attached_assets/videos/hiit_cardio.mp4",
+            "url": "https://sample-videos.com/zip/10/mp4/480/SampleVideo_1280x720_2mb.mp4",
             "instructor": "Will Power",
             "difficulty": "Intermediate"
-        },
+        },</old_str>
         {
             "id": 3,
             "title": "Strength Training Upper Body",
