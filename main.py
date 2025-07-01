@@ -31,58 +31,73 @@ if SUPABASE_KEY:
     except Exception as e:
         print(f"Supabase initialization failed: {e}")
 
+def get_user_context(user_id):
+    """Load comprehensive user context and history"""
+    context = {
+        'name': db.get(f"user:{user_id}:name", "Friend"),
+        'goal': db.get(f"user:{user_id}:goal", "your fitness goals"),
+        'source': db.get(f"user:{user_id}:source", "website"),
+        'history': db.get(f"user:{user_id}:messages", []),
+        'preferences': db.get(f"user:{user_id}:preferences", {}),
+        'challenges': db.get(f"user:{user_id}:challenges", []),
+        'wins': db.get(f"user:{user_id}:wins", [])
+    }
+    return context
+
 def ask_groq_ai(user_input, user_id="default"):
     """Main AI function that handles personalized responses with memory"""
     if not GROQ_API_KEY:
         return "Error: GROQ_API_KEY environment variable not set. Please configure it in your deployment settings."
 
-    # Memory keys
-    name_key = f"user:{user_id}:name"
-    goal_key = f"user:{user_id}:goal"
-    messages_key = f"user:{user_id}:messages"
-
-    # Load from memory or fallback
-    name = db.get(name_key, "Friend")
-    goal = db.get(goal_key, "your fitness goals")
-    history = db.get(messages_key, [])
+    # Load comprehensive user context
+    user_context = get_user_context(user_id)
+    name = user_context['name']
+    goal = user_context['goal']
+    history = user_context['history']
 
     # Save new user message
     history.append({"role": "user", "content": user_input})
 
     # Build proper messages array for Groq API
     messages = [
-        {"role": "system", "content": f"""You are Will Power, founder of WillpowerFitness - an experienced personal trainer and fitness coach working with {name} whose goal is {goal}.
+        {"role": "system", "content": f"""You are Will Power, founder of WillpowerFitness - an experienced personal trainer and fitness coach. You are currently working with {name} whose goal is {goal}.
 
-YOUR AUTHENTIC PERSONALITY:
-- JOCULAR & WARM: Use humor appropriately, be genuinely friendly and approachable
-- ENCOURAGING: Always find the positive, celebrate every victory (big or small)
-- FOCUSED: Cut through the noise - give clear, actionable advice without fluff
-- EXPERIENCED WISDOM: Draw from years of training experience and understanding of what works
-- SCIENCE-BASED: Base recommendations on proven fitness methods and sound principles
-- TRAINER'S ACCOUNTABILITY: Hold people accountable with care, not judgment
+CRITICAL: ALWAYS address {name} BY NAME. Never call them "friend" or generic terms. This is {name} and you know them personally.
 
-YOUR COMMUNICATION STYLE:
-- Speak like you KNOW this person - reference their goals, acknowledge their journey
-- Balance warmth with no-nonsense directness
-- Use "we" language to show you're on their team
-- Ask pointed questions that make them think
-- Give specific, immediately actionable steps
-- Focus on the mind-body connection for complete wellness
-- Celebrate progress and redirect setbacks with encouragement
+YOUR AUTHENTIC PERSONALITY - BE LIKE THE REAL WILL POWER:
+- CRITICAL THINKER: Question assumptions, dig deeper, challenge limiting beliefs with logic
+- JOKESTER WITH PURPOSE: Use humor strategically - lighten the mood but keep it real and productive
+- SERIOUS WHEN NEEDED: Know when to drop the jokes and get down to business
+- INSPIRATIONAL REALIST: Motivate with truth, not just empty positivity - show them what's actually possible
+- DIRECT & HONEST: Call out excuses respectfully, push when needed, celebrate real progress
+- MEMORY MASTER: Remember everything about {name} - their struggles, wins, patterns, preferences
 
-YOUR APPROACH:
-- Meet people where they are, not where you think they should be
-- Combine motivational coaching with practical fitness science
-- Use your training background to explain WHY behind the WHAT
-- Show genuine care for their whole wellness journey, not just their physical goals
-- Hold them accountable with the heart of a coach and precision of an expert
+YOUR COMMUNICATION STYLE WITH {name}:
+- Always use {name}'s name frequently in conversation - make it personal
+- Think critically about their challenges and offer solutions that actually work
+- Use appropriate humor to keep them engaged, but stay focused on results
+- Be inspirational through honest assessment of their potential
+- Remember their history and reference past conversations
+- Ask probing questions that make them think deeper about their habits
+- Give specific, science-based advice they can actually implement
+- Balance being supportive with being real about what needs to change
 
-Remember: You're an experienced fitness coach who genuinely cares about helping people transform their lives through fitness, nutrition, and healthy habits."""}
+REMEMBER ABOUT {name}:
+- Their goal: {goal}
+- Always reference their specific journey and previous conversations
+- Build on what you know about their preferences, challenges, and progress
+- Make every interaction feel like you genuinely know and care about them
+
+Be the coach who combines critical thinking, strategic humor, serious dedication, and authentic inspiration. This is {name} - treat them like the individual they are, not a generic client."""}
     ]
 
-    # Add recent conversation history
-    for msg in history[-50:]:  # Last 50 messages for context
+    # Add recent conversation history with better context
+    for msg in history[-30:]:  # Last 30 messages for better context management
         messages.append({"role": msg["role"], "content": msg["content"]})
+    
+    # Add a reminder about the user's identity and history
+    if len(history) > 5:  # If there's conversation history
+        messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them."})
 
     try:
         response = requests.post(
@@ -220,9 +235,10 @@ def onboard():
 
         # Build welcome message
         welcome_message = (
-            f"Hey {name}! 👋 Thanks for joining WillpowerFitness AI via {source}.\n"
-            f"I've logged your goal: *{goal}*. I'm here to guide your journey 💪\n"
-            "Okay! let get it! Tell me what want and we will get started!"
+            f"What's up, {name}! 👋 Will Power here - welcome to WillpowerFitness AI via {source}.\n"
+            f"I've got your goal locked in: *{goal}*. Now here's the thing - I'm not your typical 'rah-rah' trainer. "
+            f"I'm going to challenge how you think about fitness, crack some jokes to keep it fun, but when it's time to work, we get SERIOUS about results. 💪\n"
+            f"So {name}, let's cut through the BS and figure out what's really going to move the needle for you. What's your biggest challenge right now?"
         )
 
         return jsonify({"message": welcome_message}), 200
