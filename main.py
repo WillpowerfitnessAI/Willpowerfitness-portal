@@ -82,7 +82,7 @@ Remember: You're not just a trainer - you're a minister who cares about their wh
     ]
     
     # Add recent conversation history
-    for msg in history[-10:]:  # Last 10 messages for context
+    for msg in history[-50:]:  # Last 50 messages for context
         messages.append({"role": msg["role"], "content": msg["content"]})
 
     try:
