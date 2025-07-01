@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -163,7 +164,7 @@
 
         if (loading) {
           return React.createElement('div', {
-            style: { textAlign: 'center', padding: '2rem' }
+            style: { textAlign: 'center', padding: '2rem', color: 'white' }
           }, 'Loading videos...');
         }
 
@@ -420,7 +421,9 @@
         const [messages, setMessages] = useState([]);
         const [input, setInput] = useState('');
         const [loading, setLoading] = useState(false);
+        const [isListening, setIsListening] = useState(false);
         const messagesEndRef = useRef(null);
+        const recognitionRef = useRef(null);
 
         useEffect(() => {
           if (user.welcomeMessage) {
@@ -435,6 +438,39 @@
         useEffect(() => {
           messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
         }, [messages]);
+
+        useEffect(() => {
+          if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = false;
+            recognitionRef.current.lang = 'en-US';
+
+            recognitionRef.current.onresult = (event) => {
+              const transcript = event.results[0][0].transcript;
+              setInput(transcript);
+              setIsListening(false);
+            };
+
+            recognitionRef.current.onerror = () => {
+              setIsListening(false);
+            };
+
+            recognitionRef.current.onend = () => {
+              setIsListening(false);
+            };
+          }
+        }, []);
+
+        const startListening = () => {
+          if (recognitionRef.current) {
+            setIsListening(true);
+            recognitionRef.current.start();
+          } else {
+            alert('Speech recognition is not supported in your browser');
+          }
+        };
 
         const sendMessage = async (e) => {
           e.preventDefault();
@@ -581,6 +617,23 @@
                 }
               }),
               React.createElement('button', {
+                key: 'mic-btn',
+                type: 'button',
+                onClick: startListening,
+                disabled: loading || isListening,
+                style: {
+                  padding: '0.75rem',
+                  backgroundColor: isListening ? '#dc3545' : '#6f42c1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '50%',
+                  cursor: loading || isListening ? 'not-allowed' : 'pointer',
+                  fontSize: '1.2rem',
+                  width: '50px',
+                  height: '50px'
+                }
+              }, isListening ? '🔴' : '🎤'),
+              React.createElement('button', {
                 key: 'send-btn',
                 type: 'submit',
                 disabled: loading || !input.trim(),
@@ -601,6 +654,7 @@
 
       function App() {
         const [user, setUser] = useState(null);
+        const [currentView, setCurrentView] = useState('home');
 
         return React.createElement('div', {
           style: { 
@@ -641,9 +695,69 @@
             React.createElement('p', {
               key: 'subtitle',
               style: { fontSize: '1.2rem', color: 'rgba(255,255,255,0.9)', margin: 0 }
-            }, 'Your Personal AI Fitness Coach')
+            }, 'Your Personal AI Fitness Coach'),
+
+            // Navigation buttons
+            React.createElement('div', {
+              key: 'navigation',
+              style: { 
+                marginTop: '1rem', 
+                display: 'flex', 
+                flexWrap: 'wrap', 
+                justifyContent: 'center', 
+                gap: '0.5rem' 
+              }
+            }, [
+              React.createElement('button', {
+                key: 'home-btn',
+                onClick: () => setCurrentView('home'),
+                style: {
+                  padding: '0.5rem 1rem',
+                  backgroundColor: currentView === 'home' ? '#007bff' : 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '2px solid white',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold'
+                }
+              }, '🤖 AI Chat'),
+              React.createElement('button', {
+                key: 'contact-btn',
+                onClick: () => setCurrentView('contact'),
+                style: {
+                  padding: '0.5rem 1rem',
+                  backgroundColor: currentView === 'contact' ? '#28a745' : 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '2px solid white',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold'
+                }
+              }, '📋 Get Personal Plan'),
+              React.createElement('button', {
+                key: 'videos-btn',
+                onClick: () => setCurrentView('videos'),
+                style: {
+                  padding: '0.5rem 1rem',
+                  backgroundColor: currentView === 'videos' ? '#17a2b8' : 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '2px solid white',
+                  borderRadius: '20px',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  fontWeight: 'bold'
+                }
+              }, '🎬 Video Library')
+            ])
           ]),
 
+          // Content based on current view
+          currentView === 'contact' ? 
+            React.createElement(ContactForm, { key: 'contact' }) :
+          currentView === 'videos' ?
+            React.createElement(VideoLibrary, { key: 'videos' }) :
           !user ? 
             React.createElement(Login, { key: 'login', onLogin: setUser }) :
             React.createElement('div', { key: 'chat-container' }, [
