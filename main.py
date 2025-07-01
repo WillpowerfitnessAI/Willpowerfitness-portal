@@ -143,6 +143,15 @@ def home():
     except FileNotFoundError:
         return "WillpowerFitness AI is live!", 200
 
+@app.route("/attached_assets/<path:filename>")
+def attached_assets(filename):
+    """Serve files from attached_assets directory"""
+    from flask import send_from_directory
+    try:
+        return send_from_directory('attached_assets', filename)
+    except FileNotFoundError:
+        return "File not found", 404
+
 @app.route("/api/chat", methods=["POST"])
 def chat():
     try:

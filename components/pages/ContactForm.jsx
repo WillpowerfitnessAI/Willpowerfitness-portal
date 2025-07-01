@@ -79,7 +79,7 @@ function ContactForm() {
     }}>
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
         <img 
-          src="/attached_assets/WillPowerFitness Profile Image_1751335061013.png" 
+          src="/attached_assets/WillPowerFitness%20Profile%20Image_1751335061013.png" 
           alt="WillpowerFitness Logo" 
           style={{ 
             height: '60px', 
