@@ -1,4 +1,3 @@
-
 import os
 import requests
 import stripe
@@ -36,7 +35,7 @@ def ask_groq_ai(user_input, user_id="default"):
     """Main AI function that handles personalized responses with memory"""
     if not GROQ_API_KEY:
         return "Error: GROQ_API_KEY environment variable not set. Please configure it in your deployment settings."
-    
+
     # Memory keys
     name_key = f"user:{user_id}:name"
     goal_key = f"user:{user_id}:goal"
@@ -80,7 +79,7 @@ YOUR APPROACH:
 
 Remember: You're not just a trainer - you're a minister who cares about their whole life, an academic who understands the science, and a coach who's walked this journey with many others."""}
     ]
-    
+
     # Add recent conversation history
     for msg in history[-50:]:  # Last 50 messages for context
         messages.append({"role": msg["role"], "content": msg["content"]})
@@ -99,13 +98,13 @@ Remember: You're not just a trainer - you're a minister who cares about their wh
                 "max_tokens": 500
             }
         )
-        
+
         if response.status_code == 200:
             reply = response.json()['choices'][0]['message']['content']
         else:
             print(f"Groq API Error: {response.status_code} - {response.text}")
             reply = "Sorry, I'm having trouble connecting to the AI service right now. Try again!"
-            
+
     except Exception as e:
         print(f"Error calling Groq API: {e}")
         reply = f"Sorry, there was a problem generating a response. Please try again."
@@ -168,7 +167,7 @@ def chat():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
-            
+
         user_input = data.get("message", "").strip()
         user_id = data.get("user_id", "default")
 
@@ -207,7 +206,7 @@ def onboard():
         data = request.get_json()
         if not data:
             return jsonify({"error": "No JSON data received"}), 400
-            
+
         user_id = data.get("user_id", "default")
         name = data.get("name", "client").strip().split()[0] if data.get("name") else "client"
         goal = data.get("goal", "your fitness goals")
@@ -245,24 +244,24 @@ def webhook():
 def thumbtack_inquiry():
     """Handle Thumbtack fitness training inquiries"""
     data = request.get_json()
-    
+
     customer_name = data.get("customer_name", "Friend")
     customer_email = data.get("customer_email")
     inquiry_message = data.get("message", "I'm interested in personal training")
-    
+
     # Generate payment link
     payment_link = create_stripe_payment_link(customer_email, customer_name)
-    
+
     # Generate AI response for consultation offer
     ai_response = ask_groq_ai(
         f"A potential client named {customer_name} contacted us through Thumbtack with this inquiry: '{inquiry_message}'. Respond professionally offering either AI coaching consultation or human trainer consultation, and explain our $225/month membership program. Include this payment link in your response: {payment_link}",
         customer_email or "thumbtack_lead"
     )
-    
+
     # Store lead info
     db[f"lead:{customer_email}:source"] = "thumbtack"
     db[f"lead:{customer_email}:status"] = "consultation_offered"
-    
+
     return jsonify({
         "reply": ai_response,
         "payment_link": payment_link,
@@ -274,25 +273,25 @@ def thumbtack_inquiry():
 def sms_inquiry():
     """Handle SMS/text message fitness inquiries"""
     data = request.get_json()
-    
+
     phone_number = data.get("from_number")
     message_body = data.get("body", "")
     sender_name = data.get("sender_name", "Friend")
-    
+
     # Generate payment link (use phone as identifier)
     payment_link = create_stripe_payment_link(phone_number, sender_name)
-    
+
     # Generate AI response
     ai_response = ask_groq_ai(
         f"Someone texted us about fitness training. Message: '{message_body}'. Respond professionally offering consultation options and our $225/month membership. Include this payment link: {payment_link}",
         phone_number
     )
-    
+
     # Store lead
     db[f"lead:{phone_number}:source"] = "sms"
     db[f"lead:{phone_number}:inquiry"] = message_body
     db[f"lead:{phone_number}:status"] = "consultation_offered"
-    
+
     return jsonify({
         "reply": ai_response,
         "send_to": phone_number,
@@ -304,21 +303,21 @@ def sms_inquiry():
 def email_inquiry():
     """Handle email fitness inquiries"""
     data = request.get_json()
-    
+
     sender_email = data.get("from_email")
     subject = data.get("subject", "")
     email_body = data.get("body", "")
-    
+
     # Generate AI response
     ai_response = ask_groq_ai(
         f"Someone emailed us about fitness training. Subject: '{subject}', Message: '{email_body}'. Respond professionally offering consultation options and our $225/month membership.",
         sender_email
     )
-    
+
     # Store lead
     db[f"lead:{sender_email}:source"] = "email"
     db[f"lead:{sender_email}:inquiry"] = email_body
-    
+
     return jsonify({
         "reply": ai_response,
         "send_to": sender_email,
@@ -329,26 +328,26 @@ def email_inquiry():
 def book_consultation():
     """Handle consultation booking requests"""
     data = request.get_json()
-    
+
     customer_email = data.get("customer_email")
     consultation_type = data.get("type", "ai")  # "ai" or "human"
     preferred_time = data.get("preferred_time")
     customer_name = data.get("customer_name", "Friend")
-    
+
     # Generate payment link
     payment_link = create_stripe_payment_link(customer_email, customer_name)
-    
+
     if consultation_type == "ai":
         response = f"Great! I can start your AI fitness consultation right now, but first please secure your $225/month membership to access all features: {payment_link}"
         next_action = "payment_required"
     else:
         response = f"I've scheduled your consultation with one of our human trainers for {preferred_time}. To complete your booking, please secure your spot with our $225/month membership: {payment_link}"
         next_action = "payment_required"
-    
+
     # Update lead status
     db[f"lead:{customer_email}:consultation_type"] = consultation_type
     db[f"lead:{customer_email}:status"] = "consultation_booked"
-    
+
     return jsonify({
         "reply": response,
         "next_action": next_action,
@@ -359,22 +358,22 @@ def book_consultation():
 def stripe_payment_success():
     """Handle successful Stripe payments"""
     data = request.get_json()
-    
+
     customer_email = data.get("customer_email")
     subscription_id = data.get("subscription_id")
     amount = data.get("amount", 225)
-    
+
     # Update customer status
     db[f"customer:{customer_email}:subscription_id"] = subscription_id
     db[f"customer:{customer_email}:status"] = "active_member"
     db[f"customer:{customer_email}:monthly_amount"] = amount
-    
+
     # Generate welcome message for paying customer
     welcome_message = ask_groq_ai(
         f"A new customer just paid ${amount}/month for our fitness coaching program! Send them an enthusiastic welcome message and ask them to tell me about their fitness goals so we can create their personalized training plan.",
         customer_email
     )
-    
+
     return jsonify({
         "reply": welcome_message,
         "customer_status": "active_member",
@@ -385,7 +384,7 @@ def create_stripe_payment_link(customer_email, customer_name="Customer"):
     """Create a Stripe payment link for the fitness membership"""
     if not STRIPE_SECRET_KEY:
         return "https://willpowerfitness.com/payment"  # Fallback URL
-    
+
     try:
         # Create or retrieve customer
         customers = stripe.Customer.list(email=customer_email, limit=1)
@@ -397,7 +396,7 @@ def create_stripe_payment_link(customer_email, customer_name="Customer"):
                 name=customer_name,
                 metadata={"source": "willpowerfitness_ai"}
             )
-        
+
         # Create payment link for $225/month subscription
         payment_link = stripe.PaymentLink.create(
             line_items=[{
@@ -419,7 +418,7 @@ def create_stripe_payment_link(customer_email, customer_name="Customer"):
                 'customer_name': customer_name
             }
         )
-        
+
         return payment_link.url
     except Exception as e:
         print(f"Stripe error: {e}")
@@ -430,7 +429,7 @@ def stripe_webhook():
     """Handle Stripe webhook events"""
     payload = request.get_data()
     sig_header = request.headers.get('Stripe-Signature')
-    
+
     try:
         # Verify webhook signature if you have webhook secret
         event = stripe.Event.construct_from(
@@ -439,67 +438,67 @@ def stripe_webhook():
     except Exception as e:
         print(f"Webhook error: {e}")
         return jsonify({"error": "Invalid payload"}), 400
-    
+
     # Handle successful payment
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         customer_email = session.get('customer_details', {}).get('email')
-        
+
         if customer_email:
             # Generate welcome message for new member
             welcome_message = ask_groq_ai(
                 "A new customer just paid $225/month for our fitness coaching program! Send them an enthusiastic welcome message and ask them to tell me about their fitness goals so we can create their personalized training plan.",
                 customer_email
             )
-            
+
             # Update customer status
             db[f"customer:{customer_email}:subscription_id"] = session.get('subscription')
             db[f"customer:{customer_email}:status"] = "active_member"
             db[f"customer:{customer_email}:monthly_amount"] = 225
-            
+
             # You can send email here or trigger Zapier webhook
             # For now, we'll just log it
             print(f"New member: {customer_email} - Welcome message: {welcome_message}")
-    
+
     return jsonify({"status": "success"}), 200
 
 @app.route("/api/lead-capture", methods=["POST"])
 def lead_capture():
     """Handle lead capture form submissions from website"""
     data = request.get_json()
-    
+
     customer_name = data.get("name", "Friend")
     customer_email = data.get("email")
     customer_phone = data.get("phone", "")
     goals = data.get("goals", "general fitness")
     experience = data.get("experience", "beginner")
     message = data.get("message", "")
-    
+
     if not customer_email:
         return jsonify({"error": "Email is required"}), 400
-    
+
     # Generate payment link
     payment_link = create_stripe_payment_link(customer_email, customer_name)
-    
+
     # Create personalized AI consultation response
     consultation_prompt = f"""
     A potential client named {customer_name} submitted a fitness consultation request:
     - Goals: {goals}
     - Experience: {experience}
     - Message: {message}
-    
+
     Create a personalized, professional response that:
     1. Addresses their specific goals and experience level
     2. Explains how our AI coaching can help them
     3. Mentions our $225/month membership program
     4. Includes this payment link: {payment_link}
     5. Creates excitement about their fitness transformation
-    
+
     Keep it encouraging, professional, and action-oriented.
     """
-    
+
     ai_response = ask_groq_ai(consultation_prompt, customer_email)
-    
+
     # Store comprehensive lead info
     timestamp = datetime.utcnow().isoformat()
     db[f"lead:{customer_email}:name"] = customer_name
@@ -511,7 +510,7 @@ def lead_capture():
     db[f"lead:{customer_email}:status"] = "consultation_sent"
     db[f"lead:{customer_email}:timestamp"] = timestamp
     db[f"lead:{customer_email}:ai_response"] = ai_response
-    
+
     # Save to Supabase if available
     if supabase:
         try:
@@ -530,7 +529,7 @@ def lead_capture():
             }).execute()
         except Exception as e:
             print(f"Error saving lead to Supabase: {e}")
-    
+
     return jsonify({
         "success": True,
         "message": "Lead captured successfully",
@@ -544,7 +543,7 @@ def get_leads():
     """Get all leads and customers for admin dashboard"""
     leads = {}
     customers = {}
-    
+
     for key, value in db.items():
         if key.startswith("lead:"):
             email = key.split(":")[1]
@@ -558,7 +557,7 @@ def get_leads():
                 customers[email] = {}
             field = key.split(":")[2]
             customers[email][field] = value
-    
+
     return jsonify({
         "leads": leads,
         "customers": customers,
@@ -581,7 +580,7 @@ def get_videos():
             "url": "https://sample-videos.com/zip/10/mp4/480/SampleVideo_1280x720_1mb.mp4",
             "instructor": "Will Power",
             "difficulty": "Beginner"
-        },</old_str>
+        },
         {
             "id": 2,
             "title": "HIIT Cardio Blast",
@@ -592,7 +591,7 @@ def get_videos():
             "url": "https://sample-videos.com/zip/10/mp4/480/SampleVideo_1280x720_2mb.mp4",
             "instructor": "Will Power",
             "difficulty": "Intermediate"
-        },</old_str>
+        },
         {
             "id": 3,
             "title": "Strength Training Upper Body",
@@ -638,11 +637,11 @@ def get_videos():
             "difficulty": "Advanced"
         }
     ]
-    
+
     category = request.args.get('category', 'all')
     if category != 'all':
         videos = [v for v in videos if v['category'] == category]
-    
+
     return jsonify({"videos": videos})
 
 @app.route("/api/upload", methods=["POST"])
@@ -651,18 +650,18 @@ def upload_file():
     try:
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"}), 400
-        
+
         file = request.files['file']
         user_id = request.form.get('user_id', 'default')
         file_type = request.form.get('type', 'general')  # 'progress_photo', 'document', 'meal_plan'
-        
+
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
-        
+
         # Save file info to database
         timestamp = datetime.utcnow().isoformat()
         file_key = f"upload:{user_id}:{timestamp}:{file.filename}"
-        
+
         # In a real implementation, you'd save to Object Storage
         # For now, we'll save metadata to our in-memory db
         db[file_key] = {
@@ -672,13 +671,13 @@ def upload_file():
             "timestamp": timestamp,
             "size": len(file.read())
         }
-        
+
         return jsonify({
             "success": True,
             "file_id": file_key,
             "message": f"File '{file.filename}' uploaded successfully"
         })
-        
+
     except Exception as e:
         print(f"Upload error: {e}")
         return jsonify({"error": "Upload failed"}), 500
@@ -690,7 +689,7 @@ def get_user_downloads(user_id):
         # Generate personalized workout plan
         user_name = db.get(f"user:{user_id}:name", "Friend")
         user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
-        
+
         downloads = [
             {
                 "id": 1,
@@ -720,9 +719,9 @@ def get_user_downloads(user_id):
                 "download_url": "/api/generate-progress-tracker"
             }
         ]
-        
+
         return jsonify({"downloads": downloads})
-        
+
     except Exception as e:
         print(f"Downloads error: {e}")
         return jsonify({"error": "Failed to get downloads"}), 500
@@ -733,7 +732,7 @@ def generate_workout_plan(user_id):
     try:
         user_name = db.get(f"user:{user_id}:name", "Friend")
         user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
-        
+
         # Generate AI workout plan
         plan_prompt = f"""
         Create a detailed 4-week workout plan for {user_name} whose goal is {user_goal}.
@@ -743,12 +742,12 @@ def generate_workout_plan(user_id):
         - Progressive overload recommendations
         - Rest day activities
         - Nutrition tips
-        
+
         Format it as a comprehensive PDF-ready document.
         """
-        
+
         workout_plan = ask_groq_ai(plan_prompt, user_id)
-        
+
         # In a real implementation, you'd generate an actual PDF
         # For now, return the text content
         return {
@@ -756,7 +755,7 @@ def generate_workout_plan(user_id):
             "filename": f"{user_name}_workout_plan.txt",
             "content": workout_plan
         }
-        
+
     except Exception as e:
         print(f"Workout plan generation error: {e}")
         return jsonify({"error": "Failed to generate workout plan"}), 500
