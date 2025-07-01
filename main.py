@@ -564,29 +564,68 @@ def get_videos():
         {
             "id": 1,
             "title": "Full Body Beginner Workout",
-            "description": "Perfect for those starting their fitness journey",
+            "description": "Perfect for those starting their fitness journey - no equipment needed!",
             "duration": "20 mins",
             "category": "beginner",
-            "thumbnail": "/attached_assets/video_thumb_1.jpg",
-            "url": "/attached_assets/workout_beginner.mp4"
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
+            "url": "/attached_assets/videos/beginner_workout.mp4",
+            "instructor": "Will Power",
+            "difficulty": "Beginner"
         },
         {
             "id": 2,
             "title": "HIIT Cardio Blast",
-            "description": "High-intensity interval training for fat burn",
+            "description": "High-intensity interval training for maximum fat burn",
             "duration": "15 mins",
             "category": "cardio",
-            "thumbnail": "/attached_assets/video_thumb_2.jpg", 
-            "url": "/attached_assets/workout_hiit.mp4"
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png", 
+            "url": "/attached_assets/videos/hiit_cardio.mp4",
+            "instructor": "Will Power",
+            "difficulty": "Intermediate"
         },
         {
             "id": 3,
             "title": "Strength Training Upper Body",
-            "description": "Build muscle in your arms, chest, and back",
+            "description": "Build muscle in your arms, chest, and back with progressive overload",
             "duration": "30 mins",
             "category": "strength",
-            "thumbnail": "/attached_assets/video_thumb_3.jpg",
-            "url": "/attached_assets/workout_strength.mp4"
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
+            "url": "/attached_assets/videos/strength_training.mp4",
+            "instructor": "Will Power",
+            "difficulty": "Intermediate"
+        },
+        {
+            "id": 4,
+            "title": "Core & Abs Destroyer",
+            "description": "Intense core workout to build a strong foundation",
+            "duration": "12 mins",
+            "category": "core",
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
+            "url": "/attached_assets/videos/core_workout.mp4",
+            "instructor": "Will Power",
+            "difficulty": "Intermediate"
+        },
+        {
+            "id": 5,
+            "title": "Flexibility & Mobility Flow",
+            "description": "Improve your range of motion and prevent injuries",
+            "duration": "25 mins",
+            "category": "flexibility",
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
+            "url": "/attached_assets/videos/flexibility_flow.mp4",
+            "instructor": "Will Power",
+            "difficulty": "Beginner"
+        },
+        {
+            "id": 6,
+            "title": "Lower Body Power",
+            "description": "Build strong legs and glutes with compound movements",
+            "duration": "35 mins",
+            "category": "strength",
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
+            "url": "/attached_assets/videos/lower_body_power.mp4",
+            "instructor": "Will Power",
+            "difficulty": "Advanced"
         }
     ]
     
