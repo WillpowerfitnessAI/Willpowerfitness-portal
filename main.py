@@ -418,6 +418,82 @@ def stripe_webhook():
     
     return jsonify({"status": "success"}), 200
 
+@app.route("/api/lead-capture", methods=["POST"])
+def lead_capture():
+    """Handle lead capture form submissions from website"""
+    data = request.get_json()
+    
+    customer_name = data.get("name", "Friend")
+    customer_email = data.get("email")
+    customer_phone = data.get("phone", "")
+    goals = data.get("goals", "general fitness")
+    experience = data.get("experience", "beginner")
+    message = data.get("message", "")
+    
+    if not customer_email:
+        return jsonify({"error": "Email is required"}), 400
+    
+    # Generate payment link
+    payment_link = create_stripe_payment_link(customer_email, customer_name)
+    
+    # Create personalized AI consultation response
+    consultation_prompt = f"""
+    A potential client named {customer_name} submitted a fitness consultation request:
+    - Goals: {goals}
+    - Experience: {experience}
+    - Message: {message}
+    
+    Create a personalized, professional response that:
+    1. Addresses their specific goals and experience level
+    2. Explains how our AI coaching can help them
+    3. Mentions our $225/month membership program
+    4. Includes this payment link: {payment_link}
+    5. Creates excitement about their fitness transformation
+    
+    Keep it encouraging, professional, and action-oriented.
+    """
+    
+    ai_response = ask_groq_ai(consultation_prompt, customer_email)
+    
+    # Store comprehensive lead info
+    timestamp = datetime.utcnow().isoformat()
+    db[f"lead:{customer_email}:name"] = customer_name
+    db[f"lead:{customer_email}:phone"] = customer_phone
+    db[f"lead:{customer_email}:goals"] = goals
+    db[f"lead:{customer_email}:experience"] = experience
+    db[f"lead:{customer_email}:message"] = message
+    db[f"lead:{customer_email}:source"] = "website_form"
+    db[f"lead:{customer_email}:status"] = "consultation_sent"
+    db[f"lead:{customer_email}:timestamp"] = timestamp
+    db[f"lead:{customer_email}:ai_response"] = ai_response
+    
+    # Save to Supabase if available
+    if supabase:
+        try:
+            supabase.table("leads").insert({
+                "email": customer_email,
+                "name": customer_name,
+                "phone": customer_phone,
+                "goals": goals,
+                "experience": experience,
+                "message": message,
+                "source": "website_form",
+                "status": "consultation_sent",
+                "ai_response": ai_response,
+                "payment_link": payment_link,
+                "timestamp": timestamp
+            }).execute()
+        except Exception as e:
+            print(f"Error saving lead to Supabase: {e}")
+    
+    return jsonify({
+        "success": True,
+        "message": "Lead captured successfully",
+        "ai_response": ai_response,
+        "payment_link": payment_link,
+        "next_action": "email_consultation_sent"
+    })
+
 @app.route("/api/leads", methods=["GET"])
 def get_leads():
     """Get all leads and customers for admin dashboard"""

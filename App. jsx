@@ -2,9 +2,11 @@
 import { useState } from 'react';
 import Login from './components/lib/Login';
 import ChatBox from './components/lib/ChatBox';
+import ContactForm from './components/pages/ContactForm';
 
 function App() {
   const [user, setUser] = useState(null);
+  const [currentView, setCurrentView] = useState('home'); // 'home', 'contact', 'chat'
 
   return (
     <div style={{ 
@@ -27,9 +29,45 @@ function App() {
         <p style={{ fontSize: '1.2rem', color: '#666', margin: 0 }}>
           Your Personal AI Fitness Coach
         </p>
+
+        {/* Navigation */}
+        <div style={{ marginTop: '1rem' }}>
+          <button
+            onClick={() => setCurrentView('home')}
+            style={{
+              padding: '0.5rem 1rem',
+              margin: '0 0.5rem',
+              backgroundColor: currentView === 'home' ? '#007bff' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            AI Chat
+          </button>
+          <button
+            onClick={() => setCurrentView('contact')}
+            style={{
+              padding: '0.5rem 1rem',
+              margin: '0 0.5rem',
+              backgroundColor: currentView === 'contact' ? '#28a745' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            Get Personal Plan
+          </button>
+        </div>
       </div>
 
-      {!user ? (
+      {currentView === 'contact' ? (
+        <ContactForm />
+      ) : !user ? (
         <Login onLogin={setUser} />
       ) : (
         <div>
