@@ -568,7 +568,7 @@ def get_leads():
 @app.route("/api/videos", methods=["GET"])
 def get_videos():
     """Get list of workout videos"""
-    # Sample video library - you can expand this
+    # Updated video library with actual video files
     videos = [
         {
             "id": 1,
@@ -577,7 +577,7 @@ def get_videos():
             "duration": "20 mins",
             "category": "beginner",
             "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "https://sample-videos.com/zip/10/mp4/480/SampleVideo_1280x720_1mb.mp4",
+            "url": "/attached_assets/videos/beginner_workout.mp4",
             "instructor": "Will Power",
             "difficulty": "Beginner"
         },
@@ -588,7 +588,7 @@ def get_videos():
             "duration": "15 mins",
             "category": "cardio",
             "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png", 
-            "url": "https://sample-videos.com/zip/10/mp4/480/SampleVideo_1280x720_2mb.mp4",
+            "url": "/attached_assets/videos/hiit_cardio.mp4",
             "instructor": "Will Power",
             "difficulty": "Intermediate"
         },
@@ -635,6 +635,17 @@ def get_videos():
             "url": "/attached_assets/videos/lower_body_power.mp4",
             "instructor": "Will Power",
             "difficulty": "Advanced"
+        },
+        {
+            "id": 7,
+            "title": "Sample Workout Demo",
+            "description": "Sample workout video demonstration",
+            "duration": "10 mins",
+            "category": "demo",
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
+            "url": "/attached_assets/videos/sample_workout.mp4",
+            "instructor": "Will Power",
+            "difficulty": "Beginner"
         }
     ]
 
