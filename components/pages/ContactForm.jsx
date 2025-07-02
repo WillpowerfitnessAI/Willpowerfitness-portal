@@ -271,18 +271,66 @@ function ContactForm() {
 
       <div style={{
         marginTop: '1.5rem',
-        padding: '1rem',
+        padding: '1.5rem',
         backgroundColor: '#f8f9fa',
         borderRadius: '8px',
         border: '1px solid #e9ecef'
       }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#333' }}>What Happens Next:</h4>
-        <ul style={{ margin: 0, paddingLeft: '1.2rem', color: '#666' }}>
-          <li>Our AI analyzes your goals and creates a custom plan</li>
-          <li>You'll receive a detailed consultation within 5 minutes</li>
-          <li>Get access to our $225/month coaching program</li>
-          <li>Start your transformation immediately</li>
-        </ul>
+        <h4 style={{ margin: '0 0 1rem 0', color: '#333' }}>🚀 Premium Coaching Program - $225/month</h4>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+          <div>
+            <h5 style={{ margin: '0 0 0.5rem 0', color: '#007bff' }}>🤖 AI Personal Trainer</h5>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#666' }}>
+              <li>24/7 coaching & motivation</li>
+              <li>Voice-enabled conversations</li>
+              <li>Personalized workout plans</li>
+              <li>Real-time form corrections</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h5 style={{ margin: '0 0 0.5rem 0', color: '#28a745' }}>🥗 Nutrition Mastery</h5>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#666' }}>
+              <li>Custom 7-day meal plans</li>
+              <li>Macro tracking & optimization</li>
+              <li>Grocery lists & meal prep</li>
+              <li>Recipe recommendations</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h5 style={{ margin: '0 0 0.5rem 0', color: '#6f42c1' }}>📈 Progress Tracking</h5>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#666' }}>
+              <li>Photo progress comparisons</li>
+              <li>Strength & endurance tracking</li>
+              <li>Body composition analysis</li>
+              <li>Performance metrics</li>
+            </ul>
+          </div>
+          
+          <div>
+            <h5 style={{ margin: '0 0 0.5rem 0', color: '#17a2b8' }}>📚 Exclusive Resources</h5>
+            <ul style={{ margin: 0, paddingLeft: '1.2rem', fontSize: '0.9rem', color: '#666' }}>
+              <li>Exercise video library</li>
+              <li>Downloadable programs</li>
+              <li>Educational content</li>
+              <li>Community access</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div style={{
+          padding: '1rem',
+          backgroundColor: '#e8f5e8',
+          borderRadius: '5px',
+          border: '1px solid #c3e6c3',
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: 0, color: '#155724', fontWeight: 'bold' }}>
+            💰 Compare: Personal trainers charge $100-200/session. Get unlimited AI coaching for just $225/month!
+          </p>
+        </div>
       </div>
     </div>
   );

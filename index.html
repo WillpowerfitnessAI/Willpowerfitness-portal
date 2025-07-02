@@ -150,8 +150,9 @@
         const [loading, setLoading] = useState(true);
         const [selectedVideo, setSelectedVideo] = useState(null);
 
+        // Video library coming soon - no API call needed
         useEffect(() => {
-          fetch(`${API_BASE}/api/videos`)
+          // Videos will be loaded when feature is readys`)
             .then(response => response.json())
             .then(data => {
               setVideos(data.videos || []);

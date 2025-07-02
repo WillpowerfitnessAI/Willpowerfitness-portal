@@ -555,6 +555,103 @@ def lead_capture():
         "next_action": "email_consultation_sent"
     })
 
+@app.route("/api/progress", methods=["POST"])
+def log_progress():
+    """Log user progress - workouts, measurements, photos"""
+    try:
+        data = request.get_json()
+        user_id = data.get("user_id")
+        progress_type = data.get("type")  # workout, measurement, photo
+        progress_data = data.get("data")
+        
+        timestamp = datetime.utcnow().isoformat()
+        progress_key = f"progress:{user_id}:{timestamp}"
+        
+        db[progress_key] = {
+            "type": progress_type,
+            "data": progress_data,
+            "timestamp": timestamp
+        }
+        
+        return jsonify({"success": True, "message": "Progress logged successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/meal-plan", methods=["POST"])
+def generate_meal_plan():
+    """Generate personalized meal plan"""
+    try:
+        data = request.get_json()
+        user_id = data.get("user_id")
+        
+        user_context = get_user_context(user_id)
+        name = user_context['name']
+        goal = user_context['goal']
+        
+        meal_plan_prompt = f"""
+        Create a detailed 7-day meal plan for {name} whose goal is {goal}.
+        Include:
+        - Breakfast, lunch, dinner, and 2 snacks per day
+        - Exact portions and calories
+        - Grocery shopping list
+        - Meal prep instructions
+        - Macro breakdown (protein, carbs, fats)
+        
+        Make it practical and achievable for someone working toward {goal}.
+        """
+        
+        meal_plan = ask_groq_ai(meal_plan_prompt, user_id)
+        
+        # Save meal plan
+        db[f"meal_plan:{user_id}:current"] = {
+            "plan": meal_plan,
+            "created": datetime.utcnow().isoformat()
+        }
+        
+        return jsonify({"meal_plan": meal_plan, "success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/workout-plan", methods=["POST"])
+def generate_custom_workout():
+    """Generate custom workout for today"""
+    try:
+        data = request.get_json()
+        user_id = data.get("user_id")
+        workout_type = data.get("type", "full_body")
+        duration = data.get("duration", 45)
+        
+        user_context = get_user_context(user_id)
+        name = user_context['name']
+        goal = user_context['goal']
+        
+        workout_prompt = f"""
+        Create a {duration}-minute {workout_type} workout for {name} whose goal is {goal}.
+        Include:
+        - Proper warm-up (5-10 minutes)
+        - Main workout with specific exercises, sets, reps, and rest periods
+        - Cool-down and stretching
+        - Form cues and safety tips
+        - Progression notes for next time
+        
+        Make it challenging but achievable for their current level.
+        """
+        
+        workout = ask_groq_ai(workout_prompt, user_id)
+        
+        # Save today's workout
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        db[f"workout:{user_id}:{today}"] = {
+            "workout": workout,
+            "type": workout_type,
+            "duration": duration,
+            "created": datetime.utcnow().isoformat()
+        }
+        
+        return jsonify({"workout": workout, "success": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/api/leads", methods=["GET"])
 def get_leads():
     """Get all leads and customers for admin dashboard"""
