@@ -94,7 +94,7 @@ Be the coach who combines critical thinking, strategic humor, serious dedication
     # Add recent conversation history with better context
     for msg in history[-30:]:  # Last 30 messages for better context management
         messages.append({"role": msg["role"], "content": msg["content"]})
-    
+
     # Add a reminder about the user's identity and history
     if len(history) > 5:  # If there's conversation history
         messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them."})
@@ -507,14 +507,14 @@ def stripe_webhook():
         session = event['data']['object']
         customer_email = session.get('customer_details', {}).get('email')
         customer_name = session.get('customer_details', {}).get('name', 'New Member')
-        
+
         # Extract custom fields data
         custom_fields = session.get('custom_fields', [])
         tshirt_size = None
         shipping_address = None
         fitness_goals = None
         experience_level = None
-        
+
         for field in custom_fields:
             if field.get('key') == 'tshirt_size':
                 tshirt_size = field.get('text', {}).get('value')
@@ -539,14 +539,14 @@ def stripe_webhook():
             db[f"customer:{customer_email}:name"] = customer_name
             db[f"customer:{customer_email}:fitness_goals"] = fitness_goals
             db[f"customer:{customer_email}:experience_level"] = experience_level
-            
+
             # T-shirt fulfillment data
             if tshirt_size and shipping_address:
                 db[f"tshirt:{customer_email}:size"] = tshirt_size
                 db[f"tshirt:{customer_email}:address"] = shipping_address
                 db[f"tshirt:{customer_email}:status"] = "pending_fulfillment"
                 db[f"tshirt:{customer_email}:order_date"] = datetime.utcnow().isoformat()
-                
+
                 # Log t-shirt order for fulfillment
                 print(f"🎽 T-SHIRT ORDER: {customer_name} ({customer_email}) - Size: {tshirt_size}")
                 print(f"📦 SHIP TO: {shipping_address}")
@@ -640,20 +640,25 @@ def log_progress():
         user_id = data.get("user_id")
         progress_type = data.get("type")  # workout, measurement, photo
         progress_data = data.get("data")
-        
+
         timestamp = datetime.utcnow().isoformat()
         progress_key = f"progress:{user_id}:{timestamp}"
-        
+
         db[progress_key] = {
             "type": progress_type,
             "data": progress_data,
+            "timestamp": timestamp
+        }
 
+        return jsonify({"success": True, "message": "Progress logged successfully"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/tshirt-orders", methods=["GET"])
 def get_tshirt_orders():
     """Get all pending t-shirt fulfillment orders"""
     orders = []
-    
+
     for key, value in db.items():
         if key.startswith("tshirt:") and key.endswith(":status"):
             if value == "pending_fulfillment":
@@ -667,7 +672,7 @@ def get_tshirt_orders():
                     "status": value
                 }
                 orders.append(order)
-    
+
     return jsonify({
         "pending_orders": orders,
         "total_pending": len(orders)
@@ -678,30 +683,23 @@ def mark_tshirt_shipped(email):
     """Mark t-shirt as shipped"""
     data = request.get_json()
     tracking_number = data.get("tracking_number", "")
-    
+
     db[f"tshirt:{email}:status"] = "shipped"
     db[f"tshirt:{email}:tracking"] = tracking_number
     db[f"tshirt:{email}:ship_date"] = datetime.utcnow().isoformat()
-    
+
     # Send notification to customer
     customer_name = db.get(f"customer:{email}:name", "Member")
     notification_message = ask_groq_ai(
         f"Great news! {customer_name}'s FREE WillpowerFitness AI t-shirt has shipped! Tracking: {tracking_number}. Send them an excited message about their merch arriving soon and ask how their fitness journey is going.",
         email
     )
-    
+
     return jsonify({
         "success": True,
         "message": f"T-shirt marked as shipped for {email}",
         "notification_sent": notification_message
     })
-
-            "timestamp": timestamp
-        }
-        
-        return jsonify({"success": True, "message": "Progress logged successfully"})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/meal-plan", methods=["POST"])
 def generate_meal_plan():
@@ -709,11 +707,11 @@ def generate_meal_plan():
     try:
         data = request.get_json()
         user_id = data.get("user_id")
-        
+
         user_context = get_user_context(user_id)
         name = user_context['name']
         goal = user_context['goal']
-        
+
         meal_plan_prompt = f"""
         Create a detailed 7-day meal plan for {name} whose goal is {goal}.
         Include:
@@ -722,18 +720,18 @@ def generate_meal_plan():
         - Grocery shopping list
         - Meal prep instructions
         - Macro breakdown (protein, carbs, fats)
-        
+
         Make it practical and achievable for someone working toward {goal}.
         """
-        
+
         meal_plan = ask_groq_ai(meal_plan_prompt, user_id)
-        
+
         # Save meal plan
         db[f"meal_plan:{user_id}:current"] = {
             "plan": meal_plan,
             "created": datetime.utcnow().isoformat()
         }
-        
+
         return jsonify({"meal_plan": meal_plan, "success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -746,11 +744,11 @@ def generate_custom_workout():
         user_id = data.get("user_id")
         workout_type = data.get("type", "full_body")
         duration = data.get("duration", 45)
-        
+
         user_context = get_user_context(user_id)
         name = user_context['name']
         goal = user_context['goal']
-        
+
         workout_prompt = f"""
         Create a {duration}-minute {workout_type} workout for {name} whose goal is {goal}.
         Include:
@@ -759,12 +757,12 @@ def generate_custom_workout():
         - Cool-down and stretching
         - Form cues and safety tips
         - Progression notes for next time
-        
+
         Make it challenging but achievable for their current level.
         """
-        
+
         workout = ask_groq_ai(workout_prompt, user_id)
-        
+
         # Save today's workout
         today = datetime.utcnow().strftime("%Y-%m-%d")
         db[f"workout:{user_id}:{today}"] = {
@@ -773,7 +771,7 @@ def generate_custom_workout():
             "duration": duration,
             "created": datetime.utcnow().isoformat()
         }
-        
+
         return jsonify({"workout": workout, "success": True})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
