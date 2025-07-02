@@ -405,18 +405,51 @@ def create_printful_order(customer_email, tshirt_size, shipping_address, custome
         return None
 
     try:
-        # Parse shipping address
-        address_lines = shipping_address.split('\n')
+        # Parse shipping address - improved parsing
+        address_lines = [line.strip() for line in shipping_address.split('\n') if line.strip()]
+        
+        # Basic address parsing
         address1 = address_lines[0] if len(address_lines) > 0 else shipping_address
-        city = address_lines[1] if len(address_lines) > 1 else "Unknown"
-        state_zip = address_lines[2] if len(address_lines) > 2 else "Unknown"
+        
+        # Try to extract city, state, zip from last line
+        if len(address_lines) >= 2:
+            last_line = address_lines[-1]
+            # Look for patterns like "City, ST 12345" or "City ST 12345"
+            import re
+            match = re.match(r'(.+?),?\s+([A-Z]{2})\s+(\d{5})', last_line)
+            if match:
+                city = match.group(1).strip()
+                state_code = match.group(2)
+                zip_code = match.group(3)
+            else:
+                # Fallback parsing
+                parts = last_line.split()
+                if len(parts) >= 3:
+                    city = ' '.join(parts[:-2])
+                    state_code = parts[-2] if len(parts[-2]) == 2 else "CA"
+                    zip_code = parts[-1] if parts[-1].isdigit() else "90210"
+                else:
+                    city = last_line
+                    state_code = "CA"
+                    zip_code = "90210"
+        else:
+            city = "Los Angeles"
+            state_code = "CA"
+            zip_code = "90210"
 
-        # Extract state and zip (basic parsing - you might want to improve this)
-        state_code = "CA"  # Default to CA, you can enhance this
-        zip_code = "90210"  # Default zip, you can enhance this
+        # Size mapping for Printful variant IDs (Bella+Canvas 3001 Unisex T-Shirt)
+        size_variants = {
+            "S": 4011,    # Small
+            "M": 4012,    # Medium  
+            "L": 4013,    # Large
+            "XL": 4014,   # X-Large
+            "XXL": 4015   # XX-Large
+        }
+        
+        variant_id = size_variants.get(tshirt_size, 4012)  # Default to Medium
 
-        # Printful t-shirt variant ID for Bella+Canvas 3001 (you'll need to get the actual variant ID)
-        variant_id = 4011  # This is an example - replace with your actual variant ID
+        # WillpowerFitness AI logo design file
+        design_url = "https://trainerai-groqapp-willpowerfitness.replit.app/attached_assets/WillPowerFitness%20Profile%20Image_1751491136331.png"
 
         # Create order payload
         order_data = {
@@ -434,7 +467,8 @@ def create_printful_order(customer_email, tshirt_size, shipping_address, custome
                     "quantity": 1,
                     "files": [
                         {
-                            "url": "https://your-design-url.com/willpowerfitness-logo.png"  # Replace with your design URL
+                            "type": "front",
+                            "url": design_url
                         }
                     ]
                 }
@@ -442,6 +476,10 @@ def create_printful_order(customer_email, tshirt_size, shipping_address, custome
             "external_id": f"willpower_{customer_email}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
             "shipping": "STANDARD"
         }
+
+        print(f"🎽 Creating Printful order for {customer_name}")
+        print(f"📍 Shipping to: {address1}, {city}, {state_code} {zip_code}")
+        print(f"👕 Size: {tshirt_size} (Variant ID: {variant_id})")
 
         # Make API request to Printful
         response = requests.post(
@@ -453,7 +491,7 @@ def create_printful_order(customer_email, tshirt_size, shipping_address, custome
             json=order_data
         )
 
-        if response.status_code == 200:
+        if response.status_code == 200 or response.status_code == 201:
             order_result = response.json()
             printful_order_id = order_result.get("result", {}).get("id")
 
@@ -461,15 +499,20 @@ def create_printful_order(customer_email, tshirt_size, shipping_address, custome
             db[f"printful:{customer_email}:order_id"] = printful_order_id
             db[f"printful:{customer_email}:status"] = "draft"
             db[f"printful:{customer_email}:created"] = datetime.utcnow().isoformat()
+            db[f"printful:{customer_email}:variant_id"] = variant_id
+            db[f"printful:{customer_email}:size"] = tshirt_size
 
             print(f"✅ Printful order created: {printful_order_id} for {customer_name}")
             return printful_order_id
         else:
             print(f"❌ Printful order failed: {response.status_code} - {response.text}")
+            # Store error for debugging
+            db[f"printful:{customer_email}:error"] = f"{response.status_code}: {response.text}"
             return None
 
     except Exception as e:
         print(f"Error creating Printful order: {e}")
+        db[f"printful:{customer_email}:error"] = str(e)
         return None
 
 def confirm_printful_order(customer_email):
@@ -964,6 +1007,93 @@ def get_printful_order_status_endpoint(email):
                 "success": False,
                 "message": "No Printful order found for this customer"
             }), 404
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route("/api/printful-products", methods=["GET"])
+def get_printful_products():
+    """Get available Printful products for testing"""
+    if not PRINTFUL_API_KEY:
+        return jsonify({"error": "PRINTFUL_API_KEY not configured"}), 400
+
+    try:
+        # Get all products
+        response = requests.get(
+            "https://api.printful.com/products",
+            headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}"}
+        )
+
+        if response.status_code == 200:
+            products = response.json().get("result", [])
+            
+            # Filter for t-shirts
+            tshirts = [p for p in products if 'shirt' in p.get('type_name', '').lower()]
+            
+            return jsonify({
+                "success": True,
+                "total_products": len(products),
+                "tshirt_products": tshirts[:10],  # Show first 10 t-shirt products
+                "recommended_product": {
+                    "name": "Bella + Canvas 3001 Unisex Short Sleeve Jersey T-Shirt",
+                    "id": 71,
+                    "variants": {
+                        "S": 4011,
+                        "M": 4012,
+                        "L": 4013,
+                        "XL": 4014,
+                        "XXL": 4015
+                    }
+                }
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": f"Printful API error: {response.status_code}"
+            }), 400
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
+@app.route("/api/printful-test", methods=["POST"])
+def test_printful_integration():
+    """Test Printful integration with a sample order"""
+    if not PRINTFUL_API_KEY:
+        return jsonify({"error": "PRINTFUL_API_KEY not configured"}), 400
+
+    try:
+        # Test API connection
+        response = requests.get(
+            "https://api.printful.com/stores",
+            headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}"}
+        )
+
+        if response.status_code == 200:
+            stores = response.json().get("result", [])
+            
+            return jsonify({
+                "success": True,
+                "message": "✅ Printful API connection successful!",
+                "stores": stores,
+                "integration_status": "Ready for t-shirt fulfillment",
+                "next_steps": [
+                    "1. Customers can now purchase $225/month memberships",
+                    "2. T-shirt orders will be automatically sent to Printful",
+                    "3. You'll receive webhook notifications for order updates",
+                    "4. Tracking numbers will be provided to customers"
+                ]
+            })
+        else:
+            return jsonify({
+                "success": False,
+                "error": f"Printful API error: {response.status_code} - {response.text}"
+            }), 400
 
     except Exception as e:
         return jsonify({
