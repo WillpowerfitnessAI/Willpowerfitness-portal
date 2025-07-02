@@ -76,7 +76,20 @@ function App() {
           >
             📋 Get Personal Plan
           </button>
-          
+          <button
+            onClick={() => setCurrentView('videos')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: currentView === 'videos' ? '#17a2b8' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            🎬 Video Library
+          </button>
           <button
             onClick={() => setCurrentView('files')}
             style={{
@@ -96,7 +109,48 @@ function App() {
 
       {currentView === 'contact' ? (
         <ContactForm />
-      
+      ) : currentView === 'videos' ? (
+        <div style={{
+          maxWidth: '800px',
+          margin: '2rem auto',
+          padding: '3rem 2rem',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎬</div>
+          <h2 style={{ 
+            color: '#333', 
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            Video Library Coming Soon!
+          </h2>
+          <p style={{ 
+            color: '#666', 
+            fontSize: '1.2rem',
+            marginBottom: '2rem',
+            lineHeight: '1.6'
+          }}>
+            Will Power is creating amazing workout videos just for you. <br/>
+            Check back soon for exclusive training content!
+          </p>
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            padding: '1.5rem',
+            borderRadius: '8px',
+            border: '2px dashed #dee2e6'
+          }}>
+            <p style={{ 
+              margin: 0, 
+              color: '#007bff',
+              fontWeight: 'bold'
+            }}>
+              🚀 In the meantime, chat with Will Power AI for personalized workouts!
+            </p>
+          </div>
+        </div>
       ) : currentView === 'files' ? (
         <FileManager user={user} />
       ) : !user ? (
