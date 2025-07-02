@@ -276,7 +276,7 @@ function ContactForm() {
         borderRadius: '8px',
         border: '1px solid #e9ecef'
       }}>
-        <h4 style={{ margin: '0 0 1rem 0', color: '#333' }}>🚀 Premium Coaching Program - $225/month</h4>
+        <h4 style={{ margin: '0 0 1rem 0', color: '#333' }}>🚀 Premium Coaching Program - $225/month + FREE T-Shirt!</h4>
         
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
           <div>
@@ -325,10 +325,23 @@ function ContactForm() {
           backgroundColor: '#e8f5e8',
           borderRadius: '5px',
           border: '1px solid #c3e6c3',
-          textAlign: 'center'
+          textAlign: 'center',
+          marginBottom: '1rem'
         }}>
           <p style={{ margin: 0, color: '#155724', fontWeight: 'bold' }}>
             💰 Compare: Personal trainers charge $100-200/session. Get unlimited AI coaching for just $225/month!
+          </p>
+        </div>
+        
+        <div style={{
+          padding: '1rem',
+          backgroundColor: '#fff3cd',
+          borderRadius: '5px',
+          border: '1px solid #ffeaa7',
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: 0, color: '#856404', fontWeight: 'bold' }}>
+            🎽 BONUS: Get a FREE exclusive "WillpowerFitness AI" t-shirt with your first month! Show off your commitment to fitness.
           </p>
         </div>
       </div>

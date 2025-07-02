@@ -398,7 +398,7 @@ def stripe_payment_success():
     })
 
 def create_stripe_payment_link(customer_email, customer_name="Customer"):
-    """Create a Stripe payment link for the fitness membership"""
+    """Create a Stripe payment link for fitness membership + t-shirt bundle"""
     if not STRIPE_SECRET_KEY:
         return "https://willpowerfitness.com/payment"  # Fallback URL
 
@@ -414,14 +414,15 @@ def create_stripe_payment_link(customer_email, customer_name="Customer"):
                 metadata={"source": "willpowerfitness_ai"}
             )
 
-        # Create payment link for $225/month subscription
+        # Create payment link for $225/month subscription + FREE t-shirt
         payment_link = stripe.PaymentLink.create(
             line_items=[{
                 'price_data': {
                     'currency': 'usd',
                     'product_data': {
-                        'name': 'WillpowerFitness AI Monthly Membership',
-                        'description': 'Monthly access to AI fitness coaching and human trainer consultations'
+                        'name': 'WillpowerFitness AI Premium Membership + FREE T-Shirt',
+                        'description': 'Monthly AI coaching, meal plans, workout programs + exclusive WillpowerFitness AI branded t-shirt (FREE with first month)',
+                        'images': ['https://your-brand-assets.com/willpower-tshirt.jpg']  # Add your t-shirt image
                     },
                     'unit_amount': 22500,  # $225.00 in cents
                     'recurring': {
@@ -430,9 +431,54 @@ def create_stripe_payment_link(customer_email, customer_name="Customer"):
                 },
                 'quantity': 1,
             }],
+            custom_fields=[
+                {
+                    'key': 'shipping_address',
+                    'label': {'type': 'string', 'custom': 'Shipping Address for FREE T-Shirt'},
+                    'type': 'text',
+                    'optional': False
+                },
+                {
+                    'key': 'tshirt_size',
+                    'label': {'type': 'string', 'custom': 'T-Shirt Size (S, M, L, XL, XXL)'},
+                    'type': 'dropdown',
+                    'dropdown': {
+                        'options': [
+                            {'label': 'Small (S)', 'value': 'S'},
+                            {'label': 'Medium (M)', 'value': 'M'},
+                            {'label': 'Large (L)', 'value': 'L'},
+                            {'label': 'X-Large (XL)', 'value': 'XL'},
+                            {'label': 'XX-Large (XXL)', 'value': 'XXL'},
+                        ]
+                    },
+                    'optional': False
+                },
+                {
+                    'key': 'fitness_goals',
+                    'label': {'type': 'string', 'custom': 'What\'s your fitness goal?'},
+                    'type': 'text',
+                    'optional': False
+                },
+                {
+                    'key': 'experience_level',
+                    'label': {'type': 'string', 'custom': 'Experience Level'},
+                    'type': 'dropdown',
+                    'dropdown': {
+                        'options': [
+                            {'label': 'Beginner (0-6 months)', 'value': 'beginner'},
+                            {'label': 'Intermediate (6 months - 2 years)', 'value': 'intermediate'},
+                            {'label': 'Advanced (2+ years)', 'value': 'advanced'},
+                        ]
+                    },
+                    'optional': False
+                }
+            ],
+            shipping_address_collection={'allowed_countries': ['US', 'CA']},
             metadata={
                 'customer_email': customer_email,
-                'customer_name': customer_name
+                'customer_name': customer_name,
+                'includes_tshirt': 'true',
+                'tshirt_campaign': 'launch_promo'
             }
         )
 
@@ -460,22 +506,53 @@ def stripe_webhook():
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
         customer_email = session.get('customer_details', {}).get('email')
+        customer_name = session.get('customer_details', {}).get('name', 'New Member')
+        
+        # Extract custom fields data
+        custom_fields = session.get('custom_fields', [])
+        tshirt_size = None
+        shipping_address = None
+        fitness_goals = None
+        experience_level = None
+        
+        for field in custom_fields:
+            if field.get('key') == 'tshirt_size':
+                tshirt_size = field.get('text', {}).get('value')
+            elif field.get('key') == 'shipping_address':
+                shipping_address = field.get('text', {}).get('value')
+            elif field.get('key') == 'fitness_goals':
+                fitness_goals = field.get('text', {}).get('value')
+            elif field.get('key') == 'experience_level':
+                experience_level = field.get('dropdown', {}).get('value')
 
         if customer_email:
-            # Generate welcome message for new member
+            # Generate welcome message for new member with t-shirt info
             welcome_message = ask_groq_ai(
-                "A new customer just paid $225/month for our fitness coaching program! Send them an enthusiastic welcome message and ask them to tell me about their fitness goals so we can create their personalized training plan.",
+                f"A new customer {customer_name} just paid $225/month for our fitness coaching program + FREE t-shirt! Their goal is: {fitness_goals}, experience level: {experience_level}. Send them an enthusiastic welcome message mentioning their FREE WillpowerFitness AI t-shirt will ship soon, and ask them to start their fitness journey by telling you more about their current routine.",
                 customer_email
             )
 
-            # Update customer status
+            # Update customer status with all collected data
             db[f"customer:{customer_email}:subscription_id"] = session.get('subscription')
             db[f"customer:{customer_email}:status"] = "active_member"
             db[f"customer:{customer_email}:monthly_amount"] = 225
+            db[f"customer:{customer_email}:name"] = customer_name
+            db[f"customer:{customer_email}:fitness_goals"] = fitness_goals
+            db[f"customer:{customer_email}:experience_level"] = experience_level
+            
+            # T-shirt fulfillment data
+            if tshirt_size and shipping_address:
+                db[f"tshirt:{customer_email}:size"] = tshirt_size
+                db[f"tshirt:{customer_email}:address"] = shipping_address
+                db[f"tshirt:{customer_email}:status"] = "pending_fulfillment"
+                db[f"tshirt:{customer_email}:order_date"] = datetime.utcnow().isoformat()
+                
+                # Log t-shirt order for fulfillment
+                print(f"🎽 T-SHIRT ORDER: {customer_name} ({customer_email}) - Size: {tshirt_size}")
+                print(f"📦 SHIP TO: {shipping_address}")
 
-            # You can send email here or trigger Zapier webhook
-            # For now, we'll just log it
-            print(f"New member: {customer_email} - Welcome message: {welcome_message}")
+            print(f"🎉 NEW MEMBER: {customer_name} ({customer_email})")
+            print(f"💪 GOAL: {fitness_goals} | LEVEL: {experience_level}")
 
     return jsonify({"status": "success"}), 200
 
@@ -570,6 +647,55 @@ def log_progress():
         db[progress_key] = {
             "type": progress_type,
             "data": progress_data,
+
+
+@app.route("/api/tshirt-orders", methods=["GET"])
+def get_tshirt_orders():
+    """Get all pending t-shirt fulfillment orders"""
+    orders = []
+    
+    for key, value in db.items():
+        if key.startswith("tshirt:") and key.endswith(":status"):
+            if value == "pending_fulfillment":
+                email = key.split(":")[1]
+                order = {
+                    "email": email,
+                    "name": db.get(f"customer:{email}:name", "Unknown"),
+                    "size": db.get(f"tshirt:{email}:size"),
+                    "address": db.get(f"tshirt:{email}:address"),
+                    "order_date": db.get(f"tshirt:{email}:order_date"),
+                    "status": value
+                }
+                orders.append(order)
+    
+    return jsonify({
+        "pending_orders": orders,
+        "total_pending": len(orders)
+    })
+
+@app.route("/api/tshirt-orders/<email>/ship", methods=["POST"])
+def mark_tshirt_shipped(email):
+    """Mark t-shirt as shipped"""
+    data = request.get_json()
+    tracking_number = data.get("tracking_number", "")
+    
+    db[f"tshirt:{email}:status"] = "shipped"
+    db[f"tshirt:{email}:tracking"] = tracking_number
+    db[f"tshirt:{email}:ship_date"] = datetime.utcnow().isoformat()
+    
+    # Send notification to customer
+    customer_name = db.get(f"customer:{email}:name", "Member")
+    notification_message = ask_groq_ai(
+        f"Great news! {customer_name}'s FREE WillpowerFitness AI t-shirt has shipped! Tracking: {tracking_number}. Send them an excited message about their merch arriving soon and ask how their fitness journey is going.",
+        email
+    )
+    
+    return jsonify({
+        "success": True,
+        "message": f"T-shirt marked as shipped for {email}",
+        "notification_sent": notification_message
+    })
+
             "timestamp": timestamp
         }
         
