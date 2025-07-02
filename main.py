@@ -1101,6 +1101,69 @@ def test_printful_integration():
             "error": str(e)
         }), 500
 
+@app.route("/api/test-order", methods=["POST"])
+def test_create_order():
+    """Test creating a Printful order with sample data"""
+    if not PRINTFUL_API_KEY:
+        return jsonify({"error": "PRINTFUL_API_KEY not configured"}), 400
+
+    try:
+        data = request.get_json()
+        test_email = data.get("email", "test@willpowerfitness.com")
+        test_name = data.get("name", "Test Customer")
+        test_size = data.get("size", "M")
+        test_address = data.get("address", "123 Fitness Street\nLos Angeles, CA 90210")
+
+        print(f"🧪 Testing Printful order creation...")
+        print(f"📧 Email: {test_email}")
+        print(f"👤 Name: {test_name}")
+        print(f"👕 Size: {test_size}")
+        print(f"📍 Address: {test_address}")
+
+        # Create test order in Printful
+        printful_order_id = create_printful_order(
+            test_email, 
+            test_size, 
+            test_address, 
+            test_name
+        )
+
+        if printful_order_id:
+            # Get order status
+            status_info = get_printful_order_status(test_email)
+            
+            return jsonify({
+                "success": True,
+                "message": f"✅ Test order created successfully!",
+                "printful_order_id": printful_order_id,
+                "order_status": status_info,
+                "test_data": {
+                    "email": test_email,
+                    "name": test_name,
+                    "size": test_size,
+                    "address": test_address
+                },
+                "next_step": "Check your Printful dashboard to see the draft order"
+            })
+        else:
+            error_msg = db.get(f"printful:{test_email}:error", "Unknown error")
+            return jsonify({
+                "success": False,
+                "message": "❌ Test order creation failed",
+                "error": error_msg,
+                "troubleshooting": [
+                    "1. Check if PRINTFUL_API_KEY is correct",
+                    "2. Verify you have a store set up in Printful",
+                    "3. Check if the API token has proper permissions"
+                ]
+            }), 400
+
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
+
 @app.route("/api/meal-plan", methods=["POST"])
 def generate_meal_plan():
     """Generate personalized meal plan"""
