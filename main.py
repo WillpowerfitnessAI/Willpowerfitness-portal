@@ -584,90 +584,102 @@ def get_leads():
 
 @app.route("/api/videos", methods=["GET"])
 def get_videos():
-    """Get list of workout videos"""
-    # Updated video library with actual video files
-    videos = [
-        {
-            "id": 1,
+    """Get list of workout videos - only show videos that actually exist"""
+    import os
+    
+    # Check which video files actually exist
+    video_files = []
+    video_directory = "attached_assets/videos/"
+    
+    if os.path.exists(video_directory):
+        video_files = [f for f in os.listdir(video_directory) if f.endswith('.mp4')]
+    
+    # Build video list based on existing files
+    videos = []
+    video_data = {
+        "beginner_workout.mp4": {
             "title": "Full Body Beginner Workout",
             "description": "Perfect for those starting their fitness journey - no equipment needed!",
             "duration": "20 mins",
             "category": "beginner",
-            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "/attached_assets/videos/beginner_workout.mp4",
-            "instructor": "Will Power",
             "difficulty": "Beginner"
         },
-        {
-            "id": 2,
-            "title": "HIIT Cardio Blast",
+        "hiit_cardio.mp4": {
+            "title": "HIIT Cardio Blast", 
             "description": "High-intensity interval training for maximum fat burn",
             "duration": "15 mins",
             "category": "cardio",
-            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png", 
-            "url": "/attached_assets/videos/hiit_cardio.mp4",
-            "instructor": "Will Power",
             "difficulty": "Intermediate"
         },
-        {
-            "id": 3,
+        "strength_training.mp4": {
             "title": "Strength Training Upper Body",
             "description": "Build muscle in your arms, chest, and back with progressive overload",
-            "duration": "30 mins",
+            "duration": "30 mins", 
             "category": "strength",
-            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "/attached_assets/videos/strength_training.mp4",
-            "instructor": "Will Power",
             "difficulty": "Intermediate"
         },
-        {
-            "id": 4,
+        "core_workout.mp4": {
             "title": "Core & Abs Destroyer",
             "description": "Intense core workout to build a strong foundation",
             "duration": "12 mins",
-            "category": "core",
-            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "/attached_assets/videos/core_workout.mp4",
-            "instructor": "Will Power",
+            "category": "core", 
             "difficulty": "Intermediate"
         },
-        {
-            "id": 5,
+        "flexibility_flow.mp4": {
             "title": "Flexibility & Mobility Flow",
             "description": "Improve your range of motion and prevent injuries",
             "duration": "25 mins",
             "category": "flexibility",
-            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "/attached_assets/videos/flexibility_flow.mp4",
-            "instructor": "Will Power",
             "difficulty": "Beginner"
         },
-        {
-            "id": 6,
+        "lower_body_power.mp4": {
             "title": "Lower Body Power",
-            "description": "Build strong legs and glutes with compound movements",
+            "description": "Build strong legs and glutes with compound movements", 
             "duration": "35 mins",
             "category": "strength",
-            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "/attached_assets/videos/lower_body_power.mp4",
-            "instructor": "Will Power",
             "difficulty": "Advanced"
         },
-        {
-            "id": 7,
+        "sample_workout.mp4": {
             "title": "Sample Workout Demo",
             "description": "Sample workout video demonstration",
             "duration": "10 mins",
             "category": "demo",
-            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
-            "url": "/attached_assets/videos/sample_workout.mp4",
-            "instructor": "Will Power",
             "difficulty": "Beginner"
         }
-    ]
+    }
+    
+    # Only include videos that actually exist
+    for i, filename in enumerate(video_files):
+        if filename in video_data:
+            data = video_data[filename]
+            videos.append({
+                "id": i + 1,
+                "title": data["title"],
+                "description": data["description"], 
+                "duration": data["duration"],
+                "category": data["category"],
+                "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png",
+                "url": f"/attached_assets/videos/{filename}",
+                "instructor": "Will Power",
+                "difficulty": data["difficulty"]
+            })
+    
+    # If no videos found, show a placeholder
+    if not videos:
+        videos = [{
+            "id": 1,
+            "title": "Coming Soon!",
+            "description": "New workout videos will be added here. Check back soon!",
+            "duration": "0 mins",
+            "category": "placeholder",
+            "thumbnail": "/attached_assets/WillPowerFitness Profile Image_1751335061013.png", 
+            "url": "#",
+            "instructor": "Will Power",
+            "difficulty": "All Levels"
+        }]
 
     category = request.args.get('category', 'all')
-    if category != 'all':
+    if category != 'all' and category != 'placeholder':
         videos = [v for v in videos if v['category'] == category]
 
     return jsonify({"videos": videos})
