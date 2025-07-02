@@ -78,15 +78,6 @@ function ContactForm() {
       boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
     }}>
       <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
-        <img 
-          src="/attached_assets/WillPowerFitness%20Profile%20Image_1751335061013.png" 
-          alt="WillpowerFitness Logo" 
-          style={{ 
-            height: '60px', 
-            marginBottom: '0.5rem',
-            filter: 'drop-shadow(1px 1px 3px rgba(0,0,0,0.2))'
-          }} 
-        />
         <h2 style={{
           margin: '0',
           color: '#333',
