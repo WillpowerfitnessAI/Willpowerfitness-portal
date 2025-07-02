@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,49 +23,425 @@
         #root {
             height: 100vh;
         }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000;
+            color: #fff;
+            font-size: 24px;
+        }
     </style>
 </head>
 <body>
-    <div id="root"></div>
+    <div id="root">
+        <div class="loading">WillpowerFitness AI Coach - Loading...</div>
+    </div>
 
     <!-- React and Babel -->
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- Your React App -->
+    <!-- Inline React App -->
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
 
-        // Include your components inline or load them
-        fetch('/static/App.jsx')
-            .then(response => response.text())
-            .then(code => {
-                // Transform and execute the JSX
-                const transformedCode = Babel.transform(code, {
-                    presets: ['react']
-                }).code;
+        // Login Component
+        function Login({ onLogin }) {
+          const [name, setName] = useState('');
+          const [goal, setGoal] = useState('');
+          const [isLoading, setIsLoading] = useState(false);
 
-                eval(transformedCode);
-            })
-            .catch(error => {
-                console.error('Error loading React app:', error);
-                // Fallback content
-                const root = ReactDOM.createRoot(document.getElementById('root'));
-                root.render(
-                    React.createElement('div', {
-                        style: {
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            height: '100vh',
-                            backgroundColor: '#000',
-                            color: '#fff',
-                            fontSize: '24px'
-                        }
-                    }, 'WillpowerFitness AI Coach - Loading...')
-                );
-            });
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            if (!name.trim() || !goal.trim()) return;
+
+            setIsLoading(true);
+            const user_id = `user_${Date.now()}`;
+
+            try {
+              const response = await fetch('/api/onboard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  user_id,
+                  name: name.trim(),
+                  goal: goal.trim(),
+                  source: 'website'
+                })
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                onLogin({
+                  user_id,
+                  name: name.trim(),
+                  goal: goal.trim(),
+                  welcomeMessage: data.message
+                });
+              } else {
+                throw new Error('Failed to create user');
+              }
+            } catch (error) {
+              console.error('Login error:', error);
+              alert('Sorry, there was an error. Please try again!');
+            } finally {
+              setIsLoading(false);
+            }
+          };
+
+          return (
+            <div style={{
+              maxWidth: '600px',
+              margin: '2rem auto',
+              padding: '2rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h2 style={{ margin: '0 0 1rem 0', color: '#333', fontSize: '2rem' }}>
+                  Meet Will Power AI 🤖
+                </h2>
+                <p style={{ color: '#666', fontSize: '1.1rem', margin: 0 }}>
+                  Your personal AI fitness coach is ready to transform your fitness journey!
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit}>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 'bold',
+                    color: '#333'
+                  }}>
+                    What's your name?
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your first name"
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{ marginBottom: '2rem' }}>
+                  <label style={{
+                    display: 'block',
+                    marginBottom: '0.5rem',
+                    fontWeight: 'bold',
+                    color: '#333'
+                  }}>
+                    What's your fitness goal?
+                  </label>
+                  <textarea
+                    value={goal}
+                    onChange={(e) => setGoal(e.target.value)}
+                    placeholder="e.g., Lose 20 pounds, build muscle, run a marathon, get stronger..."
+                    required
+                    rows="3"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      resize: 'vertical',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || !name.trim() || !goal.trim()}
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    backgroundColor: isLoading || !name.trim() || !goal.trim() ? '#ccc' : '#007bff',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    cursor: isLoading || !name.trim() || !goal.trim() ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.3s ease'
+                  }}
+                >
+                  {isLoading ? 'Starting Your Journey...' : 'Start My Fitness Journey! 🚀'}
+                </button>
+              </form>
+            </div>
+          );
+        }
+
+        // ChatBox Component
+        function ChatBox({ user }) {
+          const [messages, setMessages] = useState([]);
+          const [input, setInput] = useState('');
+          const [isLoading, setIsLoading] = useState(false);
+          const messagesEndRef = useRef(null);
+
+          useEffect(() => {
+            if (user.welcomeMessage) {
+              const welcomeMsg = {
+                role: 'ai',
+                content: user.welcomeMessage,
+                timestamp: new Date().toLocaleTimeString()
+              };
+              setMessages([welcomeMsg]);
+            }
+          }, [user.welcomeMessage]);
+
+          useEffect(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, [messages]);
+
+          const sendMessage = async (e) => {
+            e.preventDefault();
+            if (!input.trim() || isLoading) return;
+
+            const userMessage = {
+              role: 'user',
+              content: input.trim(),
+              timestamp: new Date().toLocaleTimeString()
+            };
+
+            setMessages(prev => [...prev, userMessage]);
+            setInput('');
+            setIsLoading(true);
+
+            try {
+              const response = await fetch("/api/chat", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  message: userMessage.content,
+                  user_id: user.user_id
+                }),
+              });
+
+              if (response.ok) {
+                const data = await response.json();
+                const aiMessage = {
+                  role: 'ai',
+                  content: data.reply,
+                  timestamp: new Date().toLocaleTimeString()
+                };
+                setMessages(prev => [...prev, aiMessage]);
+              } else {
+                throw new Error('Failed to get response');
+              }
+            } catch (error) {
+              console.error('Chat error:', error);
+              const errorMessage = {
+                role: 'ai',
+                content: 'Sorry, I had trouble processing that. Please try again!',
+                timestamp: new Date().toLocaleTimeString()
+              };
+              setMessages(prev => [...prev, errorMessage]);
+            } finally {
+              setIsLoading(false);
+            }
+          };
+
+          return (
+            <div style={{
+              maxWidth: '800px',
+              margin: '0 auto',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+              overflow: 'hidden'
+            }}>
+              {/* Header */}
+              <div style={{
+                padding: '1rem',
+                backgroundColor: '#007bff',
+                color: 'white',
+                textAlign: 'center'
+              }}>
+                <h3 style={{ margin: '0 0 0.5rem 0' }}>
+                  Chat with Will Power AI - {user.name}'s Personal Trainer
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.9 }}>
+                  Goal: {user.goal}
+                </p>
+              </div>
+
+              {/* Messages */}
+              <div style={{
+                height: '400px',
+                overflowY: 'auto',
+                padding: '1rem',
+                backgroundColor: '#f8f9fa'
+              }}>
+                {messages.map((message, index) => (
+                  <div
+                    key={index}
+                    style={{
+                      marginBottom: '1rem',
+                      display: 'flex',
+                      justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    <div style={{
+                      maxWidth: '70%',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '18px',
+                      backgroundColor: message.role === 'user' ? '#007bff' : '#e9ecef',
+                      color: message.role === 'user' ? 'white' : '#333'
+                    }}>
+                      <div style={{ fontSize: '0.95rem', lineHeight: '1.4' }}>
+                        {message.content}
+                      </div>
+                      <div style={{
+                        fontSize: '0.75rem',
+                        opacity: 0.7,
+                        marginTop: '0.25rem',
+                        textAlign: 'right'
+                      }}>
+                        {message.timestamp}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {isLoading && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-start',
+                    marginBottom: '1rem'
+                  }}>
+                    <div style={{
+                      padding: '0.75rem 1rem',
+                      borderRadius: '18px',
+                      backgroundColor: '#e9ecef',
+                      color: '#666'
+                    }}>
+                      Will Power is thinking... 💭
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input */}
+              <form onSubmit={sendMessage} style={{
+                padding: '1rem',
+                borderTop: '1px solid #ddd',
+                backgroundColor: 'white'
+              }}>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Ask Will Power anything about fitness..."
+                    disabled={isLoading}
+                    style={{
+                      flex: 1,
+                      padding: '0.75rem',
+                      border: '2px solid #ddd',
+                      borderRadius: '25px',
+                      fontSize: '1rem',
+                      outline: 'none'
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    disabled={isLoading || !input.trim()}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      backgroundColor: isLoading || !input.trim() ? '#ccc' : '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '25px',
+                      cursor: isLoading || !input.trim() ? 'not-allowed' : 'pointer',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Send
+                  </button>
+                </div>
+              </form>
+            </div>
+          );
+        }
+
+        // Main App Component
+        function App() {
+          const [user, setUser] = useState(null);
+
+          return (
+            <div style={{ 
+              minHeight: '100vh',
+              backgroundColor: '#000000',
+              padding: '2rem', 
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              color: '#c0c0c0'
+            }}>
+              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                <h1 style={{ 
+                  fontSize: '3rem', 
+                  margin: '0 0 0.5rem 0',
+                  background: 'linear-gradient(45deg, #c0c0c0, #e6e6e6)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  fontWeight: 'bold',
+                  textAlign: 'center'
+                }}>
+                  Willpowerfitness AI Coach
+                </h1>
+                <p style={{ fontSize: '1.2rem', color: '#a0a0a0', margin: 0 }}>
+                  Your Personal AI Fitness Coach
+                </p>
+              </div>
+
+              {!user ? (
+                <Login onLogin={setUser} />
+              ) : (
+                <div>
+                  <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                    <button
+                      onClick={() => setUser(null)}
+                      style={{
+                        padding: '0.5rem 1rem',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '20px',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      ← Start Over
+                    </button>
+                  </div>
+                  <ChatBox user={user} />
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        // Render the app
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
     </script>
 </body>
 </html>
