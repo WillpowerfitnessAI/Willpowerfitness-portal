@@ -398,26 +398,26 @@ def stripe_payment_success():
         "next_action": "start_training_program"
     })
 
-def create_printful_order(customer_email, customer_name, tshirt_size, shipping_address, fitness_goals):
+def create_printful_order(customer_email, tshirt_size, shipping_address, customer_name):
     """Create order in Printful for t-shirt fulfillment"""
     if not PRINTFUL_API_KEY:
         print("Warning: PRINTFUL_API_KEY not set - skipping Printful order creation")
         return None
-    
+
     try:
         # Parse shipping address
         address_lines = shipping_address.split('\n')
         address1 = address_lines[0] if len(address_lines) > 0 else shipping_address
         city = address_lines[1] if len(address_lines) > 1 else "Unknown"
         state_zip = address_lines[2] if len(address_lines) > 2 else "Unknown"
-        
+
         # Extract state and zip (basic parsing - you might want to improve this)
         state_code = "CA"  # Default to CA, you can enhance this
         zip_code = "90210"  # Default zip, you can enhance this
-        
+
         # Printful t-shirt variant ID for Bella+Canvas 3001 (you'll need to get the actual variant ID)
         variant_id = 4011  # This is an example - replace with your actual variant ID
-        
+
         # Create order payload
         order_data = {
             "recipient": {
@@ -442,7 +442,7 @@ def create_printful_order(customer_email, customer_name, tshirt_size, shipping_a
             "external_id": f"willpower_{customer_email}_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}",
             "shipping": "STANDARD"
         }
-        
+
         # Make API request to Printful
         response = requests.post(
             "https://api.printful.com/orders",
@@ -452,22 +452,22 @@ def create_printful_order(customer_email, customer_name, tshirt_size, shipping_a
             },
             json=order_data
         )
-        
+
         if response.status_code == 200:
             order_result = response.json()
             printful_order_id = order_result.get("result", {}).get("id")
-            
+
             # Store Printful order info
             db[f"printful:{customer_email}:order_id"] = printful_order_id
             db[f"printful:{customer_email}:status"] = "draft"
             db[f"printful:{customer_email}:created"] = datetime.utcnow().isoformat()
-            
+
             print(f"✅ Printful order created: {printful_order_id} for {customer_name}")
             return printful_order_id
         else:
             print(f"❌ Printful order failed: {response.status_code} - {response.text}")
             return None
-            
+
     except Exception as e:
         print(f"Error creating Printful order: {e}")
         return None
@@ -476,13 +476,13 @@ def confirm_printful_order(customer_email):
     """Confirm Printful order for fulfillment"""
     if not PRINTFUL_API_KEY:
         return False
-        
+
     try:
         printful_order_id = db.get(f"printful:{customer_email}:order_id")
         if not printful_order_id:
             print(f"No Printful order found for {customer_email}")
             return False
-            
+
         # Confirm the order
         response = requests.post(
             f"https://api.printful.com/orders/{printful_order_id}/confirm",
@@ -491,7 +491,7 @@ def confirm_printful_order(customer_email):
                 "Content-Type": "application/json"
             }
         )
-        
+
         if response.status_code == 200:
             db[f"printful:{customer_email}:status"] = "confirmed"
             db[f"printful:{customer_email}:confirmed_at"] = datetime.utcnow().isoformat()
@@ -500,7 +500,7 @@ def confirm_printful_order(customer_email):
         else:
             print(f"❌ Failed to confirm Printful order: {response.status_code} - {response.text}")
             return False
-            
+
     except Exception as e:
         print(f"Error confirming Printful order: {e}")
         return False
@@ -509,32 +509,32 @@ def get_printful_order_status(customer_email):
     """Get current status of Printful order"""
     if not PRINTFUL_API_KEY:
         return None
-        
+
     try:
         printful_order_id = db.get(f"printful:{customer_email}:order_id")
         if not printful_order_id:
             return None
-            
+
         response = requests.get(
             f"https://api.printful.com/orders/{printful_order_id}",
             headers={
                 "Authorization": f"Bearer {PRINTFUL_API_KEY}"
             }
         )
-        
+
         if response.status_code == 200:
             order_data = response.json().get("result", {})
             status = order_data.get("status")
             shipments = order_data.get("shipments", [])
-            
+
             # Update local status
             db[f"printful:{customer_email}:status"] = status
-            
+
             if shipments:
                 tracking_number = shipments[0].get("tracking_number")
                 if tracking_number:
                     db[f"printful:{customer_email}:tracking"] = tracking_number
-                    
+
             return {
                 "status": status,
                 "shipments": shipments,
@@ -543,7 +543,7 @@ def get_printful_order_status(customer_email):
         else:
             print(f"Failed to get Printful order status: {response.status_code}")
             return None
-            
+
     except Exception as e:
         print(f"Error getting Printful order status: {e}")
         return None
@@ -668,7 +668,7 @@ def stripe_webhook():
 
         for field in custom_fields:
             if field.get('key') == 'tshirt_size':
-                tshirt_size = field.get('text', {}).get('value')
+                tshirt_size = field.get('dropdown', {}).get('value')
             elif field.get('key') == 'shipping_address':
                 shipping_address = field.get('text', {}).get('value')
             elif field.get('key') == 'fitness_goals':
@@ -701,12 +701,11 @@ def stripe_webhook():
                 # Create Printful order
                 printful_order_id = create_printful_order(
                     customer_email, 
-                    customer_name, 
                     tshirt_size, 
                     shipping_address, 
-                    fitness_goals
+                    customer_name
                 )
-                
+
                 if printful_order_id:
                     # Auto-confirm the order for fulfillment
                     confirm_printful_order(customer_email)
@@ -714,7 +713,7 @@ def stripe_webhook():
                     print(f"🎽 T-SHIRT ORDER SENT TO PRINTFUL: {customer_name} ({customer_email}) - Size: {tshirt_size}")
                 else:
                     print(f"⚠️ Printful order failed - manual fulfillment needed")
-                    
+
                 print(f"📦 SHIP TO: {shipping_address}")
 
             print(f"🎉 NEW MEMBER: {customer_name} ({customer_email})")
@@ -729,63 +728,62 @@ def printful_webhook():
         data = request.get_json()
         event_type = data.get("type")
         order_data = data.get("data", {})
-        
+
         external_id = order_data.get("external_id", "")
         order_id = order_data.get("id")
         status = order_data.get("status")
-        
+
         print(f"📦 Printful Webhook: {event_type} - Order {order_id} - Status: {status}")
-        
+
         # Extract customer email from external_id
         if external_id.startswith("willpower_"):
             parts = external_id.split("_")
             if len(parts) >= 2:
                 customer_email = parts[1]
-                
+
                 # Update order status
                 db[f"printful:{customer_email}:status"] = status
                 db[f"printful:{customer_email}:updated"] = datetime.utcnow().isoformat()
-                
+
                 # Handle different event types
                 if event_type == "order_shipped":
                     shipments = order_data.get("shipments", [])
                     if shipments:
                         tracking_number = shipments[0].get("tracking_number")
                         tracking_url = shipments[0].get("tracking_url")
-                        
+
                         if tracking_number:
                             db[f"printful:{customer_email}:tracking"] = tracking_number
                             db[f"printful:{customer_email}:tracking_url"] = tracking_url
                             db[f"tshirt:{customer_email}:status"] = "shipped"
-                            
+
                             # Notify customer
                             customer_name = db.get(f"customer:{customer_email}:name", "Member")
                             notification = ask_groq_ai(
                                 f"Great news! {customer_name}'s WillpowerFitness AI t-shirt has shipped! Tracking: {tracking_number}. Send them an excited message about their merch being on the way and ask about their fitness progress.",
-                                customer_email
-                            )
-                            
+                                customer_email                            )
+
                             print(f"🚚 T-shirt shipped to {customer_name}: {tracking_number}")
-                
+
                 elif event_type == "order_fulfilled":
                     db[f"tshirt:{customer_email}:status"] = "fulfilled"
-                    
+
                     # Send fulfillment notification
                     customer_name = db.get(f"customer:{customer_email}:name", "Member")
                     notification = ask_groq_ai(
                         f"{customer_name}'s WillpowerFitness AI t-shirt has been fulfilled and is ready to ship! Let them know their awesome merch is on the way.",
                         customer_email
                     )
-                    
+
                 elif event_type == "order_failed":
                     db[f"tshirt:{customer_email}:status"] = "failed"
                     error_message = order_data.get("error", "Unknown error")
                     db[f"printful:{customer_email}:error"] = error_message
-                    
+
                     print(f"❌ Printful order failed for {customer_email}: {error_message}")
-        
+
         return jsonify({"status": "received"}), 200
-        
+
     except Exception as e:
         print(f"Printful webhook error: {e}")
         return jsonify({"error": "Webhook processing failed"}), 500
@@ -896,12 +894,12 @@ def get_tshirt_orders():
     for key, value in db.items():
         if key.startswith("tshirt:") and key.endswith(":status"):
             email = key.split(":")[1]
-            
+
             # Get Printful order info
             printful_order_id = db.get(f"printful:{email}:order_id")
             printful_status = db.get(f"printful:{email}:status")
             tracking_number = db.get(f"printful:{email}:tracking")
-            
+
             order = {
                 "email": email,
                 "name": db.get(f"customer:{email}:name", "Unknown"),
@@ -924,7 +922,7 @@ def get_tshirt_orders():
 
 @app.route("/api/tshirt-orders/<email>/ship", methods=["POST"])
 def mark_tshirt_shipped(email):
-    """Mark t-shirt as shipped (for manual fulfillment)"""
+    """Mark t-shirt as shipped (manual override)"""
     data = request.get_json()
     tracking_number = data.get("tracking_number", "")
 
@@ -950,7 +948,7 @@ def get_printful_order_status_endpoint(email):
     """Get Printful order status for a customer"""
     try:
         status_info = get_printful_order_status(email)
-        
+
         if status_info:
             return jsonify({
                 "success": True,
@@ -966,7 +964,7 @@ def get_printful_order_status_endpoint(email):
                 "success": False,
                 "message": "No Printful order found for this customer"
             }), 404
-            
+
     except Exception as e:
         return jsonify({
             "success": False,
