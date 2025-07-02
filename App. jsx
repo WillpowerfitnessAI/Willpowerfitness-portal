@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Login from './components/lib/Login';
 import ChatBox from './components/lib/ChatBox';
 import ContactForm from './components/pages/ContactForm';
-import VideoLibrary from './components/lib/VideoLibrary';
+
 import FileManager from './components/lib/FileManager';
 
 function App() {
@@ -76,20 +76,7 @@ function App() {
           >
             📋 Get Personal Plan
           </button>
-          <button
-            onClick={() => setCurrentView('videos')}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: currentView === 'videos' ? '#17a2b8' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
-          >
-            🎬 Video Library
-          </button>
+          
           <button
             onClick={() => setCurrentView('files')}
             style={{
@@ -109,8 +96,7 @@ function App() {
 
       {currentView === 'contact' ? (
         <ContactForm />
-      ) : currentView === 'videos' ? (
-        <VideoLibrary user={user} />
+      
       ) : currentView === 'files' ? (
         <FileManager user={user} />
       ) : !user ? (
