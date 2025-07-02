@@ -5,9 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Will Power AI Coach - Your Personal Fitness Coach</title>
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <style>
         body {
             margin: 0;
@@ -24,8 +23,9 @@
 <body>
     <div id="root"></div>
 
-    <script type="text/babel">
+    <script>
         const { useState, useEffect, useRef } = React;
+        const { createElement: h } = React;
 
         function Login({ onLogin }) {
             const [name, setName] = useState('');
@@ -67,7 +67,7 @@
                 }
             };
 
-            return React.createElement('div', {
+            return h('div', {
                 style: {
                     maxWidth: '500px',
                     margin: '2rem auto',
@@ -77,23 +77,23 @@
                     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                 }
             }, [
-                React.createElement('h2', {
+                h('h2', {
                     key: 'title',
                     style: { textAlign: 'center', marginBottom: '1.5rem', color: '#333' }
                 }, 'Start Your Fitness Journey'),
-                React.createElement('form', {
+                h('form', {
                     key: 'form',
                     onSubmit: handleSubmit
                 }, [
-                    React.createElement('div', {
+                    h('div', {
                         key: 'name-group',
                         style: { marginBottom: '1rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'name-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'What\'s your name?'),
-                        React.createElement('input', {
+                        h('input', {
                             key: 'name-input',
                             type: 'text',
                             value: name,
@@ -108,15 +108,15 @@
                             }
                         })
                     ]),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'goal-group',
                         style: { marginBottom: '1.5rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'goal-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'What\'s your fitness goal?'),
-                        React.createElement('input', {
+                        h('input', {
                             key: 'goal-input',
                             type: 'text',
                             value: goal,
@@ -131,7 +131,7 @@
                             }
                         })
                     ]),
-                    React.createElement('button', {
+                    h('button', {
                         key: 'submit',
                         type: 'submit',
                         disabled: !name.trim() || !goal.trim() || isLoading,
@@ -319,7 +319,7 @@
                 }
             };
 
-            return React.createElement('div', {
+            return h('div', {
                 style: {
                     maxWidth: '800px',
                     margin: '0 auto',
@@ -329,7 +329,7 @@
                     overflow: 'hidden'
                 }
             }, [
-                React.createElement('div', {
+                h('div', {
                     key: 'header',
                     style: {
                         padding: '1rem',
@@ -338,19 +338,19 @@
                         textAlign: 'center'
                     }
                 }, [
-                    React.createElement('div', {
+                    h('div', {
                         key: 'header-content',
                         style: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }
                     }, [
-                        React.createElement('h3', {
+                        h('h3', {
                             key: 'title',
                             style: { margin: 0, flex: 1 }
                         }, `Chat with Will Power - ${user.name}'s Personal Trainer`),
-                        React.createElement('div', {
+                        h('div', {
                             key: 'controls',
                             style: { display: 'flex', gap: '0.5rem' }
                         }, [
-                            React.createElement('button', {
+                            h('button', {
                                 key: 'voice-toggle',
                                 onClick: () => setVoiceEnabled(!voiceEnabled),
                                 title: voiceEnabled ? 'Turn off voice' : 'Turn on voice',
@@ -364,7 +364,7 @@
                                     fontSize: '0.9rem'
                                 }
                             }, voiceEnabled ? '🔊' : '🔇'),
-                            isSpeaking && React.createElement('button', {
+                            isSpeaking && h('button', {
                                 key: 'stop-speaking',
                                 onClick: stopSpeaking,
                                 title: "Stop speaking",
@@ -380,16 +380,16 @@
                             }, '⏹️')
                         ])
                     ]),
-                    React.createElement('p', {
+                    h('p', {
                         key: 'goal',
                         style: { margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.9 }
                     }, `Goal: ${user.goal}`),
-                    isSpeaking && React.createElement('p', {
+                    isSpeaking && h('p', {
                         key: 'speaking-indicator',
                         style: { margin: '0.25rem 0 0 0', fontSize: '0.8rem', opacity: 0.8 }
                     }, '🎤 Will Power is speaking...')
                 ]),
-                React.createElement('div', {
+                h('div', {
                     key: 'messages',
                     style: {
                         height: '400px',
@@ -399,7 +399,7 @@
                     }
                 }, [
                     ...messages.map((message, index) => 
-                        React.createElement('div', {
+                        h('div', {
                             key: index,
                             style: {
                                 marginBottom: '1rem',
@@ -407,7 +407,7 @@
                                 justifyContent: message.role === 'user' ? 'flex-end' : 'flex-start'
                             }
                         }, 
-                            React.createElement('div', {
+                            h('div', {
                                 style: {
                                     maxWidth: '70%',
                                     padding: '0.75rem 1rem',
@@ -416,11 +416,11 @@
                                     color: message.role === 'user' ? 'white' : '#333'
                                 }
                             }, [
-                                React.createElement('div', {
+                                h('div', {
                                     key: 'content',
                                     style: { fontSize: '0.95rem', lineHeight: '1.4' }
                                 }, message.content),
-                                React.createElement('div', {
+                                h('div', {
                                     key: 'timestamp',
                                     style: {
                                         fontSize: '0.75rem',
@@ -432,7 +432,7 @@
                             ])
                         )
                     ),
-                    isLoading && React.createElement('div', {
+                    isLoading && h('div', {
                         key: 'loading',
                         style: {
                             display: 'flex',
@@ -440,7 +440,7 @@
                             marginBottom: '1rem'
                         }
                     }, 
-                        React.createElement('div', {
+                        h('div', {
                             style: {
                                 padding: '0.75rem 1rem',
                                 borderRadius: '18px',
@@ -449,12 +449,12 @@
                             }
                         }, 'Will Power is thinking... 💭')
                     ),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'scroll-anchor',
                         ref: messagesEndRef
                     })
                 ]),
-                React.createElement('form', {
+                h('form', {
                     key: 'input-form',
                     onSubmit: sendMessage,
                     style: {
@@ -463,11 +463,11 @@
                         backgroundColor: 'white'
                     }
                 }, [
-                    React.createElement('div', {
+                    h('div', {
                         key: 'input-container',
                         style: { display: 'flex', gap: '0.5rem' }
                     }, [
-                        React.createElement('input', {
+                        h('input', {
                             key: 'message-input',
                             type: 'text',
                             value: input,
@@ -483,7 +483,7 @@
                                 outline: 'none'
                             }
                         }),
-                        React.createElement('button', {
+                        h('button', {
                             key: 'voice-button',
                             type: 'button',
                             onClick: handleListen,
@@ -505,7 +505,7 @@
                                 transition: 'all 0.3s ease'
                             }
                         }, isListening ? '🔴' : '🎤'),
-                        React.createElement('button', {
+                        h('button', {
                             key: 'send-button',
                             type: 'submit',
                             disabled: isLoading || !input.trim(),
@@ -520,11 +520,11 @@
                             }
                         }, 'Send')
                     ]),
-                    speechToText && React.createElement('div', {
+                    speechToText && h('div', {
                         key: 'speech-to-text',
                         style: { marginTop: '0.5rem', fontSize: '0.9rem', color: '#555' }
                     }, [
-                        React.createElement('strong', { key: 'label' }, 'Speech-to-Text: '),
+                        h('strong', { key: 'label' }, 'Speech-to-Text: '),
                         speechToText
                     ])
                 ])
@@ -568,7 +568,7 @@
             };
 
             if (submitted) {
-                return React.createElement('div', {
+                return h('div', {
                     style: {
                         maxWidth: '800px',
                         margin: '2rem auto',
@@ -578,11 +578,11 @@
                         boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                     }
                 }, [
-                    React.createElement('h2', {
+                    h('h2', {
                         key: 'success-title',
                         style: { color: '#28a745', textAlign: 'center', marginBottom: '1rem' }
                     }, '🎉 Thanks for your interest!'),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'ai-response',
                         style: {
                             backgroundColor: '#f8f9fa',
@@ -593,7 +593,7 @@
                             lineHeight: '1.6'
                         }
                     }, aiResponse),
-                    React.createElement('button', {
+                    h('button', {
                         key: 'reset-button',
                         onClick: () => setSubmitted(false),
                         style: {
@@ -610,7 +610,7 @@
                 ]);
             }
 
-            return React.createElement('div', {
+            return h('div', {
                 style: {
                     maxWidth: '600px',
                     margin: '2rem auto',
@@ -620,27 +620,27 @@
                     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                 }
             }, [
-                React.createElement('h2', {
+                h('h2', {
                     key: 'form-title',
                     style: { textAlign: 'center', marginBottom: '1rem', color: '#333' }
                 }, 'Get Your Personalized Plan'),
-                React.createElement('p', {
+                h('p', {
                     key: 'form-subtitle',
                     style: { textAlign: 'center', color: '#666', marginBottom: '2rem' }
                 }, 'Let Will Power AI create a custom fitness and nutrition plan just for you!'),
-                React.createElement('form', {
+                h('form', {
                     key: 'contact-form',
                     onSubmit: handleSubmit
                 }, [
-                    React.createElement('div', {
+                    h('div', {
                         key: 'name-group',
                         style: { marginBottom: '1rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'name-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'Full Name *'),
-                        React.createElement('input', {
+                        h('input', {
                             key: 'name-input',
                             type: 'text',
                             required: true,
@@ -655,15 +655,15 @@
                             }
                         })
                     ]),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'email-group',
                         style: { marginBottom: '1rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'email-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'Email Address *'),
-                        React.createElement('input', {
+                        h('input', {
                             key: 'email-input',
                             type: 'email',
                             required: true,
@@ -678,15 +678,15 @@
                             }
                         })
                     ]),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'phone-group',
                         style: { marginBottom: '1rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'phone-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'Phone Number'),
-                        React.createElement('input', {
+                        h('input', {
                             key: 'phone-input',
                             type: 'tel',
                             value: formData.phone,
@@ -700,15 +700,15 @@
                             }
                         })
                     ]),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'goals-group',
                         style: { marginBottom: '1rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'goals-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'Fitness Goals *'),
-                        React.createElement('textarea', {
+                        h('textarea', {
                             key: 'goals-input',
                             required: true,
                             value: formData.goals,
@@ -725,15 +725,15 @@
                             }
                         })
                     ]),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'experience-group',
                         style: { marginBottom: '1rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'experience-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'Experience Level *'),
-                        React.createElement('select', {
+                        h('select', {
                             key: 'experience-input',
                             required: true,
                             value: formData.experience,
@@ -746,20 +746,20 @@
                                 fontSize: '1rem'
                             }
                         }, [
-                            React.createElement('option', { key: 'beginner', value: 'beginner' }, 'Beginner (0-6 months)'),
-                            React.createElement('option', { key: 'intermediate', value: 'intermediate' }, 'Intermediate (6 months - 2 years)'),
-                            React.createElement('option', { key: 'advanced', value: 'advanced' }, 'Advanced (2+ years)')
+                            h('option', { key: 'beginner', value: 'beginner' }, 'Beginner (0-6 months)'),
+                            h('option', { key: 'intermediate', value: 'intermediate' }, 'Intermediate (6 months - 2 years)'),
+                            h('option', { key: 'advanced', value: 'advanced' }, 'Advanced (2+ years)')
                         ])
                     ]),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'message-group',
                         style: { marginBottom: '2rem' }
                     }, [
-                        React.createElement('label', {
+                        h('label', {
                             key: 'message-label',
                             style: { display: 'block', marginBottom: '0.5rem', fontWeight: 'bold' }
                         }, 'Additional Information'),
-                        React.createElement('textarea', {
+                        h('textarea', {
                             key: 'message-input',
                             value: formData.message,
                             onChange: (e) => setFormData({...formData, message: e.target.value}),
@@ -775,7 +775,7 @@
                             }
                         })
                     ]),
-                    React.createElement('button', {
+                    h('button', {
                         key: 'submit-button',
                         type: 'submit',
                         disabled: loading,
@@ -845,7 +845,7 @@
             };
 
             if (!user) {
-                return React.createElement('div', {
+                return h('div', {
                     style: {
                         maxWidth: '800px',
                         margin: '2rem auto',
@@ -856,18 +856,18 @@
                         textAlign: 'center'
                     }
                 }, [
-                    React.createElement('h2', {
+                    h('h2', {
                         key: 'title',
                         style: { color: '#666', marginBottom: '1rem' }
                     }, '📁 File Manager'),
-                    React.createElement('p', {
+                    h('p', {
                         key: 'message',
                         style: { color: '#666' }
                     }, 'Please start a chat session to access your files.')
                 ]);
             }
 
-            return React.createElement('div', {
+            return h('div', {
                 style: {
                     maxWidth: '800px',
                     margin: '2rem auto',
@@ -877,11 +877,11 @@
                     boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
                 }
             }, [
-                React.createElement('h2', {
+                h('h2', {
                     key: 'title',
                     style: { textAlign: 'center', marginBottom: '2rem', color: '#333' }
                 }, `📁 ${user.name}'s Files`),
-                React.createElement('div', {
+                h('div', {
                     key: 'upload-section',
                     style: {
                         marginBottom: '2rem',
@@ -891,11 +891,11 @@
                         border: '2px dashed #dee2e6'
                     }
                 }, [
-                    React.createElement('h3', {
+                    h('h3', {
                         key: 'upload-title',
                         style: { margin: '0 0 1rem 0', color: '#495057' }
                     }, '📤 Upload Progress Photos'),
-                    React.createElement('input', {
+                    h('input', {
                         key: 'file-input',
                         type: 'file',
                         accept: 'image/*,.pdf,.doc,.docx',
@@ -908,24 +908,24 @@
                             borderRadius: '4px'
                         }
                     }),
-                    uploading && React.createElement('p', {
+                    uploading && h('p', {
                         key: 'uploading',
                         style: { marginTop: '0.5rem', color: '#007bff' }
                     }, 'Uploading...')
                 ]),
-                React.createElement('div', {
+                h('div', {
                     key: 'downloads-section'
                 }, [
-                    React.createElement('h3', {
+                    h('h3', {
                         key: 'downloads-title',
                         style: { marginBottom: '1rem', color: '#495057' }
                     }, '📥 Your Downloads'),
-                    files.length === 0 ? React.createElement('p', {
+                    files.length === 0 ? h('p', {
                         key: 'no-files',
                         style: { color: '#6c757d', textAlign: 'center', fontStyle: 'italic' }
                     }, 'No files available yet. Start chatting with Will Power to generate personalized plans!') : 
                     files.map(file => 
-                        React.createElement('div', {
+                        h('div', {
                             key: file.id,
                             style: {
                                 display: 'flex',
@@ -938,24 +938,24 @@
                                 border: '1px solid #e9ecef'
                             }
                         }, [
-                            React.createElement('div', {
+                            h('div', {
                                 key: 'file-info',
                                 style: { flex: 1 }
                             }, [
-                                React.createElement('h4', {
+                                h('h4', {
                                     key: 'file-title',
                                     style: { margin: '0 0 0.25rem 0', color: '#495057' }
                                 }, file.title),
-                                React.createElement('p', {
+                                h('p', {
                                     key: 'file-description',
                                     style: { margin: '0 0 0.25rem 0', color: '#6c757d', fontSize: '0.9rem' }
                                 }, file.description),
-                                React.createElement('span', {
+                                h('span', {
                                     key: 'file-meta',
                                     style: { fontSize: '0.8rem', color: '#868e96' }
                                 }, `${file.type.toUpperCase()} • ${file.size}`)
                             ]),
-                            React.createElement('button', {
+                            h('button', {
                                 key: 'download-button',
                                 onClick: () => window.open(file.download_url, '_blank'),
                                 style: {
@@ -978,7 +978,7 @@
             const [user, setUser] = useState(null);
             const [currentView, setCurrentView] = useState('home');
 
-            return React.createElement('div', {
+            return h('div', {
                 style: { 
                     minHeight: '100vh',
                     backgroundColor: '#f8f9fa',
@@ -986,11 +986,11 @@
                     fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
                 }
             }, [
-                React.createElement('div', {
+                h('div', {
                     key: 'header',
                     style: { textAlign: 'center', marginBottom: '2rem' }
                 }, [
-                    React.createElement('h1', {
+                    h('h1', {
                         key: 'title',
                         style: { 
                             fontSize: '3rem', 
@@ -1002,15 +1002,15 @@
                             textAlign: 'center'
                         }
                     }, 'Will Power AI Coach'),
-                    React.createElement('p', {
+                    h('p', {
                         key: 'subtitle',
                         style: { fontSize: '1.2rem', color: '#666', margin: 0 }
                     }, 'Your Personal AI Fitness Coach'),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'navigation',
                         style: { marginTop: '1rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }
                     }, [
-                        React.createElement('button', {
+                        h('button', {
                             key: 'home-nav',
                             onClick: () => setCurrentView('home'),
                             style: {
@@ -1023,7 +1023,7 @@
                                 fontSize: '0.9rem'
                             }
                         }, '🤖 AI Chat'),
-                        React.createElement('button', {
+                        h('button', {
                             key: 'contact-nav',
                             onClick: () => setCurrentView('contact'),
                             style: {
@@ -1036,7 +1036,7 @@
                                 fontSize: '0.9rem'
                             }
                         }, '📋 Get Personal Plan'),
-                        React.createElement('button', {
+                        h('button', {
                             key: 'videos-nav',
                             onClick: () => setCurrentView('videos'),
                             style: {
@@ -1049,7 +1049,7 @@
                                 fontSize: '0.9rem'
                             }
                         }, '🎬 Video Library'),
-                        React.createElement('button', {
+                        h('button', {
                             key: 'files-nav',
                             onClick: () => setCurrentView('files'),
                             style: {
@@ -1064,8 +1064,8 @@
                         }, '📁 Files')
                     ])
                 ]),
-                currentView === 'contact' ? React.createElement(ContactForm, { key: 'contact-form' }) :
-                currentView === 'videos' ? React.createElement('div', {
+                currentView === 'contact' ? h(ContactForm, { key: 'contact-form' }) :
+                currentView === 'videos' ? h('div', {
                     key: 'videos-section',
                     style: {
                         maxWidth: '800px',
@@ -1077,11 +1077,11 @@
                         textAlign: 'center'
                     }
                 }, [
-                    React.createElement('div', {
+                    h('div', {
                         key: 'video-icon',
                         style: { fontSize: '4rem', marginBottom: '1rem' }
                     }, '🎬'),
-                    React.createElement('h2', {
+                    h('h2', {
                         key: 'video-title',
                         style: { 
                             color: '#333', 
@@ -1089,7 +1089,7 @@
                             fontSize: '2rem'
                         }
                     }, 'Video Library Coming Soon!'),
-                    React.createElement('p', {
+                    h('p', {
                         key: 'video-description',
                         style: { 
                             color: '#666', 
@@ -1098,7 +1098,7 @@
                             lineHeight: '1.6'
                         }
                     }, 'Will Power is creating amazing workout videos just for you. Check back soon for exclusive training content!'),
-                    React.createElement('div', {
+                    h('div', {
                         key: 'video-cta',
                         style: {
                             backgroundColor: '#f8f9fa',
@@ -1107,7 +1107,7 @@
                             border: '2px dashed #dee2e6'
                         }
                     }, 
-                        React.createElement('p', {
+                        h('p', {
                             style: { 
                                 margin: 0, 
                                 color: '#007bff',
@@ -1116,14 +1116,14 @@
                         }, '🚀 In the meantime, chat with Will Power AI for personalized workouts!')
                     )
                 ]) :
-                currentView === 'files' ? React.createElement(FileManager, { key: 'file-manager', user: user }) :
-                !user ? React.createElement(Login, { key: 'login', onLogin: setUser }) :
-                React.createElement('div', { key: 'chat-section' }, [
-                    React.createElement('div', {
+                currentView === 'files' ? h(FileManager, { key: 'file-manager', user: user }) :
+                !user ? h(Login, { key: 'login', onLogin: setUser }) :
+                h('div', { key: 'chat-section' }, [
+                    h('div', {
                         key: 'start-over',
                         style: { textAlign: 'center', marginBottom: '1rem' }
                     }, 
-                        React.createElement('button', {
+                        h('button', {
                             onClick: () => setUser(null),
                             style: {
                                 padding: '0.5rem 1rem',
@@ -1136,13 +1136,13 @@
                             }
                         }, '← Start Over')
                     ),
-                    React.createElement(ChatBox, { key: 'chatbox', user: user })
+                    h(ChatBox, { key: 'chatbox', user: user })
                 ])
             ]);
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(React.createElement(App));
+        root.render(h(App));
     </script>
 </body>
 </html>
