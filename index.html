@@ -12,8 +12,9 @@
             margin: 0;
             padding: 0;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #000000;
             min-height: 100vh;
+            color: #c0c0c0;
         }
         #root {
             min-height: 100vh;
@@ -345,7 +346,7 @@
                         h('h3', {
                             key: 'title',
                             style: { margin: 0, flex: 1 }
-                        }, `Chat with Will Power - ${user.name}'s Personal Trainer`),
+                        }, `Chat with Willpowerfitness AI - ${user.name}'s Personal Trainer`),
                         h('div', {
                             key: 'controls',
                             style: { display: 'flex', gap: '0.5rem' }
@@ -981,9 +982,10 @@
             return h('div', {
                 style: { 
                     minHeight: '100vh',
-                    backgroundColor: '#f8f9fa',
+                    backgroundColor: '#000000',
                     padding: '2rem', 
-                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    color: '#c0c0c0'
                 }
             }, [
                 h('div', {
@@ -995,16 +997,16 @@
                         style: { 
                             fontSize: '3rem', 
                             margin: '0 0 0.5rem 0',
-                            background: 'linear-gradient(45deg, #007bff, #28a745)',
+                            background: 'linear-gradient(45deg, #c0c0c0, #e6e6e6)',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
                             fontWeight: 'bold',
                             textAlign: 'center'
                         }
-                    }, 'Will Power AI Coach'),
+                    }, 'Willpowerfitness AI Coach'),
                     h('p', {
                         key: 'subtitle',
-                        style: { fontSize: '1.2rem', color: '#666', margin: 0 }
+                        style: { fontSize: '1.2rem', color: '#a0a0a0', margin: 0 }
                     }, 'Your Personal AI Fitness Coach'),
                     h('div', {
                         key: 'navigation',
