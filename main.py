@@ -157,7 +157,23 @@ def home():
         with open('index.html', 'r') as f:
             return f.read()
     except FileNotFoundError:
-        return "WillpowerFitness AI is live!", 200
+        return """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>WillpowerFitness AI Coach</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body>
+            <div id="root"></div>
+            <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+            <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+            <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+            <script type="text/babel" src="/static/App.jsx"></script>
+        </body>
+        </html>
+        """, 200
 
 @app.route("/attached_assets/<path:filename>")
 def attached_assets(filename):
@@ -176,6 +192,21 @@ def attached_assets(filename):
             return send_from_directory('attached_assets', filename)
     except FileNotFoundError:
         print(f"File not found: attached_assets/{filename}")
+        return "File not found", 404
+
+@app.route("/static/<path:filename>")
+def static_files(filename):
+    """Serve static files including React components"""
+    from flask import send_from_directory
+    import os
+    try:
+        # Serve React components from root directory
+        if filename.endswith('.jsx'):
+            return send_from_directory('.', filename)
+        # Serve other static files
+        return send_from_directory('static', filename)
+    except FileNotFoundError:
+        print(f"Static file not found: {filename}")
         return "File not found", 404
 
 @app.route("/api/chat", methods=["POST"])
