@@ -175,6 +175,71 @@ def home():
         </html>
         """, 200
 
+@app.route("/test", methods=["GET"])
+def test_page():
+    """Simple test page to verify the server is working"""
+    return """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>WillpowerFitness - Test Page</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+            .test-button { padding: 15px 30px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
+            .result { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+        <h1>🎽 WillpowerFitness AI - Test Page</h1>
+        <p>Your Flask server is working! Now let's test the Printful integration:</p>
+        
+        <button class="test-button" onclick="testPrintfulAPI()">Test Printful API Connection</button>
+        <button class="test-button" onclick="testCreateOrder()">Test Create Sample Order</button>
+        
+        <div id="results" class="result" style="display:none;"></div>
+        
+        <script>
+            async function testPrintfulAPI() {
+                showResult('Testing Printful API connection...');
+                try {
+                    const response = await fetch('/api/printful-test', { method: 'POST' });
+                    const result = await response.json();
+                    showResult(JSON.stringify(result, null, 2));
+                } catch (error) {
+                    showResult('Error: ' + error.message);
+                }
+            }
+            
+            async function testCreateOrder() {
+                showResult('Creating test Printful order...');
+                try {
+                    const response = await fetch('/api/test-order', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: 'test@example.com',
+                            name: 'Test Customer',
+                            size: 'M',
+                            address: '123 Test St\\nLos Angeles, CA 90210'
+                        })
+                    });
+                    const result = await response.json();
+                    showResult(JSON.stringify(result, null, 2));
+                } catch (error) {
+                    showResult('Error: ' + error.message);
+                }
+            }
+            
+            function showResult(message) {
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.style.display = 'block';
+                resultsDiv.innerHTML = '<pre>' + message + '</pre>';
+            }
+        </script>
+    </body>
+    </html>
+    """
+
 @app.route("/attached_assets/<path:filename>")
 def attached_assets(filename):
     """Serve files from attached_assets directory"""
