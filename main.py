@@ -80,7 +80,8 @@ YOUR COMMUNICATION STYLE WITH {name}:
 - Be inspirational through honest assessment of their potential
 - Remember their history and reference past conversations
 - Ask probing questions that make them think deeper about their habits
-- Give specific, science-based advice they can actually implement
+- Give general fitness advice and motivation, but full detailed programs require membership
+- For workout plans, give 1-2 sample exercises and direct them to join for complete programs
 - Balance being supportive with being real about what needs to change
 
 REMEMBER ABOUT {name}:
@@ -88,6 +89,12 @@ REMEMBER ABOUT {name}:
 - Always reference their specific journey and previous conversations
 - Build on what you know about their preferences, challenges, and progress
 - Make every interaction feel like you genuinely know and care about them
+
+MEMBERSHIP GUIDELINES:
+- Free users get motivation, general tips, and 1-2 sample exercises
+- Full workout programs, meal plans, and detailed coaching require $225/month membership
+- Always mention the value of joining for complete personalized programs
+- Create urgency around transformation and results
 
 Be the coach who combines critical thinking, strategic humor, serious dedication, and authentic inspiration. This is {name} - treat them like the individual they are, not a generic client."""}
     ]
@@ -1296,24 +1303,49 @@ def test_printful_integration():
     """Test Printful integration with detailed diagnostics"""
     if not PRINTFUL_API_KEY:
         return jsonify({
+            "success": False,
             "error": "PRINTFUL_API_KEY not configured in Secrets",
-            "fix": "Add your Printful API token to Replit Secrets with key 'PRINTFUL_API_KEY'"
+            "fix": "Add your Printful API token to Replit Secrets with key 'PRINTFUL_API_KEY'",
+            "instructions": [
+                "1. Go to Secrets tab in Replit",
+                "2. Add key: PRINTFUL_API_KEY", 
+                "3. Add your Printful API token as the value",
+                "4. Restart your Repl"
+            ]
         }), 400
 
     try:
-        print(f"🔍 Testing Printful API with token: {PRINTFUL_API_KEY[:20]}...")
+        print(f"🔍 Testing Printful API with token: {PRINTFUL_API_KEY[:10]}***")
         
-        # Test API connection
-        response = requests.get(
+        # Test basic API connection first
+        test_response = requests.get(
+            "https://api.printful.com",
+            timeout=10
+        )
+        print(f"🌐 Basic connectivity test: {test_response.status_code}")
+        
+        # Test API authentication
+        auth_response = requests.get(
             "https://api.printful.com/stores",
-            headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}"}
+            headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}"},
+            timeout=15
         )
 
-        print(f"📡 Printful API Response: {response.status_code}")
-        print(f"📝 Response content: {response.text[:500]}")
-
-        if response.status_code == 200:
-            stores = response.json().get("result", [])
+        print(f"📡 Printful API Response: {auth_response.status_code}")
+        print(f"📝 Response headers: {dict(auth_response.headers)}")
+        
+        if auth_response.status_code == 200:
+            result_data = auth_response.json()
+            stores = result_data.get("result", [])
+            
+            # Test products endpoint too
+            products_response = requests.get(
+                "https://api.printful.com/products?limit=5",
+                headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}"},
+                timeout=15
+            )
+            
+            products_working = products_response.status_code == 200
             
             return jsonify({
                 "success": True,
@@ -1321,39 +1353,71 @@ def test_printful_integration():
                 "stores": stores,
                 "store_count": len(stores),
                 "api_key_status": "Valid and working",
+                "products_api_working": products_working,
                 "integration_status": "Ready for t-shirt fulfillment",
+                "printful_response": result_data,
                 "next_steps": [
                     "1. Test creating a sample order",
                     "2. Orders will auto-create when customers pay $225/month",
                     "3. Webhook notifications will track order progress"
                 ]
             })
-        elif response.status_code == 401:
+        elif auth_response.status_code == 401:
             return jsonify({
                 "success": False,
-                "error": "Invalid or expired API token",
+                "error": "❌ Invalid or expired API token",
                 "fix": "Check your Printful API token in Secrets - it may be incorrect or expired",
-                "response_code": response.status_code,
-                "response_text": response.text
+                "response_code": auth_response.status_code,
+                "response_text": auth_response.text[:200],
+                "troubleshooting": [
+                    "1. Log into your Printful account",
+                    "2. Go to Settings > API",
+                    "3. Generate a new API token",
+                    "4. Update your Replit Secrets"
+                ]
             }), 401
+        elif auth_response.status_code == 403:
+            return jsonify({
+                "success": False,
+                "error": "❌ API token doesn't have required permissions",
+                "fix": "Your API token needs store access permissions",
+                "response_code": auth_response.status_code,
+                "response_text": auth_response.text[:200]
+            }), 403
         else:
             return jsonify({
                 "success": False,
-                "error": f"Printful API error: {response.status_code}",
-                "response_text": response.text,
+                "error": f"❌ Printful API error: {auth_response.status_code}",
+                "response_text": auth_response.text[:300],
                 "troubleshooting": [
                     "1. Verify API token has correct permissions",
-                    "2. Check if store is properly configured",
-                    "3. Ensure token hasn't expired"
+                    "2. Check if store is properly configured", 
+                    "3. Ensure token hasn't expired",
+                    "4. Try generating a new token"
                 ]
             }), 400
 
+    except requests.exceptions.Timeout:
+        return jsonify({
+            "success": False,
+            "error": "❌ Connection timeout",
+            "fix": "Printful API is slow to respond. Try again in a moment.",
+            "type": "timeout_error"
+        }), 500
+    except requests.exceptions.ConnectionError:
+        return jsonify({
+            "success": False,
+            "error": "❌ Cannot connect to Printful API",
+            "fix": "Check your internet connection or try again later",
+            "type": "connection_error"
+        }), 500
     except Exception as e:
         print(f"❌ Exception during Printful test: {e}")
         return jsonify({
             "success": False,
-            "error": str(e),
-            "type": "connection_error"
+            "error": f"Unexpected error: {str(e)}",
+            "type": "unexpected_error",
+            "fix": "Try refreshing the page and testing again"
         }), 500
 
 @app.route("/api/test-order", methods=["POST"])
