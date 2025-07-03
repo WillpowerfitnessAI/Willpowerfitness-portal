@@ -343,8 +343,137 @@
           const [input, setInput] = useState('');
           const [isLoading, setIsLoading] = useState(false);
           const messagesEndRef = useRef(null);
+          const [isListening, setIsListening] = useState(false);
+          const [speechToText, setSpeechToText] = useState('');
+          const recognitionRef = useRef(null);
+          const [isSpeaking, setIsSpeaking] = useState(false);
+          const [voiceEnabled, setVoiceEnabled] = useState(true);
+
+          // Function to speak AI responses
+          const speakText = (text) => {
+            if (!voiceEnabled || !('speechSynthesis' in window)) {
+              console.warn('Speech synthesis not available');
+              return;
+            }
+            
+            // Cancel any ongoing speech
+            window.speechSynthesis.cancel();
+            
+            // Clean the text for better speech
+            const cleanText = text.replace(/\*\*(.*?)\*\*/g, '$1').replace(/\*(.*?)\*/g, '$1');
+            
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            utterance.volume = 0.8;
+            
+            // Load and select voice
+            const loadVoices = () => {
+              const voices = window.speechSynthesis.getVoices();
+              console.log('Available voices:', voices.length);
+              
+              if (voices.length > 0) {
+                // Find a suitable English voice
+                const preferredVoice = voices.find(voice => 
+                  voice.lang.includes('en-US') || voice.lang.includes('en-GB')
+                ) || voices[0]; // Fallback to first available voice
+                
+                if (preferredVoice) {
+                  utterance.voice = preferredVoice;
+                  console.log('Selected voice:', preferredVoice.name);
+                }
+              }
+              
+              utterance.onstart = () => {
+                console.log('Speech started');
+                setIsSpeaking(true);
+              };
+              
+              utterance.onend = () => {
+                console.log('Speech ended');
+                setIsSpeaking(false);
+              };
+              
+              utterance.onerror = (e) => {
+                console.error('Speech error:', e);
+                setIsSpeaking(false);
+              };
+              
+              try {
+                window.speechSynthesis.speak(utterance);
+              } catch (error) {
+                console.error('Error speaking:', error);
+                setIsSpeaking(false);
+              }
+            };
+            
+            // Check if voices are already loaded
+            if (window.speechSynthesis.getVoices().length === 0) {
+              console.log('Waiting for voices to load...');
+              window.speechSynthesis.addEventListener('voiceschanged', loadVoices, { once: true });
+              // Timeout fallback
+              setTimeout(loadVoices, 1000);
+            } else {
+              loadVoices();
+            }
+          };
+
+          const stopSpeaking = () => {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+          };
 
           useEffect(() => {
+            // Initialize SpeechRecognition
+            if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+              const SpeechRecognition = window.webkitSpeechRecognition || window.SpeechRecognition;
+              recognitionRef.current = new SpeechRecognition();
+              recognitionRef.current.continuous = false;
+              recognitionRef.current.interimResults = true;
+              recognitionRef.current.lang = 'en-US';
+
+              recognitionRef.current.onresult = (event) => {
+                let interimTranscript = '';
+                let finalTranscript = '';
+                
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                  if (event.results[i].isFinal) {
+                    finalTranscript = event.results[i][0].transcript;
+                  } else {
+                    interimTranscript += event.results[i][0].transcript;
+                  }
+                }
+                
+                if (finalTranscript) {
+                  setSpeechToText(finalTranscript);
+                  setInput(finalTranscript);
+                  setIsListening(false);
+                } else {
+                  setSpeechToText(interimTranscript);
+                }
+              };
+
+              recognitionRef.current.onend = () => {
+                setIsListening(false);
+              };
+
+              recognitionRef.current.onerror = (event) => {
+                console.error("Speech recognition error:", event.error);
+                setIsListening(false);
+                if (event.error === 'not-allowed') {
+                  alert('Microphone access denied. Please allow microphone access and try again.');
+                }
+              };
+
+              recognitionRef.current.onstart = () => {
+                console.log('Speech recognition started');
+                setSpeechToText('');
+              };
+            } else {
+              console.warn("Speech recognition not supported in this browser.");
+            }
+
+            // Add welcome message
             if (user.welcomeMessage) {
               const welcomeMsg = {
                 role: 'ai',
@@ -352,6 +481,11 @@
                 timestamp: new Date().toLocaleTimeString()
               };
               setMessages([welcomeMsg]);
+              
+              // Speak welcome message after a short delay
+              setTimeout(() => {
+                speakText(user.welcomeMessage);
+              }, 1000);
             }
           }, [user.welcomeMessage]);
 
@@ -371,6 +505,7 @@
 
             setMessages(prev => [...prev, userMessage]);
             setInput('');
+            setSpeechToText(''); // Clear speech to text
             setIsLoading(true);
 
             try {
@@ -391,6 +526,11 @@
                   timestamp: new Date().toLocaleTimeString()
                 };
                 setMessages(prev => [...prev, aiMessage]);
+                
+                // Speak the AI response
+                if (voiceEnabled) {
+                  speakText(data.reply);
+                }
               } else {
                 throw new Error('Failed to get response');
               }
@@ -404,6 +544,25 @@
               setMessages(prev => [...prev, errorMessage]);
             } finally {
               setIsLoading(false);
+            }
+          };
+
+          const handleListen = () => {
+            if (recognitionRef.current) {
+              if (!isListening) {
+                try {
+                  recognitionRef.current.start();
+                  setIsListening(true);
+                } catch (error) {
+                  console.error('Error starting speech recognition:', error);
+                  alert('Could not start speech recognition. Please check your microphone permissions.');
+                }
+              } else {
+                recognitionRef.current.stop();
+                setIsListening(false);
+              }
+            } else {
+              alert('Speech recognition is not available in your browser. Please use Chrome, Edge, or Safari.');
             }
           };
 
@@ -423,12 +582,53 @@
                 color: 'white',
                 textAlign: 'center'
               }}>
-                <h3 style={{ margin: '0 0 0.5rem 0' }}>
-                  Chat with Will Power AI - {user.name}'s Personal Trainer
-                </h3>
-                <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.9 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                  <h3 style={{ margin: 0, flex: 1 }}>
+                    Chat with Willpowerfitness AI - {user.name}'s Personal Trainer
+                  </h3>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => setVoiceEnabled(!voiceEnabled)}
+                      title={voiceEnabled ? 'Turn off voice' : 'Turn on voice'}
+                      style={{
+                        padding: '0.5rem',
+                        backgroundColor: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        border: '1px solid rgba(255,255,255,0.3)',
+                        borderRadius: '5px',
+                        cursor: 'pointer',
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      {voiceEnabled ? '🔊' : '🔇'}
+                    </button>
+                    {isSpeaking && (
+                      <button
+                        onClick={stopSpeaking}
+                        title="Stop speaking"
+                        style={{
+                          padding: '0.5rem',
+                          backgroundColor: '#dc3545',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '5px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem'
+                        }}
+                      >
+                        ⏹️
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.9 }}>
                   Goal: {user.goal}
                 </p>
+                {isSpeaking && (
+                  <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.8rem', opacity: 0.8 }}>
+                    🎤 Will Power is speaking...
+                  </p>
+                )}
               </div>
 
               {/* Messages */}
@@ -512,6 +712,30 @@
                     }}
                   />
                   <button
+                    type="button"
+                    onClick={handleListen}
+                    disabled={isLoading}
+                    title={isListening ? 'Stop Listening' : 'Click to speak (requires microphone permission)'}
+                    style={{
+                      padding: '0.75rem',
+                      backgroundColor: isListening ? '#dc3545' : '#6f42c1',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      fontSize: '1.2rem',
+                      width: '50px',
+                      height: '50px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease',
+                      opacity: recognitionRef.current ? 1 : 0.5
+                    }}
+                  >
+                    {isListening ? '🛑' : '🎤'}
+                  </button>
+                  <button
                     type="submit"
                     disabled={isLoading || !input.trim()}
                     style={{
@@ -527,6 +751,18 @@
                     Send
                   </button>
                 </div>
+                {(speechToText || isListening) && (
+                  <div style={{ 
+                    marginTop: '0.5rem', 
+                    fontSize: '0.9rem', 
+                    color: isListening ? '#007bff' : '#555',
+                    fontStyle: isListening ? 'italic' : 'normal'
+                  }}>
+                    <strong>
+                      {isListening ? '🎤 Listening...' : 'Speech-to-Text:'}
+                    </strong> {speechToText}
+                  </div>
+                )}
               </form>
             </div>
           );
