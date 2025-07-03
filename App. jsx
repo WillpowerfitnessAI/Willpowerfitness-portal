@@ -67,6 +67,34 @@ function App() {
             📋 Get Personal Plan
           </button>
           <button
+            onClick={() => setCurrentView('upload')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: currentView === 'upload' ? '#dc3545' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            📤 Upload Files
+          </button>
+          <button
+            onClick={() => setCurrentView('download')}
+            style={{
+              padding: '0.5rem 1rem',
+              backgroundColor: currentView === 'download' ? '#fd7e14' : '#6c757d',
+              color: 'white',
+              border: 'none',
+              borderRadius: '20px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            📥 Download Files
+          </button>
+          <button
             onClick={() => setCurrentView('videos')}
             style={{
               padding: '0.5rem 1rem',
@@ -92,7 +120,7 @@ function App() {
               fontSize: '0.9rem'
             }}
           >
-            📁 Files
+            📁 File Manager
           </button>
         </div>
       </div>
@@ -138,6 +166,90 @@ function App() {
               fontWeight: 'bold'
             }}>
               🚀 In the meantime, chat with Will Power AI for personalized workouts!
+            </p>
+          </div>
+        </div>
+      ) : currentView === 'upload' ? (
+        <div style={{
+          maxWidth: '800px',
+          margin: '2rem auto',
+          padding: '3rem 2rem',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📤</div>
+          <h2 style={{ 
+            color: '#333', 
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            Upload Your Files
+          </h2>
+          <p style={{ 
+            color: '#666', 
+            fontSize: '1.2rem',
+            marginBottom: '2rem',
+            lineHeight: '1.6'
+          }}>
+            Upload progress photos, workout videos, or documents. <br/>
+            Will Power AI will analyze and provide personalized feedback!
+          </p>
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            padding: '1.5rem',
+            borderRadius: '8px',
+            border: '2px dashed #dee2e6'
+          }}>
+            <p style={{ 
+              margin: 0, 
+              color: '#007bff',
+              fontWeight: 'bold'
+            }}>
+              🚀 Coming Soon - Upload progress photos and get AI analysis!
+            </p>
+          </div>
+        </div>
+      ) : currentView === 'download' ? (
+        <div style={{
+          maxWidth: '800px',
+          margin: '2rem auto',
+          padding: '3rem 2rem',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📥</div>
+          <h2 style={{ 
+            color: '#333', 
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            Download Your Plans
+          </h2>
+          <p style={{ 
+            color: '#666', 
+            fontSize: '1.2rem',
+            marginBottom: '2rem',
+            lineHeight: '1.6'
+          }}>
+            Download your personalized workout plans, nutrition guides, <br/>
+            and progress tracking sheets!
+          </p>
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            padding: '1.5rem',
+            borderRadius: '8px',
+            border: '2px dashed #dee2e6'
+          }}>
+            <p style={{ 
+              margin: 0, 
+              color: '#007bff',
+              fontWeight: 'bold'
+            }}>
+              🎯 Join WillpowerFitness to access downloadable workout plans!
             </p>
           </div>
         </div>
