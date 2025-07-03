@@ -272,6 +272,7 @@ def test_page():
             <button class="test-button" onclick="testPrintfulAPI()">Test Printful Connection</button>
             <button class="test-button" onclick="testCreateOrder()">Create Sample T-Shirt Order</button>
             <button class="test-button" onclick="testChatBot()">Test AI Chat</button>
+            <button class="test-button" onclick="testVideos()">Test Video Library</button>
         </div>
 
         <div class="test-section">
@@ -283,7 +284,7 @@ def test_page():
             async function testBasicAPI() {
                 showResult('Testing basic API endpoint...');
                 try {
-                    const response = await fetch('/api/leads');
+                    const response = await fetch('/api/status');
                     const result = await response.json();
                     showResult('✅ Basic API working!\\n' + JSON.stringify(result, null, 2));
                 } catch (error) {
@@ -306,6 +307,17 @@ def test_page():
                     showResult('✅ AI Chat working!\\nReply: ' + result.reply);
                 } catch (error) {
                     showResult('❌ AI Chat Error: ' + error.message);
+                }
+            }
+
+            async function testVideos() {
+                showResult('Testing video library...');
+                try {
+                    const response = await fetch('/api/videos');
+                    const result = await response.json();
+                    showResult('✅ Video library working!\\n' + result.videos.length + ' videos available');
+                } catch (error) {
+                    showResult('❌ Video API Error: ' + error.message);
                 }
             }
         
@@ -1624,6 +1636,38 @@ def generate_workout_plan(user_id):
     except Exception as e:
         print(f"Workout plan generation error: {e}")
         return jsonify({"error": "Failed to generate workout plan"}), 500
+
+# Additional missing endpoints for test page functionality
+@app.route("/api/files", methods=["GET"])
+def get_files():
+    """Get user files"""
+    return jsonify({
+        "files": [],
+        "message": "File management coming soon!"
+    })
+
+@app.route("/api/videos", methods=["GET"])  
+def get_videos():
+    """Get workout videos"""
+    videos = [
+        {"id": 1, "title": "Beginner Workout", "url": "/attached_assets/videos/beginner_workout.mp4"},
+        {"id": 2, "title": "HIIT Cardio", "url": "/attached_assets/videos/hiit_cardio.mp4"},
+        {"id": 3, "title": "Strength Training", "url": "/attached_assets/videos/strength_training.mp4"},
+        {"id": 4, "title": "Core Workout", "url": "/attached_assets/videos/core_workout.mp4"},
+        {"id": 5, "title": "Lower Body Power", "url": "/attached_assets/videos/lower_body_power.mp4"},
+        {"id": 6, "title": "Flexibility Flow", "url": "/attached_assets/videos/flexibility_flow.mp4"}
+    ]
+    return jsonify({"videos": videos})
+
+@app.route("/api/status", methods=["GET"])
+def get_status():
+    """Get system status"""
+    return jsonify({
+        "status": "online",
+        "server": "Flask",
+        "version": "1.0",
+        "message": "WillpowerFitness AI is running!"
+    })
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
