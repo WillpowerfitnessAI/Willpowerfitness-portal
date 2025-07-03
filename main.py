@@ -315,7 +315,11 @@ def test_page():
                 try {
                     const response = await fetch('/api/videos');
                     const result = await response.json();
-                    showResult('✅ Video library working!\\n' + result.videos.length + ' videos available');
+                    if (result.status === 'coming_soon') {
+                        showResult('📹 Video library status: ' + result.message);
+                    } else {
+                        showResult('✅ Video library working!\\n' + result.videos.length + ' videos available');
+                    }
                 } catch (error) {
                     showResult('❌ Video API Error: ' + error.message);
                 }
@@ -1649,15 +1653,11 @@ def get_files():
 @app.route("/api/videos", methods=["GET"])  
 def get_videos():
     """Get workout videos"""
-    videos = [
-        {"id": 1, "title": "Beginner Workout", "url": "/attached_assets/videos/beginner_workout.mp4"},
-        {"id": 2, "title": "HIIT Cardio", "url": "/attached_assets/videos/hiit_cardio.mp4"},
-        {"id": 3, "title": "Strength Training", "url": "/attached_assets/videos/strength_training.mp4"},
-        {"id": 4, "title": "Core Workout", "url": "/attached_assets/videos/core_workout.mp4"},
-        {"id": 5, "title": "Lower Body Power", "url": "/attached_assets/videos/lower_body_power.mp4"},
-        {"id": 6, "title": "Flexibility Flow", "url": "/attached_assets/videos/flexibility_flow.mp4"}
-    ]
-    return jsonify({"videos": videos})
+    return jsonify({
+        "videos": [],
+        "message": "Video library coming soon! Will Power is creating amazing workout content for you.",
+        "status": "coming_soon"
+    })
 
 @app.route("/api/status", methods=["GET"])
 def get_status():
