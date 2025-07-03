@@ -84,7 +84,6 @@ YOUR COMMUNICATION STYLE WITH {name}:
 - For workout requests, give 1-2 sample exercises maximum, then say "For complete workout programs, nutrition plans, and personalized coaching, join WillpowerFitness membership!"
 - Always redirect workout plan requests to membership signup
 - Focus on motivation, form tips, and general guidance rather than specific routines
-- Balance being supportive with being real about what needs to change
 - IMPORTANT: Never provide complete workout routines or detailed meal plans - these require paid membership
 - When asked for workouts, give 1-2 exercises as examples only, then direct to membership
 - NEVER mention community accountability, motivation from community, or Facebook groups
@@ -271,7 +270,7 @@ def test_page():
             <h1>🎽 WillpowerFitness AI - System Test</h1>
             <p>Test all your integrations and API connections</p>
         </div>
-        
+
         <div class="test-section">
             <h2>🏃 Server Status</h2>
             <p>Flask Server: <span class="status online">ONLINE</span></p>
@@ -281,7 +280,7 @@ def test_page():
         <div class="test-section">
             <h2>🔌 API Testing</h2>
             <p>Test your external integrations:</p>
-            
+
             <button class="test-button" onclick="testBasicAPI()">Test Basic API</button>
             <button class="test-button" onclick="testPrintfulAPI()">Test Printful Connection</button>
             <button class="test-button" onclick="testCreateOrder()">Create Sample T-Shirt Order</button>
@@ -293,7 +292,7 @@ def test_page():
             <h2>📊 Results</h2>
             <div id="results" class="result" style="display:none;"></div>
         </div>
-        
+
         <script>
             async function testBasicAPI() {
                 showResult('Testing basic API endpoint...');
@@ -338,7 +337,7 @@ def test_page():
                     showResult('❌ Video API Error: ' + error.message);
                 }
             }
-        
+
             async function testPrintfulAPI() {
                 showResult('Testing Printful API connection...');
                 try {
@@ -353,7 +352,7 @@ def test_page():
                     showResult('❌ Printful API Error: ' + error.message);
                 }
             }
-            
+
             async function testCreateOrder() {
                 showResult('Creating test Printful order...');
                 try {
@@ -377,7 +376,7 @@ def test_page():
                     showResult('❌ Order Error: ' + error.message);
                 }
             }
-            
+
             function showResult(message) {
                 const resultsDiv = document.getElementById('results');
                 resultsDiv.style.display = 'block';
@@ -651,10 +650,10 @@ def create_printful_order(customer_email, tshirt_size, shipping_address, custome
     try:
         # Parse shipping address - improved parsing
         address_lines = [line.strip() for line in shipping_address.split('\n') if line.strip()]
-        
+
         # Basic address parsing
         address1 = address_lines[0] if len(address_lines) > 0 else shipping_address
-        
+
         # Try to extract city, state, zip from last line
         if len(address_lines) >= 2:
             last_line = address_lines[-1]
@@ -689,7 +688,7 @@ def create_printful_order(customer_email, tshirt_size, shipping_address, custome
             "XL": 4014,   # X-Large
             "XXL": 4015   # XX-Large
         }
-        
+
         variant_id = size_variants.get(tshirt_size, 4012)  # Default to Medium
 
         # WillpowerFitness AI logo design file
@@ -777,6 +776,7 @@ def confirm_printful_order(customer_email):
                 "Authorization": f"Bearer {PRINTFUL_API_KEY}",
                 "Content-Type": "application/json"
             }
+        ```python
         )
 
         if response.status_code == 200:
@@ -1273,10 +1273,10 @@ def get_printful_products():
 
         if response.status_code == 200:
             products = response.json().get("result", [])
-            
+
             # Filter for t-shirts
             tshirts = [p for p in products if 'shirt' in p.get('type_name', '').lower()]
-            
+
             return jsonify({
                 "success": True,
                 "total_products": len(products),
@@ -1323,14 +1323,14 @@ def test_printful_integration():
 
     try:
         print(f"🔍 Testing Printful API with token: {PRINTFUL_API_KEY[:10]}***")
-        
+
         # Test basic API connection first
         test_response = requests.get(
             "https://api.printful.com",
             timeout=10
         )
         print(f"🌐 Basic connectivity test: {test_response.status_code}")
-        
+
         # Test API authentication
         auth_response = requests.get(
             "https://api.printful.com/stores",
@@ -1340,20 +1340,20 @@ def test_printful_integration():
 
         print(f"📡 Printful API Response: {auth_response.status_code}")
         print(f"📝 Response headers: {dict(auth_response.headers)}")
-        
+
         if auth_response.status_code == 200:
             result_data = auth_response.json()
             stores = result_data.get("result", [])
-            
+
             # Test products endpoint too
             products_response = requests.get(
                 "https://api.printful.com/products?limit=5",
                 headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}"},
                 timeout=15
             )
-            
+
             products_working = products_response.status_code == 200
-            
+
             return jsonify({
                 "success": True,
                 "message": "✅ Printful API connection successful!",
@@ -1457,7 +1457,7 @@ def test_create_order():
         if printful_order_id:
             # Get order status
             status_info = get_printful_order_status(test_email)
-            
+
             return jsonify({
                 "success": True,
                 "message": f"✅ Test order created successfully!",
@@ -1599,7 +1599,7 @@ def get_leads():
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
     """Handle file uploads (progress photos, documents, etc.)"""
-    try:
+    try:```python
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"}), 400
 
@@ -1633,12 +1633,12 @@ def upload_file():
         import os
         upload_dir = os.path.join('attached_assets', 'uploads', user_id)
         os.makedirs(upload_dir, exist_ok=True)
-        
+
         # Create unique filename
         timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
         safe_filename = f"{timestamp}_{file.filename}"
         file_path = os.path.join(upload_dir, safe_filename)
-        
+
         # Write file to disk
         with open(file_path, 'wb') as f:
             f.write(file_content)
@@ -1668,7 +1668,7 @@ def upload_file():
         # Generate AI response about the upload
         user_name = db.get(f"user:{user_id}:name", "Friend")
         ai_response = ""
-        
+
         if file_type == 'progress_photo':
             ai_response = ask_groq_ai(
                 f"{user_name} just uploaded a progress photo! Celebrate their commitment to tracking their fitness journey and ask them about what progress they're seeing.",
@@ -1724,7 +1724,7 @@ def get_user_files(user_id):
     try:
         user_files_key = f"user_files:{user_id}"
         file_ids = db.get(user_files_key, [])
-        
+
         files = []
         for file_id in file_ids:
             file_info = db.get(f"file:{file_id}")
@@ -1761,7 +1761,7 @@ def get_user_downloads(user_id):
         # Get user uploaded files
         user_files_response = get_user_files(user_id)
         user_files_data = user_files_response.get_json() if hasattr(user_files_response, 'get_json') else {"files": []}
-        
+
         # Generate personalized workout plan
         user_name = db.get(f"user:{user_id}:name", "Friend")
         user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
@@ -1816,7 +1816,7 @@ def delete_file(file_id):
             return jsonify({"error": "File not found"}), 404
 
         user_id = file_info['user_id']
-        
+
         # Delete physical file
         file_path = file_info['path']
         if os.path.exists(file_path):
@@ -1824,7 +1824,7 @@ def delete_file(file_id):
 
         # Remove from database
         del db[f"file:{file_id}"]
-        
+
         # Remove from user's file list
         user_files_key = f"user_files:{user_id}"
         if user_files_key in db and file_id in db[user_files_key]:

@@ -4,8 +4,6 @@ import Login from './components/lib/Login';
 import ChatBox from './components/lib/ChatBox';
 import ContactForm from './components/pages/ContactForm';
 
-import FileManager from './components/lib/FileManager';
-
 function App() {
   const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('home'); // 'home', 'contact', 'chat', 'videos', 'files'
@@ -254,7 +252,47 @@ function App() {
           </div>
         </div>
       ) : currentView === 'files' ? (
-        <FileManager user={user || { user_id: 'guest', name: 'Guest' }} />
+        <div style={{
+          maxWidth: '800px',
+          margin: '2rem auto',
+          padding: '3rem 2rem',
+          backgroundColor: 'white',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📁</div>
+          <h2 style={{ 
+            color: '#333', 
+            marginBottom: '1rem',
+            fontSize: '2rem'
+          }}>
+            File Manager
+          </h2>
+          <p style={{ 
+            color: '#666', 
+            fontSize: '1.2rem',
+            marginBottom: '2rem',
+            lineHeight: '1.6'
+          }}>
+            Manage your workout plans, progress photos, and documents. <br/>
+            Upload, organize, and access all your fitness files in one place!
+          </p>
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            padding: '1.5rem',
+            borderRadius: '8px',
+            border: '2px dashed #dee2e6'
+          }}>
+            <p style={{ 
+              margin: 0, 
+              color: '#007bff',
+              fontWeight: 'bold'
+            }}>
+              🚀 Coming Soon - Full file management system!
+            </p>
+          </div>
+        </div>
       ) : currentView === 'home' && !user ? (
         <Login onLogin={setUser} />
       ) : currentView === 'home' && user ? (
