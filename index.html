@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -188,7 +187,157 @@
           );
         }
 
-        // ChatBox Component
+        // ContactForm component
+        function ContactForm() {
+          const [formData, setFormData] = useState({
+            name: '',
+            email: '',
+            phone: '',
+            goal: '',
+            experience: '',
+            availability: '',
+            budget: ''
+          });
+          const [loading, setLoading] = useState(false);
+          const [submitted, setSubmitted] = useState(false);
+
+          const handleSubmit = async (e) => {
+            e.preventDefault();
+            setLoading(true);
+
+            try {
+              const response = await fetch('/api/contact', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData)
+              });
+
+              if (response.ok) {
+                setSubmitted(true);
+              }
+            } catch (error) {
+              console.error('Form submission error:', error);
+            } finally {
+              setLoading(false);
+            }
+          };
+
+          if (submitted) {
+            return (
+              <div style={{
+                maxWidth: '600px',
+                margin: '0 auto',
+                padding: '2rem',
+                backgroundColor: 'white',
+                borderRadius: '12px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>🎉</div>
+                <h2 style={{ color: '#28a745', marginBottom: '1rem' }}>Thank You!</h2>
+                <p style={{ color: '#666', fontSize: '1.1rem' }}>
+                  Your personalized fitness plan request has been submitted. Will Power will review your information and get back to you within 24 hours!
+                </p>
+              </div>
+            );
+          }
+
+          return (
+            <div style={{
+              maxWidth: '600px',
+              margin: '0 auto',
+              padding: '2rem',
+              backgroundColor: 'white',
+              borderRadius: '12px',
+              boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)'
+            }}>
+              <h2 style={{ textAlign: 'center', color: '#333', marginBottom: '2rem' }}>
+                Get Your Personalized Fitness Plan
+              </h2>
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#333' }}>
+                    Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#333' }}>
+                    Email *
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    required
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 'bold', color: '#333' }}>
+                    Fitness Goal *
+                  </label>
+                  <textarea
+                    value={formData.goal}
+                    onChange={(e) => setFormData({...formData, goal: e.target.value})}
+                    required
+                    rows="3"
+                    style={{
+                      width: '100%',
+                      padding: '0.75rem',
+                      border: '2px solid #ddd',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      boxSizing: 'border-box',
+                      resize: 'vertical'
+                    }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    backgroundColor: loading ? '#6c757d' : '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontSize: '1.1rem',
+                    fontWeight: 'bold',
+                    cursor: loading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {loading ? 'Submitting...' : 'Get My Personalized Plan 🚀'}
+                </button>
+              </form>
+            </div>
+          );
+        }
+
+        // ChatBox component with speech-to-text and text-to-speech
         function ChatBox({ user }) {
           const [messages, setMessages] = useState([]);
           const [input, setInput] = useState('');
