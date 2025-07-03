@@ -184,29 +184,143 @@ def test_page():
     <head>
         <title>WillpowerFitness - Test Page</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-            .test-button { padding: 15px 30px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 10px; }
-            .result { margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 5px; }
+            body { 
+                font-family: Arial, sans-serif; 
+                max-width: 800px; 
+                margin: 50px auto; 
+                padding: 20px; 
+                background: #f8f9fa;
+            }
+            .header {
+                text-align: center;
+                background: linear-gradient(45deg, #007bff, #28a745);
+                color: white;
+                padding: 2rem;
+                border-radius: 10px;
+                margin-bottom: 2rem;
+            }
+            .test-section {
+                background: white;
+                padding: 2rem;
+                border-radius: 10px;
+                margin-bottom: 1rem;
+                box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            }
+            .test-button { 
+                padding: 15px 30px; 
+                background: #007bff; 
+                color: white; 
+                border: none; 
+                border-radius: 5px; 
+                cursor: pointer; 
+                margin: 10px; 
+                font-size: 16px;
+                transition: background 0.3s;
+            }
+            .test-button:hover {
+                background: #0056b3;
+            }
+            .test-button.success {
+                background: #28a745;
+            }
+            .test-button.danger {
+                background: #dc3545;
+            }
+            .result { 
+                margin: 20px 0; 
+                padding: 15px; 
+                background: #f8f9fa; 
+                border: 1px solid #ddd;
+                border-radius: 5px; 
+                max-height: 400px;
+                overflow-y: auto;
+            }
+            .status {
+                display: inline-block;
+                padding: 5px 10px;
+                border-radius: 3px;
+                font-size: 14px;
+                font-weight: bold;
+            }
+            .status.online {
+                background: #d4edda;
+                color: #155724;
+            }
+            .status.offline {
+                background: #f8d7da;
+                color: #721c24;
+            }
         </style>
     </head>
     <body>
-        <h1>🎽 WillpowerFitness AI - Test Page</h1>
-        <p>Your Flask server is working! Now let's test the Printful integration:</p>
+        <div class="header">
+            <h1>🎽 WillpowerFitness AI - System Test</h1>
+            <p>Test all your integrations and API connections</p>
+        </div>
         
-        <button class="test-button" onclick="testPrintfulAPI()">Test Printful API Connection</button>
-        <button class="test-button" onclick="testCreateOrder()">Test Create Sample Order</button>
-        
-        <div id="results" class="result" style="display:none;"></div>
+        <div class="test-section">
+            <h2>🏃 Server Status</h2>
+            <p>Flask Server: <span class="status online">ONLINE</span></p>
+            <p>Test page loading successfully! ✅</p>
+        </div>
+
+        <div class="test-section">
+            <h2>🔌 API Testing</h2>
+            <p>Test your external integrations:</p>
+            
+            <button class="test-button" onclick="testBasicAPI()">Test Basic API</button>
+            <button class="test-button" onclick="testPrintfulAPI()">Test Printful Connection</button>
+            <button class="test-button" onclick="testCreateOrder()">Create Sample T-Shirt Order</button>
+            <button class="test-button" onclick="testChatBot()">Test AI Chat</button>
+        </div>
+
+        <div class="test-section">
+            <h2>📊 Results</h2>
+            <div id="results" class="result" style="display:none;"></div>
+        </div>
         
         <script>
+            async function testBasicAPI() {
+                showResult('Testing basic API endpoint...');
+                try {
+                    const response = await fetch('/api/leads');
+                    const result = await response.json();
+                    showResult('✅ Basic API working!\\n' + JSON.stringify(result, null, 2));
+                } catch (error) {
+                    showResult('❌ Basic API Error: ' + error.message);
+                }
+            }
+
+            async function testChatBot() {
+                showResult('Testing AI chatbot...');
+                try {
+                    const response = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            message: 'Hello, this is a test',
+                            user_id: 'test_user'
+                        })
+                    });
+                    const result = await response.json();
+                    showResult('✅ AI Chat working!\\n' + JSON.stringify(result, null, 2));
+                } catch (error) {
+                    showResult('❌ AI Chat Error: ' + error.message);
+                }
+            }
+        
             async function testPrintfulAPI() {
                 showResult('Testing Printful API connection...');
                 try {
                     const response = await fetch('/api/printful-test', { method: 'POST' });
                     const result = await response.json();
-                    showResult(JSON.stringify(result, null, 2));
+                    if (result.success) {
+                        showResult('✅ Printful API Connected!\\n' + JSON.stringify(result, null, 2));
+                    } else {
+                        showResult('❌ Printful API Failed:\\n' + JSON.stringify(result, null, 2));
+                    }
                 } catch (error) {
-                    showResult('Error: ' + error.message);
+                    showResult('❌ Printful API Error: ' + error.message);
                 }
             }
             
@@ -217,16 +331,20 @@ def test_page():
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
-                            email: 'test@example.com',
+                            email: 'test@willpowerfitness.com',
                             name: 'Test Customer',
                             size: 'M',
                             address: '123 Test St\\nLos Angeles, CA 90210'
                         })
                     });
                     const result = await response.json();
-                    showResult(JSON.stringify(result, null, 2));
+                    if (result.success) {
+                        showResult('✅ Test order created!\\n' + JSON.stringify(result, null, 2));
+                    } else {
+                        showResult('❌ Order creation failed:\\n' + JSON.stringify(result, null, 2));
+                    }
                 } catch (error) {
-                    showResult('Error: ' + error.message);
+                    showResult('❌ Order Error: ' + error.message);
                 }
             }
             
