@@ -1159,16 +1159,24 @@ def get_printful_products():
 
 @app.route("/api/printful-test", methods=["POST"])
 def test_printful_integration():
-    """Test Printful integration with a sample order"""
+    """Test Printful integration with detailed diagnostics"""
     if not PRINTFUL_API_KEY:
-        return jsonify({"error": "PRINTFUL_API_KEY not configured"}), 400
+        return jsonify({
+            "error": "PRINTFUL_API_KEY not configured in Secrets",
+            "fix": "Add your Printful API token to Replit Secrets with key 'PRINTFUL_API_KEY'"
+        }), 400
 
     try:
+        print(f"🔍 Testing Printful API with token: {PRINTFUL_API_KEY[:20]}...")
+        
         # Test API connection
         response = requests.get(
             "https://api.printful.com/stores",
             headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}"}
         )
+
+        print(f"📡 Printful API Response: {response.status_code}")
+        print(f"📝 Response content: {response.text[:500]}")
 
         if response.status_code == 200:
             stores = response.json().get("result", [])
@@ -1177,24 +1185,41 @@ def test_printful_integration():
                 "success": True,
                 "message": "✅ Printful API connection successful!",
                 "stores": stores,
+                "store_count": len(stores),
+                "api_key_status": "Valid and working",
                 "integration_status": "Ready for t-shirt fulfillment",
                 "next_steps": [
-                    "1. Customers can now purchase $225/month memberships",
-                    "2. T-shirt orders will be automatically sent to Printful",
-                    "3. You'll receive webhook notifications for order updates",
-                    "4. Tracking numbers will be provided to customers"
+                    "1. Test creating a sample order",
+                    "2. Orders will auto-create when customers pay $225/month",
+                    "3. Webhook notifications will track order progress"
                 ]
             })
+        elif response.status_code == 401:
+            return jsonify({
+                "success": False,
+                "error": "Invalid or expired API token",
+                "fix": "Check your Printful API token in Secrets - it may be incorrect or expired",
+                "response_code": response.status_code,
+                "response_text": response.text
+            }), 401
         else:
             return jsonify({
                 "success": False,
-                "error": f"Printful API error: {response.status_code} - {response.text}"
+                "error": f"Printful API error: {response.status_code}",
+                "response_text": response.text,
+                "troubleshooting": [
+                    "1. Verify API token has correct permissions",
+                    "2. Check if store is properly configured",
+                    "3. Ensure token hasn't expired"
+                ]
             }), 400
 
     except Exception as e:
+        print(f"❌ Exception during Printful test: {e}")
         return jsonify({
             "success": False,
-            "error": str(e)
+            "error": str(e),
+            "type": "connection_error"
         }), 500
 
 @app.route("/api/test-order", methods=["POST"])
