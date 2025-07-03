@@ -140,10 +140,10 @@ function App() {
           </div>
         </div>
       ) : currentView === 'files' ? (
-        <FileManager user={user} />
-      ) : !user ? (
+        <FileManager user={user || { user_id: 'guest', name: 'Guest' }} />
+      ) : currentView === 'home' && !user ? (
         <Login onLogin={setUser} />
-      ) : (
+      ) : currentView === 'home' && user ? (
         <div>
           <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
             <button
@@ -163,6 +163,8 @@ function App() {
           </div>
           <ChatBox user={user} />
         </div>
+      ) : (
+        <Login onLogin={setUser} />
       )}
     </div>
   );
