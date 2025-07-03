@@ -103,7 +103,7 @@
             }}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <h2 style={{ margin: '0 0 1rem 0', color: '#333', fontSize: '2rem' }}>
-                  Meet Will Power AI 🤖
+                  Meet Willpower AI
                 </h2>
                 <p style={{ color: '#666', fontSize: '1.1rem', margin: 0 }}>
                   Your personal AI fitness coach is ready to transform your fitness journey!
@@ -373,10 +373,29 @@
               console.log('Available voices:', voices.length);
               
               if (voices.length > 0) {
-                // Find a suitable English voice
-                const preferredVoice = voices.find(voice => 
-                  voice.lang.includes('en-US') || voice.lang.includes('en-GB')
-                ) || voices[0]; // Fallback to first available voice
+                // Prioritize natural, high-quality voices (avoid robotic Microsoft voices)
+                const premiumVoices = voices.find(voice => 
+                  (voice.lang.includes('en-US') || voice.lang.includes('en-GB')) && (
+                    voice.name.includes('Samantha') ||
+                    voice.name.includes('Karen') ||
+                    voice.name.includes('Moira') ||
+                    voice.name.includes('Tessa') ||
+                    voice.name.includes('Veena') ||
+                    voice.name.includes('Fiona') ||
+                    voice.name.includes('Alex') ||
+                    voice.name.includes('Victoria') ||
+                    voice.name.includes('Serena')
+                  ) && !voice.name.includes('Microsoft')
+                );
+                
+                const goodVoice = voices.find(voice => 
+                  (voice.lang.includes('en-US') || voice.lang.includes('en-GB')) && 
+                  !voice.name.includes('Microsoft') && !voice.name.includes('David')
+                );
+                
+                const preferredVoice = premiumVoices || goodVoice || 
+                  voices.find(voice => voice.lang.includes('en-US') || voice.lang.includes('en-GB')) ||
+                  voices[0]; // Final fallback
                 
                 if (preferredVoice) {
                   utterance.voice = preferredVoice;
