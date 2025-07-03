@@ -776,7 +776,6 @@ def confirm_printful_order(customer_email):
                 "Authorization": f"Bearer {PRINTFUL_API_KEY}",
                 "Content-Type": "application/json"
             }
-        ```python
         )
 
         if response.status_code == 200:
@@ -1599,7 +1598,7 @@ def get_leads():
 @app.route("/api/upload", methods=["POST"])
 def upload_file():
     """Handle file uploads (progress photos, documents, etc.)"""
-    try:```python
+    try:
         if 'file' not in request.files:
             return jsonify({"error": "No file provided"}), 400
 
