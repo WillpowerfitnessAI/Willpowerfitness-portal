@@ -1534,78 +1534,239 @@ def upload_file():
 
         file = request.files['file']
         user_id = request.form.get('user_id', 'default')
-        file_type = request.form.get('type', 'general')  # 'progress_photo', 'document', 'meal_plan'
+        file_type = request.form.get('type', 'general')
+        description = request.form.get('description', '')
 
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
 
-        # Save file info to database
-        timestamp = datetime.utcnow().isoformat()
-        file_key = f"upload:{user_id}:{timestamp}:{file.filename}"
+        # Validate file type and size
+        allowed_extensions = {
+            'progress_photo': ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+            'document': ['pdf', 'doc', 'docx', 'txt'],
+            'workout_video': ['mp4', 'mov', 'avi', 'webm'],
+            'meal_plan': ['pdf', 'doc', 'docx', 'txt', 'jpg', 'jpeg', 'png'],
+            'general': ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'doc', 'docx', 'txt', 'mp4', 'mov']
+        }
 
-        # In a real implementation, you'd save to Object Storage
-        # For now, we'll save metadata to our in-memory db
-        db[file_key] = {
+        file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+        if file_type in allowed_extensions and file_ext not in allowed_extensions[file_type]:
+            return jsonify({"error": f"File type .{file_ext} not allowed for {file_type}"}), 400
+
+        # Check file size (10MB limit)
+        file_content = file.read()
+        if len(file_content) > 10 * 1024 * 1024:  # 10MB
+            return jsonify({"error": "File too large. Maximum size is 10MB"}), 400
+
+        # Save file to attached_assets directory
+        import os
+        upload_dir = os.path.join('attached_assets', 'uploads', user_id)
+        os.makedirs(upload_dir, exist_ok=True)
+        
+        # Create unique filename
+        timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+        safe_filename = f"{timestamp}_{file.filename}"
+        file_path = os.path.join(upload_dir, safe_filename)
+        
+        # Write file to disk
+        with open(file_path, 'wb') as f:
+            f.write(file_content)
+
+        # Save file metadata to database
+        file_id = f"file_{user_id}_{timestamp}"
+        db[f"file:{file_id}"] = {
+            "id": file_id,
             "filename": file.filename,
+            "safe_filename": safe_filename,
+            "path": file_path,
             "type": file_type,
             "user_id": user_id,
-            "timestamp": timestamp,
-            "size": len(file.read())
+            "description": description,
+            "size": len(file_content),
+            "timestamp": datetime.utcnow().isoformat(),
+            "extension": file_ext,
+            "upload_url": f"/api/download/{file_id}"
         }
+
+        # Add to user's file list
+        user_files_key = f"user_files:{user_id}"
+        if user_files_key not in db:
+            db[user_files_key] = []
+        db[user_files_key].append(file_id)
+
+        # Generate AI response about the upload
+        user_name = db.get(f"user:{user_id}:name", "Friend")
+        ai_response = ""
+        
+        if file_type == 'progress_photo':
+            ai_response = ask_groq_ai(
+                f"{user_name} just uploaded a progress photo! Celebrate their commitment to tracking their fitness journey and ask them about what progress they're seeing.",
+                user_id
+            )
+        elif file_type == 'workout_video':
+            ai_response = ask_groq_ai(
+                f"{user_name} uploaded a workout video! That's awesome - ask them about their workout and give them encouragement.",
+                user_id
+            )
 
         return jsonify({
             "success": True,
-            "file_id": file_key,
-            "message": f"File '{file.filename}' uploaded successfully"
+            "file_id": file_id,
+            "filename": file.filename,
+            "file_type": file_type,
+            "size": len(file_content),
+            "download_url": f"/api/download/{file_id}",
+            "ai_response": ai_response,
+            "message": f"File '{file.filename}' uploaded successfully!"
         })
 
     except Exception as e:
         print(f"Upload error: {e}")
-        return jsonify({"error": "Upload failed"}), 500
+        return jsonify({"error": f"Upload failed: {str(e)}"}), 500
+
+@app.route("/api/download/<file_id>", methods=["GET"])
+def download_file(file_id):
+    """Download a specific file by ID"""
+    try:
+        file_info = db.get(f"file:{file_id}")
+        if not file_info:
+            return jsonify({"error": "File not found"}), 404
+
+        file_path = file_info['path']
+        if not os.path.exists(file_path):
+            return jsonify({"error": "File not found on disk"}), 404
+
+        from flask import send_file
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name=file_info['filename']
+        )
+
+    except Exception as e:
+        print(f"Download error: {e}")
+        return jsonify({"error": "Download failed"}), 500
+
+@app.route("/api/files/<user_id>", methods=["GET"])
+def get_user_files(user_id):
+    """Get all files uploaded by a user"""
+    try:
+        user_files_key = f"user_files:{user_id}"
+        file_ids = db.get(user_files_key, [])
+        
+        files = []
+        for file_id in file_ids:
+            file_info = db.get(f"file:{file_id}")
+            if file_info:
+                files.append(file_info)
+
+        # Sort by timestamp (newest first)
+        files.sort(key=lambda x: x['timestamp'], reverse=True)
+
+        # Group by type
+        files_by_type = {
+            'progress_photo': [f for f in files if f['type'] == 'progress_photo'],
+            'workout_video': [f for f in files if f['type'] == 'workout_video'],
+            'meal_plan': [f for f in files if f['type'] == 'meal_plan'],
+            'document': [f for f in files if f['type'] == 'document'],
+            'general': [f for f in files if f['type'] == 'general']
+        }
+
+        return jsonify({
+            "files": files,
+            "files_by_type": files_by_type,
+            "total_files": len(files),
+            "total_size": sum(f['size'] for f in files)
+        })
+
+    except Exception as e:
+        print(f"Get files error: {e}")
+        return jsonify({"error": "Failed to get files"}), 500
 
 @app.route("/api/downloads/<user_id>", methods=["GET"])
 def get_user_downloads(user_id):
     """Get downloadable files for a user (workout plans, progress reports)"""
     try:
+        # Get user uploaded files
+        user_files_response = get_user_files(user_id)
+        user_files_data = user_files_response.get_json() if hasattr(user_files_response, 'get_json') else {"files": []}
+        
         # Generate personalized workout plan
         user_name = db.get(f"user:{user_id}:name", "Friend")
         user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
 
-        downloads = [
+        generated_downloads = [
             {
-                "id": 1,
+                "id": "workout_plan",
                 "title": f"{user_name}'s Personalized Workout Plan",
                 "description": f"Custom workout plan for {user_goal}",
-                "type": "pdf",
+                "type": "generated",
                 "size": "2.1 MB",
                 "created": datetime.utcnow().isoformat(),
                 "download_url": f"/api/generate-workout-plan/{user_id}"
             },
             {
-                "id": 2,
+                "id": "nutrition_guide",
                 "title": "Nutrition Guidelines",
                 "description": "Complete nutrition guide with meal suggestions",
-                "type": "pdf",
+                "type": "generated",
                 "size": "1.8 MB",
                 "created": datetime.utcnow().isoformat(),
-                "download_url": "/api/generate-nutrition-guide"
+                "download_url": f"/api/generate-nutrition-guide/{user_id}"
             },
             {
-                "id": 3,
+                "id": "progress_tracker",
                 "title": "Progress Tracking Sheet",
                 "description": "Track your workouts and measurements",
-                "type": "pdf",
+                "type": "generated",
                 "size": "0.5 MB",
                 "created": datetime.utcnow().isoformat(),
-                "download_url": "/api/generate-progress-tracker"
+                "download_url": f"/api/generate-progress-tracker/{user_id}"
             }
         ]
 
-        return jsonify({"downloads": downloads})
+        return jsonify({
+            "uploaded_files": user_files_data.get("files", []),
+            "generated_downloads": generated_downloads,
+            "total_uploads": len(user_files_data.get("files", [])),
+            "files_by_type": user_files_data.get("files_by_type", {})
+        })
 
     except Exception as e:
         print(f"Downloads error: {e}")
         return jsonify({"error": "Failed to get downloads"}), 500
+
+@app.route("/api/delete-file/<file_id>", methods=["DELETE"])
+def delete_file(file_id):
+    """Delete a user's uploaded file"""
+    try:
+        file_info = db.get(f"file:{file_id}")
+        if not file_info:
+            return jsonify({"error": "File not found"}), 404
+
+        user_id = file_info['user_id']
+        
+        # Delete physical file
+        file_path = file_info['path']
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Remove from database
+        del db[f"file:{file_id}"]
+        
+        # Remove from user's file list
+        user_files_key = f"user_files:{user_id}"
+        if user_files_key in db and file_id in db[user_files_key]:
+            db[user_files_key].remove(file_id)
+
+        return jsonify({
+            "success": True,
+            "message": f"File '{file_info['filename']}' deleted successfully"
+        })
+
+    except Exception as e:
+        print(f"Delete file error: {e}")
+        return jsonify({"error": "Failed to delete file"}), 500
 
 @app.route("/api/generate-workout-plan/<user_id>", methods=["GET"])
 def generate_workout_plan(user_id):
@@ -1624,22 +1785,158 @@ def generate_workout_plan(user_id):
         - Rest day activities
         - Nutrition tips
 
-        Format it as a comprehensive PDF-ready document.
+        Format it as a comprehensive document with clear sections and headers.
         """
 
         workout_plan = ask_groq_ai(plan_prompt, user_id)
 
-        # In a real implementation, you'd generate an actual PDF
-        # For now, return the text content
-        return {
-            "content_type": "text/plain",
-            "filename": f"{user_name}_workout_plan.txt",
-            "content": workout_plan
-        }
+        # Create text file content
+        content = f"""
+WILLPOWERFITNESS AI - PERSONALIZED WORKOUT PLAN
+Generated for: {user_name}
+Goal: {user_goal}
+Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}
+
+{workout_plan}
+
+---
+For questions or modifications, chat with Will Power AI at:
+https://trainerai-groqapp-willpowerfitness.replit.app/
+        """
+
+        from flask import Response
+        return Response(
+            content,
+            mimetype='text/plain',
+            headers={'Content-Disposition': f'attachment; filename="{user_name}_workout_plan.txt"'}
+        )
 
     except Exception as e:
         print(f"Workout plan generation error: {e}")
         return jsonify({"error": "Failed to generate workout plan"}), 500
+
+@app.route("/api/generate-nutrition-guide/<user_id>", methods=["GET"])
+def generate_nutrition_guide(user_id):
+    """Generate personalized nutrition guide"""
+    try:
+        user_name = db.get(f"user:{user_id}:name", "Friend")
+        user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
+
+        nutrition_prompt = f"""
+        Create a comprehensive nutrition guide for {user_name} whose goal is {user_goal}.
+        Include:
+        - Daily calorie targets
+        - Macro breakdown (protein, carbs, fats)
+        - Meal timing recommendations
+        - Sample meal ideas for each meal
+        - Hydration guidelines
+        - Supplement recommendations
+        - Foods to focus on vs avoid
+
+        Make it practical and easy to follow.
+        """
+
+        nutrition_guide = ask_groq_ai(nutrition_prompt, user_id)
+
+        content = f"""
+WILLPOWERFITNESS AI - NUTRITION GUIDE
+Generated for: {user_name}
+Goal: {user_goal}
+Generated: {datetime.utcnow().strftime('%Y-%m-%d %H:%M')}
+
+{nutrition_guide}
+
+---
+For questions or meal plan updates, chat with Will Power AI at:
+https://trainerai-groqapp-willpowerfitness.replit.app/
+        """
+
+        from flask import Response
+        return Response(
+            content,
+            mimetype='text/plain',
+            headers={'Content-Disposition': f'attachment; filename="{user_name}_nutrition_guide.txt"'}
+        )
+
+    except Exception as e:
+        print(f"Nutrition guide generation error: {e}")
+        return jsonify({"error": "Failed to generate nutrition guide"}), 500
+
+@app.route("/api/generate-progress-tracker/<user_id>", methods=["GET"])
+def generate_progress_tracker(user_id):
+    """Generate progress tracking template"""
+    try:
+        user_name = db.get(f"user:{user_id}:name", "Friend")
+        user_goal = db.get(f"user:{user_id}:goal", "fitness goals")
+
+        tracker_content = f"""
+WILLPOWERFITNESS AI - PROGRESS TRACKER
+Name: {user_name}
+Goal: {user_goal}
+Start Date: {datetime.utcnow().strftime('%Y-%m-%d')}
+
+WEEKLY PROGRESS LOG
+==================
+
+Week 1:
+Date: ___________
+Weight: ___________
+Body Fat %: ___________
+Measurements:
+- Chest: ___________
+- Waist: ___________
+- Hips: ___________
+- Arms: ___________
+- Thighs: ___________
+
+Workouts Completed: _____ / 4
+Energy Level (1-10): _____
+Sleep Quality (1-10): _____
+Notes: _________________________________
+
+Week 2:
+Date: ___________
+Weight: ___________
+Body Fat %: ___________
+Measurements:
+- Chest: ___________
+- Waist: ___________
+- Hips: ___________
+- Arms: ___________
+- Thighs: ___________
+
+Workouts Completed: _____ / 4
+Energy Level (1-10): _____
+Sleep Quality (1-10): _____
+Notes: _________________________________
+
+[Continue for 12 weeks...]
+
+MONTHLY GOALS
+=============
+Month 1: _________________________________
+Month 2: _________________________________
+Month 3: _________________________________
+
+PROGRESS PHOTOS
+===============
+Take photos from front, side, and back views on the same day each week.
+Upload to Will Power AI for analysis and encouragement!
+
+For detailed analysis and coaching, chat with Will Power AI at:
+https://trainerai-groqapp-willpowerfitness.replit.app/
+        """
+
+        from flask import Response
+        return Response(
+            tracker_content,
+            mimetype='text/plain',
+            headers={'Content-Disposition': f'attachment; filename="{user_name}_progress_tracker.txt"'}
+        )
+
+    except Exception as e:
+        print(f"Progress tracker generation error: {e}")
+        return jsonify({"error": "Failed to generate progress tracker"}), 500
 
 # Additional missing endpoints for test page functionality
 @app.route("/api/files", methods=["GET"])
