@@ -303,7 +303,7 @@ def test_page():
                         })
                     });
                     const result = await response.json();
-                    showResult('✅ AI Chat working!\\n' + JSON.stringify(result, null, 2));
+                    showResult('✅ AI Chat working!\\nReply: ' + result.reply);
                 } catch (error) {
                     showResult('❌ AI Chat Error: ' + error.message);
                 }
@@ -1502,7 +1502,9 @@ def get_leads():
         "leads": leads,
         "customers": customers,
         "total_leads": len(leads),
-        "active_customers": len(customers)
+        "active_customers": len(customers),
+        "status": "Basic API working!",
+        "timestamp": datetime.utcnow().isoformat()
     })
 
 
