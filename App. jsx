@@ -33,9 +33,11 @@ function App() {
         <p style={{ fontSize: '1.2rem', color: '#a0a0a0', margin: 0 }}>
           Your Personal AI Fitness Coach
         </p>
+      </div>
 
-        {/* Navigation */}
-        <div style={{ marginTop: '1rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }}>
+      {/* Navigation - Always visible */}
+      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '0.5rem' }}>
           <button
             onClick={() => setCurrentView('home')}
             style={{
