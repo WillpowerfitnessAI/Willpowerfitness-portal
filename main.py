@@ -469,10 +469,10 @@ def onboard():
 
         # Build welcome message
         welcome_message = (
-            f"What's up, {name}! Will Power here - welcome to Willpower Fitness AI via {source}.\n"
-            f"I've got your goal locked in: {goal}. Now here's the thing - I'm not your typical 'rah-rah' trainer. "
-            f"I'm going to challenge how you think about fitness, crack some jokes to keep it fun, but when it's time to work, we get SERIOUS about results.\n"
-            f"So let's cut through the BS and figure out what's really going to move the needle for you. What's your biggest challenge right now?"
+            f"Hey! {name}. Thanks for checking us out. Hopefully at the end of this consultation you will see the benefits of becoming a Willpowerfitness AI client. "
+            f"I see your goals and have committed them to my memory: {goal}. "
+            f"I need you to understand I'm here to keep you focused on the reward from the perseverance that comes from the Blood, Sweat, and Tears of seeing this through to a success, Victorious finish. "
+            f"So, now, tell me how can I assist you along this journey. What do you expect from me, so we can get started?"
         )
 
         return jsonify({"message": welcome_message}), 200
