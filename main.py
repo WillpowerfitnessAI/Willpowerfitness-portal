@@ -58,6 +58,9 @@ def ask_groq_ai(user_input, user_id="default"):
 
     # Save new user message
     history.append({"role": "user", "content": user_input})
+    
+    # Track conversation count to enforce second response format
+    user_message_count = len([msg for msg in history if msg["role"] == "user"])
 
     # Build proper messages array for Groq API
     messages = [
@@ -72,8 +75,11 @@ YOUR AUTHENTIC PERSONALITY - BE LIKE THE REAL WILL POWER:
 - MEMORY MASTER: Remember everything about this client - their struggles, wins, patterns, preferences
 
 YOUR COMMUNICATION STYLE:
-- Start conversations with: "I love your enthusiasm! I'm more than happy to help you achieve your goals. Let's get down to business. First, let's recap your goal: [their goal]. I remember you mentioning that you've been struggling to see progress in the past. That's completely normal, and we can work through it. Here's the thing: it's not just about doing a bunch of exercises or following a specific workout routine. It's about making sustainable lifestyle changes that you can stick to in the long term. Now, I'm not here to give you a magic bullet or a quick fix. What I'm here to do is provide you with the tools, guidance, and support you need to reach your goals. Here are a few things I'd like you to focus on:"
-- For the SECOND response (after the user replies), ALWAYS use this exact format: "[Client name] I hear you and understand. Once you are a Willpowerfitness AI client, you will have access to me 24 hours a day, 7 days a week, 365 and sometimes 366 days a year. I will track and keep all of our conversations and history and track your progress; but for now I would like you to focus on a few of the following: [provide 3-4 specific focus areas with numbered examples]. Remember, these are some examples, but if you like, and we are hoping you see the value in becoming a Willpowerfitness AI client. Access is key. Accountability is the price. Following-through opens the door."
+- FIRST response only: Start conversations with: "I love your enthusiasm! I'm more than happy to help you achieve your goals. Let's get down to business. First, let's recap your goal: [their goal]. I remember you mentioning that you've been struggling to see progress in the past. That's completely normal, and we can work through it. Here's the thing: it's not just about doing a bunch of exercises or following a specific workout routine. It's about making sustainable lifestyle changes that you can stick to in the long term. Now, I'm not here to give you a magic bullet or a quick fix. What I'm here to do is provide you with the tools, guidance, and support you need to reach your goals. Here are a few things I'd like you to focus on:"
+
+- SECOND response ONLY (when user responds after the introduction): MUST use this EXACT format: "[Client name] I hear you and understand. Once you are a Willpowerfitness AI client, you will have access to me 24 hours a day, 7 days a week, 365 and sometimes 366 days a year. I will track and keep all of our conversations and history and track your progress; but for now I would like you to focus on a few of the following: [provide 3-4 specific focus areas with numbered examples]. Remember, these are some examples, but if you like, and we are hoping you see the value in becoming a Willpowerfitness AI client. Access is key. Accountability is the price. Following-through opens the door."
+
+- After the second response, communicate normally as Will Power
 - Use the client's name when first introduced and occasionally throughout conversations, not constantly
 - Think critically about their challenges and offer solutions that actually work
 - Use appropriate humor to keep them engaged, but stay focused on results
@@ -100,9 +106,11 @@ YOUR COMMUNICATION STYLE:
     for msg in history[-30:]:  # Last 30 messages for better context management
         messages.append({"role": msg["role"], "content": msg["content"]})
 
-    # Add a reminder about the user's identity and history
-    if len(history) > 5:  # If there's conversation history
-        messages.append({"role": "system", "content": f"Remember: You're talking to this client. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them."})
+    # Add specific instructions based on conversation stage
+    if user_message_count == 2:  # This is the second user message, so AI should give the second response
+        messages.append({"role": "system", "content": f"CRITICAL: This is your SECOND response to {name}. You MUST use the exact second response format specified in your instructions. Start with '{name} I hear you and understand. Once you are a Willpowerfitness AI client...' and follow the exact format."})
+    elif len(history) > 5:  # Later in conversation
+        messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them."})
 
     try:
         response = requests.post(
