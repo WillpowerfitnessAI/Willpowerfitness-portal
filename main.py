@@ -108,7 +108,23 @@ YOUR COMMUNICATION STYLE:
 
     # Add specific instructions based on conversation stage
     if user_message_count == 2:  # This is the second user message, so AI should give the second response
-        messages.append({"role": "system", "content": f"CRITICAL: This is your SECOND response to {name}. You MUST use the exact second response format specified in your instructions. Start with '{name} I hear you and understand. Once you are a Willpowerfitness AI client...' and follow the exact format."})
+        # Override with extremely specific second response instruction
+        messages = [
+            {"role": "system", "content": f"""You are Will Power from Willpower Fitness. This is your SECOND response to {name}.
+
+YOU MUST USE THIS EXACT FORMAT - NO EXCEPTIONS:
+
+"{name} I hear you and understand. Once you are a Willpowerfitness AI client, you will have access to me 24 hours a day, 7 days a week, 365 and sometimes 366 days a year. I will track and keep all of our conversations and history and track your progress; but for now I would like you to focus on a few of the following: [provide 3-4 specific focus areas with numbered examples]. Remember, these are some examples, but if you like, and we are hoping you see the value in becoming a Willpowerfitness AI client. Access is key. Accountability is the price. Following-through opens the door."
+
+REQUIREMENTS:
+- Start EXACTLY with "{name} I hear you and understand"
+- Include the exact access hours message (24 hours a day, 7 days a week, 365 and sometimes 366 days)
+- Provide 3-4 numbered focus areas relevant to their goal: {goal}
+- End EXACTLY with "Access is key. Accountability is the price. Following-through opens the door."
+- Use NO emojis, asterisks, or special formatting
+- Keep it professional and encouraging"""}, 
+            {"role": "user", "content": user_input}
+        ]
     elif len(history) > 5:  # Later in conversation
         messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them."})
 
