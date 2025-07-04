@@ -64,7 +64,7 @@ function App() {
             📋 Get Personal Plan
           </button>
           <button
-            onClick={() => window.open('https://buy.stripe.com/test_4gw6rF8u1gQagAE4gh', '_blank')}
+            onClick={() => window.open('https://buy.stripe.com/4gw8wVcGh0qkc4o7ss', '_blank')}
             style={{
               padding: '0.5rem 1rem',
               backgroundColor: '#ffc107',
