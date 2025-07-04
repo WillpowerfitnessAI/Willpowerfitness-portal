@@ -471,7 +471,7 @@ def onboard():
         welcome_message = (
             f"Hey! {name}. Thanks for checking us out. Hopefully at the end of this consultation you will see the benefits of becoming a Willpowerfitness AI client. "
             f"I see your goals and have committed them to my memory: {goal}. "
-            f"I need you to understand I'm here to keep you focused on the reward from the perseverance that comes from the Blood, Sweat, and Tears of seeing this through to a success, Victorious finish. "
+            f"I need you to understand I'm here to keep you focused on the reward from the perseverance that comes from the Blood, Sweat, and Tears of seeing this through to a successful, Victorious finish. "
             f"So, now, tell me how can I assist you along this journey. What do you expect from me, so we can get started?"
         )
 
