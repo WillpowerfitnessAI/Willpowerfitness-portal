@@ -45,6 +45,60 @@ def get_user_context(user_id):
     }
     return context
 
+def add_knowledge(topic, question, answer, category="general"):
+    """Add knowledge to the AI's knowledge base"""
+    knowledge_id = f"knowledge:{topic.lower().replace(' ', '_')}"
+    db[knowledge_id] = {
+        "question": question,
+        "answer": answer,
+        "category": category,
+        "added_date": datetime.utcnow().isoformat(),
+        "topic": topic
+    }
+    
+    # Also add to searchable index
+    knowledge_index = db.get("knowledge_index", [])
+    if knowledge_id not in knowledge_index:
+        knowledge_index.append(knowledge_id)
+        db["knowledge_index"] = knowledge_index
+
+def search_knowledge(query):
+    """Search the knowledge base for relevant information"""
+    knowledge_index = db.get("knowledge_index", [])
+    relevant_knowledge = []
+    
+    query_lower = query.lower()
+    for knowledge_id in knowledge_index:
+        knowledge = db.get(knowledge_id, {})
+        if knowledge:
+            topic = knowledge.get("topic", "").lower()
+            question = knowledge.get("question", "").lower()
+            if any(word in topic or word in question for word in query_lower.split()):
+                relevant_knowledge.append(knowledge)
+    
+    return relevant_knowledge
+
+def learn_from_conversation(user_id, user_input, ai_response):
+    """Learn from successful conversations"""
+    conversation_id = f"conversation:{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{user_id}"
+    db[conversation_id] = {
+        "user_input": user_input,
+        "ai_response": ai_response,
+        "user_id": user_id,
+        "timestamp": datetime.utcnow().isoformat(),
+        "effectiveness": "pending"  # Can be rated later
+    }
+    
+    # Extract potential knowledge
+    if "?" in user_input and len(ai_response) > 50:
+        # This looks like a Q&A that could be knowledge
+        add_knowledge(
+            topic=user_input[:50] + "...",
+            question=user_input,
+            answer=ai_response,
+            category="learned_from_conversation"
+        )
+
 def ask_groq_ai(user_input, user_id="default"):
     """Main AI function that handles personalized responses with memory"""
     if not GROQ_API_KEY:
@@ -128,6 +182,16 @@ REQUIREMENTS:
     elif len(history) > 5:  # Later in conversation
         messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them."})
 
+    # Search knowledge base before making API call
+    relevant_knowledge = search_knowledge(user_input)
+    if relevant_knowledge:
+        knowledge_context = "RELEVANT KNOWLEDGE FROM PAST CONVERSATIONS:\n"
+        for k in relevant_knowledge[:3]:  # Limit to top 3 matches
+            knowledge_context += f"Q: {k['question']}\nA: {k['answer']}\n\n"
+        
+        # Add knowledge context to system message
+        messages[0]["content"] += f"\n\n{knowledge_context}"
+
     try:
         response = requests.post(
             "https://api.groq.com/openai/v1/chat/completions",
@@ -157,6 +221,9 @@ REQUIREMENTS:
     history.append({"role": "assistant", "content": reply})
     messages_key = f"user:{user_id}:messages"
     db[messages_key] = history
+    
+    # Learn from this conversation
+    learn_from_conversation(user_id, user_input, reply)
 
     # Save to Supabase if available
     if supabase:
@@ -1965,6 +2032,94 @@ def get_status():
         "version": "1.0",
         "message": "WillpowerFitness AI is running!"
     })
+
+@app.route("/api/knowledge", methods=["POST"])
+def add_knowledge_endpoint():
+    """Add new knowledge to the AI"""
+    try:
+        data = request.get_json()
+        topic = data.get("topic")
+        question = data.get("question")
+        answer = data.get("answer")
+        category = data.get("category", "custom")
+        
+        if not all([topic, question, answer]):
+            return jsonify({"error": "Topic, question, and answer are required"}), 400
+        
+        add_knowledge(topic, question, answer, category)
+        
+        return jsonify({
+            "success": True,
+            "message": f"Knowledge added for topic: {topic}"
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/knowledge", methods=["GET"])
+def get_knowledge():
+    """Get all knowledge in the system"""
+    try:
+        knowledge_index = db.get("knowledge_index", [])
+        all_knowledge = []
+        
+        for knowledge_id in knowledge_index:
+            knowledge = db.get(knowledge_id, {})
+            if knowledge:
+                knowledge["id"] = knowledge_id
+                all_knowledge.append(knowledge)
+        
+        return jsonify({
+            "knowledge": all_knowledge,
+            "total_items": len(all_knowledge)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/knowledge/search", methods=["POST"])
+def search_knowledge_endpoint():
+    """Search the knowledge base"""
+    try:
+        data = request.get_json()
+        query = data.get("query", "")
+        
+        if not query:
+            return jsonify({"error": "Query is required"}), 400
+        
+        results = search_knowledge(query)
+        
+        return jsonify({
+            "query": query,
+            "results": results,
+            "total_results": len(results)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/knowledge/test", methods=["POST"])
+def test_knowledge():
+    """Test the AI's response with knowledge"""
+    try:
+        data = request.get_json()
+        question = data.get("question")
+        user_id = data.get("user_id", "test_user")
+        
+        if not question:
+            return jsonify({"error": "Question is required"}), 400
+        
+        # Get AI response which will include knowledge base search
+        ai_response = ask_groq_ai(question, user_id)
+        
+        # Also show what knowledge was found
+        relevant_knowledge = search_knowledge(question)
+        
+        return jsonify({
+            "question": question,
+            "ai_response": ai_response,
+            "knowledge_used": relevant_knowledge,
+            "knowledge_found": len(relevant_knowledge) > 0
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
