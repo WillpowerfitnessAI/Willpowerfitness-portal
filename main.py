@@ -78,6 +78,94 @@ def search_knowledge(query):
     
     return relevant_knowledge
 
+def query_external_llms(question, context="fitness"):
+    """Query external LLMs for additional knowledge"""
+    external_responses = []
+    
+    # You can add multiple LLM sources here
+    llm_sources = [
+        {
+            "name": "OpenAI GPT",
+            "api_key": os.getenv("OPENAI_API_KEY"),
+            "endpoint": "https://api.openai.com/v1/chat/completions",
+            "model": "gpt-3.5-turbo"
+        },
+        {
+            "name": "Anthropic Claude",
+            "api_key": os.getenv("ANTHROPIC_API_KEY"),
+            "endpoint": "https://api.anthropic.com/v1/messages",
+            "model": "claude-3-sonnet-20240229"
+        }
+    ]
+    
+    for source in llm_sources:
+        if source["api_key"]:
+            try:
+                if "openai" in source["endpoint"]:
+                    response = requests.post(
+                        source["endpoint"],
+                        headers={
+                            "Authorization": f"Bearer {source['api_key']}",
+                            "Content-Type": "application/json"
+                        },
+                        json={
+                            "model": source["model"],
+                            "messages": [
+                                {"role": "system", "content": f"You are a {context} expert. Provide accurate, helpful information."},
+                                {"role": "user", "content": question}
+                            ],
+                            "max_tokens": 300,
+                            "temperature": 0.7
+                        }
+                    )
+                    
+                    if response.status_code == 200:
+                        answer = response.json()['choices'][0]['message']['content']
+                        external_responses.append({
+                            "source": source["name"],
+                            "answer": answer,
+                            "confidence": "high"
+                        })
+                        
+                        # Auto-learn from external LLM responses
+                        add_knowledge(
+                            topic=f"External LLM: {question[:50]}",
+                            question=question,
+                            answer=answer,
+                            category=f"external_{source['name'].lower().replace(' ', '_')}"
+                        )
+                        
+            except Exception as e:
+                print(f"Error querying {source['name']}: {e}")
+                continue
+    
+    return external_responses
+
+def enhanced_knowledge_search(query):
+    """Enhanced search that includes local knowledge + external LLMs"""
+    # Get local knowledge first
+    local_knowledge = search_knowledge(query)
+    
+    # If we don't have enough local knowledge, query external LLMs
+    if len(local_knowledge) < 2:
+        external_knowledge = query_external_llms(query)
+        
+        # Combine results
+        combined_knowledge = local_knowledge + [
+            {
+                "question": query,
+                "answer": ext["answer"],
+                "category": f"external_{ext['source']}",
+                "topic": f"External: {query}",
+                "source": ext["source"]
+            }
+            for ext in external_knowledge
+        ]
+        
+        return combined_knowledge
+    
+    return local_knowledge
+
 def learn_from_conversation(user_id, user_input, ai_response):
     """Learn from successful conversations"""
     conversation_id = f"conversation:{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}_{user_id}"
@@ -182,12 +270,13 @@ REQUIREMENTS:
     elif len(history) > 5:  # Later in conversation
         messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them."})
 
-    # Search knowledge base before making API call
-    relevant_knowledge = search_knowledge(user_input)
+    # Search knowledge base and external LLMs before making API call
+    relevant_knowledge = enhanced_knowledge_search(user_input)
     if relevant_knowledge:
-        knowledge_context = "RELEVANT KNOWLEDGE FROM PAST CONVERSATIONS:\n"
+        knowledge_context = "RELEVANT KNOWLEDGE FROM MULTIPLE SOURCES:\n"
         for k in relevant_knowledge[:3]:  # Limit to top 3 matches
-            knowledge_context += f"Q: {k['question']}\nA: {k['answer']}\n\n"
+            source = k.get('source', 'Local Knowledge')
+            knowledge_context += f"Source: {source}\nQ: {k['question']}\nA: {k['answer']}\n\n"
         
         # Add knowledge context to system message
         messages[0]["content"] += f"\n\n{knowledge_context}"
@@ -2110,13 +2199,57 @@ def test_knowledge():
         ai_response = ask_groq_ai(question, user_id)
         
         # Also show what knowledge was found
-        relevant_knowledge = search_knowledge(question)
+        relevant_knowledge = enhanced_knowledge_search(question)
         
         return jsonify({
             "question": question,
             "ai_response": ai_response,
             "knowledge_used": relevant_knowledge,
             "knowledge_found": len(relevant_knowledge) > 0
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/llm/query", methods=["POST"])
+def query_llm():
+    """Query external LLMs directly"""
+    try:
+        data = request.get_json()
+        question = data.get("question")
+        context = data.get("context", "fitness")
+        
+        if not question:
+            return jsonify({"error": "Question is required"}), 400
+        
+        external_responses = query_external_llms(question, context)
+        
+        return jsonify({
+            "question": question,
+            "external_responses": external_responses,
+            "sources_queried": len(external_responses)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route("/api/knowledge/sources", methods=["GET"])
+def get_knowledge_sources():
+    """Get all knowledge grouped by source"""
+    try:
+        knowledge_index = db.get("knowledge_index", [])
+        sources = {}
+        
+        for knowledge_id in knowledge_index:
+            knowledge = db.get(knowledge_id, {})
+            if knowledge:
+                category = knowledge.get("category", "local")
+                if category not in sources:
+                    sources[category] = []
+                sources[category].append(knowledge)
+        
+        return jsonify({
+            "sources": sources,
+            "total_sources": len(sources),
+            "total_knowledge": len(knowledge_index)
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
