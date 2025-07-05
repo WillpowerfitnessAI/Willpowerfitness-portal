@@ -285,12 +285,37 @@ REQUIREMENTS:
 - Keep it professional and encouraging"""}, 
             {"role": "user", "content": user_input}
         ]
-    elif len(history) > 5:  # Later in conversation
-        messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them. BUT CRITICAL: When they ask for detailed workout plans, nutrition programs, or specific training guidance, redirect them to membership! Say things like 'For that level of detailed programming, you need Willpower Fitness membership at $225/month!' Never give away complete plans - protect the business value!"})
+    else:  # Third response and beyond - CRITICAL SALES PROTECTION
+        # Add strong sales protection for all subsequent responses
+        messages.append({"role": "system", "content": f"""CRITICAL SALES PROTECTION - THIS IS RESPONSE #{user_message_count}:
 
-    # After second response, add sales-focused system message
+{name} has now had their introduction and second response. From this point forward, you MUST guard all valuable content behind the paywall.
+
+MANDATORY RULES FOR ALL RESPONSES AFTER #2:
+- NEVER provide complete workout routines, sets/reps, or detailed exercise programs
+- NEVER provide meal plans, nutrition schedules, or detailed diet advice  
+- NEVER give step-by-step training guidance or progressive programs
+- ALWAYS redirect detailed requests to: "For complete workout programs, nutrition plans, and personalized coaching, you need Willpower Fitness membership at $225/month!"
+
+WHAT YOU CAN DO:
+- Give general motivation and encouragement
+- Discuss basic fitness concepts (very general)
+- Reference their goal: {goal}
+- Ask questions about their current habits
+- Provide 1-2 exercise examples MAX before redirecting to membership
+
+WHEN THEY ASK FOR DETAILED HELP, ALWAYS SAY:
+"I can give you general concepts and motivation, but for the detailed training programs and nutrition plans you're looking for, that requires Willpower Fitness membership at $225/month! That's where you get the complete system."
+
+PROTECT THE BUSINESS - NO FREE DETAILED CONTENT AFTER RESPONSE #2!"""})
+
+    # Remove the old logic that was allowing free content
+    # if len(history) > 5:  # This was too permissive
+    #     messages.append({"role": "system", "content": f"Remember: You're talking to {name}. Reference your conversation history with them and their goal of {goal}. Be personal and show you remember them. BUT CRITICAL: When they ask for detailed workout plans, nutrition programs, or specific training guidance, redirect them to membership! Say things like 'For that level of detailed programming, you need Willpower Fitness membership at $225/month!' Never give away complete plans - protect the business value!"})
+
+    # Strong sales focus for all interactions after the second response
     if user_message_count > 2:
-        messages.append({"role": "system", "content": f"SALES FOCUS: {name} is now asking for detailed guidance. This is your chance to convert them to membership! When they ask for workout plans, meal plans, or 'what's next', redirect to the $225/month membership. Give basic motivation but guard the valuable content behind the paywall. Example: 'I can give you general concepts, but for the complete training system and nutrition plans you're asking for, that requires Willpower Fitness membership!'"})
+        messages.append({"role": "system", "content": f"IMMEDIATE SALES REDIRECT REQUIRED: {name} is asking for guidance beyond the introduction. Every detailed request must redirect to membership. Examples: 'That level of personalized coaching requires Willpower Fitness membership at $225/month!' or 'For the complete training system you're asking about, join our membership program!' DO NOT GIVE AWAY FREE DETAILED CONTENT."})
 
     # Search knowledge base and external LLMs before making API call
     relevant_knowledge = enhanced_knowledge_search(user_input)
