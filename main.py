@@ -802,7 +802,7 @@ def stripe_payment_success():
 
     customer_email = data.get("customer_email")
     subscription_id = data.get("subscription_id")
-    amount = data.get(`amount`, 225)
+    amount = data.get('amount', 225)
 
     # Update customer status
     db[f"customer:{customer_email}:subscription_id"] = subscription_id
