@@ -484,31 +484,6 @@ def get_status():
         "message": "WillpowerFitness AI is running with professional architecture!"
     })
 
-@app.route("/static/<path:filename>")
-def static_files(filename):
-    """Serve static files"""
-    try:
-        if filename.endswith('.jsx'):
-            return send_from_directory('.', filename)
-        return send_from_directory('static', filename)
-    except FileNotFoundError:
-        return "File not found", 404
-
-@app.route("/attached_assets/<path:filename>")
-def attached_assets(filename):
-    """Serve files from attached_assets directory"""
-    try:
-        if '/' in filename:
-            directory_parts = filename.split('/')
-            subdirectory = '/'.join(directory_parts[:-1])
-            file_name = directory_parts[-1]
-            full_path = os.path.join('attached_assets', subdirectory)
-            return send_from_directory(full_path, file_name)
-        else:
-            return send_from_directory('attached_assets', filename)
-    except FileNotFoundError:
-        return "File not found", 404
-
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
