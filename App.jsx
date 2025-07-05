@@ -8,13 +8,23 @@ function App() {
   const [currentView, setCurrentView] = useState('home'); // 'home', 'contact', 'chat', 'videos', 'files'
 
   return (
-    <div style={{ 
-      minHeight: '100vh',
-      backgroundColor: '#000000',
-      padding: '2rem', 
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-      color: '#c0c0c0'
-    }}>
+    <>
+      <style>
+        {`
+          @keyframes pulse {
+            0% { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+            50% { box-shadow: 0 6px 16px rgba(40, 167, 69, 0.4); }
+            100% { box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+          }
+        `}
+      </style>
+      <div style={{ 
+        minHeight: '100vh',
+        backgroundColor: '#000000',
+        padding: '2rem', 
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+        color: '#c0c0c0'
+      }}>
       <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <h1 style={{ 
           fontSize: '3rem', 
@@ -66,17 +76,28 @@ function App() {
           <button
             onClick={() => window.open('https://buy.stripe.com/4gw8wVcGh0qkc4o7ss', '_blank')}
             style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: '#ffc107',
-              color: '#000',
-              border: 'none',
-              borderRadius: '20px',
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#28a745',
+              color: 'white',
+              border: '3px solid #ffffff',
+              borderRadius: '25px',
               cursor: 'pointer',
-              fontSize: '0.9rem',
-              fontWeight: 'bold'
+              fontSize: '1rem',
+              fontWeight: 'bold',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              animation: 'pulse 2s infinite',
+              textTransform: 'uppercase'
+            }}
+            onMouseOver={(e) => {
+              e.target.style.backgroundColor = '#218838';
+              e.target.style.transform = 'scale(1.05)';
+            }}
+            onMouseOut={(e) => {
+              e.target.style.backgroundColor = '#28a745';
+              e.target.style.transform = 'scale(1)';
             }}
           >
-            💳 Buy Membership - $225/month
+            🚀 BUY NOW - $225/MONTH
           </button>
           <button
             onClick={() => setCurrentView('upload')}
@@ -331,6 +352,7 @@ function App() {
         </div>
       ) : null}
     </div>
+    </>
   );
 }
 
