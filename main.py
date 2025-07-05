@@ -1593,8 +1593,7 @@ def generate_meal_plan():
 
         user_context = get_user_context(user_id)
         name = user_context['name']
-        goal =```python
- user_context['goal']
+        goal = user_context['goal']
 
         meal_plan_prompt = f"""
         Create a detailed 7-day meal plan for {name} whose goal is {goal}.
