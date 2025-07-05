@@ -55,7 +55,7 @@ def add_knowledge(topic, question, answer, category="general"):
         "added_date": datetime.utcnow().isoformat(),
         "topic": topic
     }
-    
+
     # Also add to searchable index
     knowledge_index = db.get("knowledge_index", [])
     if knowledge_id not in knowledge_index:
@@ -66,7 +66,7 @@ def search_knowledge(query):
     """Search the knowledge base for relevant information"""
     knowledge_index = db.get("knowledge_index", [])
     relevant_knowledge = []
-    
+
     query_lower = query.lower()
     for knowledge_id in knowledge_index:
         knowledge = db.get(knowledge_id, {})
@@ -75,13 +75,13 @@ def search_knowledge(query):
             question = knowledge.get("question", "").lower()
             if any(word in topic or word in question for word in query_lower.split()):
                 relevant_knowledge.append(knowledge)
-    
+
     return relevant_knowledge
 
 def query_external_llms(question, context="fitness"):
     """Query external LLMs for additional knowledge"""
     external_responses = []
-    
+
     # You can add multiple LLM sources here
     llm_sources = [
         {
@@ -97,7 +97,7 @@ def query_external_llms(question, context="fitness"):
             "model": "claude-3-sonnet-20240229"
         }
     ]
-    
+
     for source in llm_sources:
         if source["api_key"]:
             try:
@@ -118,7 +118,7 @@ def query_external_llms(question, context="fitness"):
                             "temperature": 0.7
                         }
                     )
-                    
+
                     if response.status_code == 200:
                         answer = response.json()['choices'][0]['message']['content']
                         external_responses.append({
@@ -126,7 +126,7 @@ def query_external_llms(question, context="fitness"):
                             "answer": answer,
                             "confidence": "high"
                         })
-                        
+
                         # Auto-learn from external LLM responses
                         add_knowledge(
                             topic=f"External LLM: {question[:50]}",
@@ -134,22 +134,22 @@ def query_external_llms(question, context="fitness"):
                             answer=answer,
                             category=f"external_{source['name'].lower().replace(' ', '_')}"
                         )
-                        
+
             except Exception as e:
                 print(f"Error querying {source['name']}: {e}")
                 continue
-    
+
     return external_responses
 
 def enhanced_knowledge_search(query):
     """Enhanced search that includes local knowledge + external LLMs"""
     # Get local knowledge first
     local_knowledge = search_knowledge(query)
-    
+
     # If we don't have enough local knowledge, query external LLMs
     if len(local_knowledge) < 2:
         external_knowledge = query_external_llms(query)
-        
+
         # Combine results
         combined_knowledge = local_knowledge + [
             {
@@ -161,9 +161,9 @@ def enhanced_knowledge_search(query):
             }
             for ext in external_knowledge
         ]
-        
+
         return combined_knowledge
-    
+
     return local_knowledge
 
 def learn_from_conversation(user_id, user_input, ai_response):
@@ -176,7 +176,7 @@ def learn_from_conversation(user_id, user_input, ai_response):
         "timestamp": datetime.utcnow().isoformat(),
         "effectiveness": "pending"  # Can be rated later
     }
-    
+
     # Extract potential knowledge
     if "?" in user_input and len(ai_response) > 50:
         # This looks like a Q&A that could be knowledge
@@ -200,13 +200,13 @@ def ask_groq_ai(user_input, user_id="default"):
 
     # Save new user message
     history.append({"role": "user", "content": user_input})
-    
+
     # Track conversation count to enforce second response format
     user_message_count = len([msg for msg in history if msg["role"] == "user"])
-    
+
     # Count assistant messages to understand conversation stage better
     assistant_message_count = len([msg for msg in history if msg["role"] == "assistant"])
-    
+
     print(f"DEBUG: User message count: {user_message_count}, Assistant message count: {assistant_message_count}")
     print(f"DEBUG: User input: {user_input[:50]}...")
 
@@ -271,11 +271,11 @@ COMMUNICATION STYLE:
 
 NO emojis, asterisks, or special formatting. Professional text only."""}
         ]
-        
+
         # Add conversation history for context
         for msg in history[-10:]:  # Last 10 messages for context
             messages.append({"role": msg["role"], "content": msg["content"]})
-        
+
         # Add current user input
         messages.append({"role": "user", "content": user_input})
 
@@ -286,7 +286,7 @@ NO emojis, asterisks, or special formatting. Professional text only."""}
         for k in relevant_knowledge[:3]:  # Limit to top 3 matches
             source = k.get('source', 'Local Knowledge')
             knowledge_context += f"Source: {source}\nQ: {k['question']}\nA: {k['answer']}\n\n"
-        
+
         # Add knowledge context to system message
         messages[0]["content"] += f"\n\n{knowledge_context}"
 
@@ -319,7 +319,7 @@ NO emojis, asterisks, or special formatting. Professional text only."""}
     history.append({"role": "assistant", "content": reply})
     messages_key = f"user:{user_id}:messages"
     db[messages_key] = history
-    
+
     # Learn from this conversation
     learn_from_conversation(user_id, user_input, reply)
 
@@ -802,7 +802,7 @@ def stripe_payment_success():
 
     customer_email = data.get("customer_email")
     subscription_id = data.get("subscription_id")
-    amount = data.get("amount", 225)
+    amount = data.get(`amount`, 225)
 
     # Update customer status
     db[f"customer:{customer_email}:subscription_id"] = subscription_id
@@ -1593,7 +1593,8 @@ def generate_meal_plan():
 
         user_context = get_user_context(user_id)
         name = user_context['name']
-        goal = user_context['goal']
+        goal =```python
+ user_context['goal']
 
         meal_plan_prompt = f"""
         Create a detailed 7-day meal plan for {name} whose goal is {goal}.
@@ -2140,12 +2141,12 @@ def add_knowledge_endpoint():
         question = data.get("question")
         answer = data.get("answer")
         category = data.get("category", "custom")
-        
+
         if not all([topic, question, answer]):
             return jsonify({"error": "Topic, question, and answer are required"}), 400
-        
+
         add_knowledge(topic, question, answer, category)
-        
+
         return jsonify({
             "success": True,
             "message": f"Knowledge added for topic: {topic}"
@@ -2159,13 +2160,13 @@ def get_knowledge():
     try:
         knowledge_index = db.get("knowledge_index", [])
         all_knowledge = []
-        
+
         for knowledge_id in knowledge_index:
             knowledge = db.get(knowledge_id, {})
             if knowledge:
                 knowledge["id"] = knowledge_id
                 all_knowledge.append(knowledge)
-        
+
         return jsonify({
             "knowledge": all_knowledge,
             "total_items": len(all_knowledge)
@@ -2179,12 +2180,12 @@ def search_knowledge_endpoint():
     try:
         data = request.get_json()
         query = data.get("query", "")
-        
+
         if not query:
             return jsonify({"error": "Query is required"}), 400
-        
+
         results = search_knowledge(query)
-        
+
         return jsonify({
             "query": query,
             "results": results,
@@ -2200,16 +2201,16 @@ def test_knowledge():
         data = request.get_json()
         question = data.get("question")
         user_id = data.get("user_id", "test_user")
-        
+
         if not question:
             return jsonify({"error": "Question is required"}), 400
-        
+
         # Get AI response which will include knowledge base search
         ai_response = ask_groq_ai(question, user_id)
-        
+
         # Also show what knowledge was found
         relevant_knowledge = enhanced_knowledge_search(question)
-        
+
         return jsonify({
             "question": question,
             "ai_response": ai_response,
@@ -2226,12 +2227,12 @@ def query_llm():
         data = request.get_json()
         question = data.get("question")
         context = data.get("context", "fitness")
-        
+
         if not question:
             return jsonify({"error": "Question is required"}), 400
-        
+
         external_responses = query_external_llms(question, context)
-        
+
         return jsonify({
             "question": question,
             "external_responses": external_responses,
@@ -2246,7 +2247,7 @@ def get_knowledge_sources():
     try:
         knowledge_index = db.get("knowledge_index", [])
         sources = {}
-        
+
         for knowledge_id in knowledge_index:
             knowledge = db.get(knowledge_id, {})
             if knowledge:
@@ -2254,7 +2255,7 @@ def get_knowledge_sources():
                 if category not in sources:
                     sources[category] = []
                 sources[category].append(knowledge)
-        
+
         return jsonify({
             "sources": sources,
             "total_sources": len(sources),
