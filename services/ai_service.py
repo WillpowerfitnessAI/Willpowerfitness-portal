@@ -77,7 +77,14 @@ class AIService:
                 reply = response.json()['choices'][0]['message']['content']
             else:
                 logger.error(f"Groq API error: {response.status_code} - {response.text}")
-                reply = "Sorry, I'm having trouble connecting right now. Please try again!"
+                # Provide helpful fallback based on user input
+                subscription_keywords = ['subscribe', 'sign up', 'join', 'purchase', 'buy', 'pay', 'membership', 'what do i do', 'next step', 'how do i', 'ready to']
+                is_subscription_request = any(keyword in user_input.lower() for keyword in subscription_keywords)
+                
+                if is_subscription_request:
+                    reply = f"Great {context['name']}! To become a Willpower Fitness member, simply click the BUY NOW button that says '$225/MONTH + FREE T-SHIRT' on this page. Once you complete your purchase, you'll have 24/7 access to me as your personal AI trainer!"
+                else:
+                    reply = "Sorry, I'm having trouble connecting right now. Please try again!"
             
             # Save AI response
             self.db.add_message(user_id, 'assistant', reply)
@@ -92,6 +99,29 @@ class AIService:
         """Build messages array based on conversation stage"""
         name = context['name']
         goal = context['goal']
+        
+        # Check if user is asking about subscription/purchase
+        subscription_keywords = ['subscribe', 'sign up', 'join', 'purchase', 'buy', 'pay', 'membership', 'what do i do', 'next step', 'how do i', 'ready to']
+        is_subscription_request = any(keyword in user_input.lower() for keyword in subscription_keywords)
+        
+        if is_subscription_request:
+            return [
+                {"role": "system", "content": f"""You are Will Power from Willpower Fitness. {name} is ready to subscribe!
+
+SUBSCRIPTION RESPONSE FORMAT:
+"Great {name}! I'm excited to have you join the Willpower Fitness family. To become a member and get unlimited access to me 24/7, simply click the BUY NOW button that says '$225/MONTH + FREE T-SHIRT' - it's prominently displayed on this page.
+
+Once you complete your purchase, you'll immediately have:
+- 24/7 access to me for personalized coaching
+- Complete workout programs and nutrition plans
+- Progress tracking and conversation history
+- Your free Willpower Fitness t-shirt shipped to you
+
+Click that bright BUY NOW button to get started right away! I'll be here waiting for you as your personal AI trainer."
+
+NO emojis, asterisks, or special formatting."""}, 
+                {"role": "user", "content": user_input}
+            ]
         
         if message_count == 1:
             # First response
