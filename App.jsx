@@ -99,62 +99,6 @@ function App() {
           >
             🚀 BUY NOW - $225/MONTH
           </button>
-          <button
-            onClick={() => setCurrentView('upload')}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: currentView === 'upload' ? '#dc3545' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
-          >
-            📤 Upload Files
-          </button>
-          <button
-            onClick={() => setCurrentView('download')}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: currentView === 'download' ? '#fd7e14' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
-          >
-            📥 Download Files
-          </button>
-          <button
-            onClick={() => setCurrentView('videos')}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: currentView === 'videos' ? '#17a2b8' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
-          >
-            🎬 Video Library
-          </button>
-          <button
-            onClick={() => setCurrentView('files')}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: currentView === 'files' ? '#6f42c1' : '#6c757d',
-              color: 'white',
-              border: 'none',
-              borderRadius: '20px',
-              cursor: 'pointer',
-              fontSize: '0.9rem'
-            }}
-          >
-            📁 File Manager
-          </button>
         </div>
       </div>
 
