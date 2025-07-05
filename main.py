@@ -357,8 +357,55 @@ def home():
             <title>WillpowerFitness AI Coach</title>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body { 
+                    margin: 0; 
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    min-height: 100vh;
+                }
+                .buy-button {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+                    color: white;
+                    border: none;
+                    padding: 15px 25px;
+                    border-radius: 50px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+                    transition: all 0.3s ease;
+                    z-index: 1000;
+                    text-decoration: none;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .buy-button:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+                }
+                .buy-button::before {
+                    content: "💪";
+                    font-size: 20px;
+                }
+                @media (max-width: 768px) {
+                    .buy-button {
+                        top: 10px;
+                        right: 10px;
+                        padding: 12px 20px;
+                        font-size: 16px;
+                    }
+                }
+            </style>
         </head>
         <body>
+            <a href="https://buy.stripe.com/4gw8wVcGh0qkc4o7ss" class="buy-button" target="_blank">
+                Join $225/month
+            </a>
             <div id="root"></div>
             <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
             <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
