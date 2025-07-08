@@ -34,7 +34,8 @@ payment_service = PaymentService(db)
 
 # Environment variables
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-SUPABASE_URL = os.getenv("SUPABASE_URL", "https://jxylbuwtjvsdavetryjx.supabase.co")
+SUPABASE_URL = os.getenv("SUPABASE_URL",
+                         "https://jxylbuwtjvsdavetryjx.supabase.co")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 STRIPE_SECRET_KEY = os.getenv("Stripe_payment_key")
 PRINTFUL_API_KEY = os.getenv("PRINTFUL_API_KEY")
@@ -50,6 +51,7 @@ if SUPABASE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     except Exception as e:
         print(f"Supabase initialization failed: {e}")
+
 
 @app.route("/", methods=["GET"])
 def home():
@@ -121,6 +123,7 @@ def home():
         </body>
         </html>
         """, 200
+
 
 @app.route("/test", methods=["GET"])
 def test_page():
@@ -321,6 +324,7 @@ def test_page():
     </html>
     """
 
+
 @app.route("/attached_assets/<path:filename>")
 def attached_assets(filename):
     """Serve files from attached_assets directory"""
@@ -336,6 +340,7 @@ def attached_assets(filename):
     except FileNotFoundError:
         return "File not found", 404
 
+
 @app.route("/static/<path:filename>")
 def static_files(filename):
     """Serve static files"""
@@ -345,6 +350,7 @@ def static_files(filename):
         return send_from_directory('static', filename)
     except FileNotFoundError:
         return "File not found", 404
+
 
 @app.route("/api/chat", methods=["POST"])
 def chat():
@@ -366,6 +372,7 @@ def chat():
         logger.error(f"Chat error: {e}")
         return jsonify({"error": "Server error occurred"}), 500
 
+
 @app.route("/api/onboard", methods=["POST"])
 def onboard():
     try:
@@ -374,7 +381,9 @@ def onboard():
             return jsonify({"error": "No JSON data received"}), 400
 
         user_id = data.get("user_id", "default")
-        name = data.get("name", "client").strip().split()[0] if data.get("name") else "client"
+        name = data.get(
+            "name",
+            "client").strip().split()[0] if data.get("name") else "client"
         goal = data.get("goal", "your fitness goals")
         source = data.get("source", "website")
         email = data.get("email")
@@ -395,6 +404,7 @@ def onboard():
         logger.error(f"Onboard error: {e}")
         return jsonify({"error": "Server error occurred"}), 500
 
+
 @app.route("/api/stripe-webhook", methods=["POST"])
 def stripe_webhook():
     """Handle Stripe webhook events"""
@@ -412,6 +422,7 @@ def stripe_webhook():
     except Exception as e:
         logger.error(f"Stripe webhook error: {e}")
         return jsonify({"error": "Webhook processing failed"}), 500
+
 
 @app.route("/api/lead-capture", methods=["POST"])
 def lead_capture():
@@ -445,21 +456,21 @@ def lead_capture():
         Keep it encouraging, professional, and action-oriented.
         """
 
-        ai_response = ai_service.generate_response(consultation_prompt, customer_email)
+        ai_response = ai_service.generate_response(consultation_prompt,
+                                                   customer_email)
 
         # Store lead in database
-        db.create_lead(
-            email=customer_email,
-            name=customer_name,
-            phone=customer_phone,
-            goals=goals,
-            experience=experience,
-            message=message,
-            source="website_form",
-            ai_response=ai_response
-        )
+        db.create_lead(email=customer_email,
+                       name=customer_name,
+                       phone=customer_phone,
+                       goals=goals,
+                       experience=experience,
+                       message=message,
+                       source="website_form",
+                       ai_response=ai_response)
 
-        payment_link = payment_service.create_payment_link(customer_email, customer_name)
+        payment_link = payment_service.create_payment_link(
+            customer_email, customer_name)
 
         return jsonify({
             "success": True,
@@ -473,26 +484,35 @@ def lead_capture():
         logger.error(f"Lead capture error: {e}")
         return jsonify({"error": "Server error occurred"}), 500
 
+
 @app.route("/api/status", methods=["GET"])
 def get_status():
     """Get system status"""
     return jsonify({
-        "status": "online",
-        "server": "Flask",
-        "version": "2.0",
-        "database": "SQLite",
-        "message": "WillpowerFitness AI is running with professional architecture!"
+        "status":
+        "online",
+        "server":
+        "Flask",
+        "version":
+        "2.0",
+        "database":
+        "SQLite",
+        "message":
+        "WillpowerFitness AI is running with professional architecture!"
     })
+
 
 # Error handlers
 @app.errorhandler(404)
 def not_found_error(error):
     return jsonify({"error": "Not found"}), 404
 
+
 @app.errorhandler(500)
 def internal_error(error):
     logger.error(f"Internal server error: {error}")
     return jsonify({"error": "Internal server error"}), 500
+
 
 if __name__ == "__main__":
     logger.info(f"Starting WillpowerFitness AI on {Config.HOST}:{Config.PORT}")
