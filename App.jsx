@@ -6,6 +6,12 @@ import ContactForm from './components/pages/ContactForm';
 function App() {
   const [user, setUser] = useState(null);
   const [currentView, setCurrentView] = useState('home'); // 'home', 'contact', 'chat', 'videos', 'files'
+useEffect(() => {
+  const script = document.createElement("script");
+  script.src = "https://js.stripe.com/v3/buy-button.js";
+  script.async = true;
+  document.body.appendChild(script);
+}, []);
 
   return (
     <>
@@ -101,6 +107,13 @@ function App() {
           </button>
         </div>
       </div>
+<div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem' }}>
+  <stripe-buy-button
+    buy-button-id="buy_btn_1Rk2WBIw2TDvX8i08lvj2TXd"
+    publishable-key="pk_live_51RWp4dIw2TDvX8i0Jcm21OH32WTmtKkOvoD2mKiHfkIZDK7AdiLCWQSDxLoVOBJzR1MLP0O0kIIw1PTF9MGGEAZS00ylxj6tAS"
+  >
+  </stripe-buy-button>
+</div>
 
       {currentView === 'contact' ? (
         <ContactForm />
