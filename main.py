@@ -432,7 +432,8 @@ def stripe_webhook():
 
 @app.route("/api/lead-capture", methods=["POST"])
 def lead_capture():
-    
+    return jsonify({"message": "Lead capture endpoint active"}), 200
+
 @app.route("/api/save_user_profile", methods=["POST"])
 def save_user_profile():
     try:
