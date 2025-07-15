@@ -1,3 +1,9 @@
+from supabase import create_client, Client
+import os
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
 import os
 import logging
 from flask import Flask, request, jsonify, send_from_directory
@@ -426,6 +432,39 @@ def stripe_webhook():
 
 @app.route("/api/lead-capture", methods=["POST"])
 def lead_capture():
+    
+@app.route("/api/save_user_profile", methods=["POST"])
+def save_user_profile():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No JSON data received"}), 400
+
+        email = data.get("email")
+        name = data.get("name")
+        goal = data.get("goal")
+        memory = data.get("memory", {})
+
+        if not email:
+            return jsonify({"error": "Email is required"}), 400
+
+        # Save to Supabase
+        response = supabase.table("user_profiles").insert({
+            "email": email,
+            "name": name,
+            "goal": goal,
+            "memory": memory
+        }).execute()
+
+        if "error" in response and response["error"]:
+            return jsonify({"error": response["error"]["message"]}), 500
+
+        return jsonify({"message": "User profile saved successfully"}), 200
+
+    except Exception as e:
+        logger.error(f"Supabase save error: {e}")
+        return jsonify({"error": "Internal server error"}), 500
+
     """Handle lead capture form submissions"""
     try:
         data = request.get_json()
