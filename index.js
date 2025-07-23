@@ -1,15 +1,17 @@
 
-const express = require('express');
-const path = require('path');
-const React = require('react');
-const ReactDOMServer = require('react-dom/server');
-
-const app = express();
-const PORT = process.env.PORT || 5000;
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Import AI and memory systems
 import { getChatResponse, generateWorkoutPlan, analyzeNutrition, analyzeProgress } from './lib/aiProviders.js';
 import { storeConversation, getConversationHistory, getUserProfile, updateUserProfile, logWorkout, getWorkoutHistory, exportUserData } from './lib/memorySystem.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json());
