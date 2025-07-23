@@ -213,7 +213,7 @@ app.post('/api/subscribe', async (req, res) => {
 });
 
 // Handle successful payment webhook
-app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const event = constructEvent(req.body, req.headers['stripe-signature']);
     
