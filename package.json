@@ -16,10 +16,12 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.52.0",
     "@types/node": "^22.13.11",
+    "axios": "^1.11.0",
     "express": "^5.1.0",
     "groq-sdk": "^0.29.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "stripe": "^18.3.0"
   },
   "devDependencies": {
     "@babel/core": "^7.28.0",

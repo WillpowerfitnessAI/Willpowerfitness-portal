@@ -7,6 +7,10 @@ import { fileURLToPath } from 'url';
 import { getChatResponse, generateWorkoutPlan, analyzeNutrition, analyzeProgress } from './lib/aiProviders.js';
 import { storeConversation, getConversationHistory, getUserProfile, updateUserProfile, logWorkout, getWorkoutHistory, exportUserData } from './lib/memorySystem.js';
 
+// Import payment and fulfillment systems
+import { createSubscription, createPaymentIntent, createCustomer, constructEvent } from './lib/stripePayments.js';
+import { createWelcomeShirtOrder, confirmOrder } from './lib/printfulIntegration.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -117,6 +121,10 @@ app.post('/api/chat', async (req, res) => {
     messages.push({ role: 'user', content: message });
 
     const aiResponse = await getChatResponse(messages, context);
+    
+    if (!aiResponse || aiResponse.trim() === '') {
+      throw new Error('Empty response from AI');
+    }
 
     // Store conversation in memory
     await storeConversation(userId, message, aiResponse, context);
@@ -169,6 +177,105 @@ app.get('/api/export/:userId', async (req, res) => {
     res.json(userData);
   } catch (error) {
     res.status(500).json({ error: 'Failed to export data' });
+  }
+});
+
+// Create subscription endpoint
+app.post('/api/subscribe', async (req, res) => {
+  try {
+    const { email, name, priceId, shippingAddress } = req.body;
+    
+    // Create Stripe customer
+    const customer = await createCustomer(email, name, { 
+      fitness_subscriber: 'true' 
+    });
+    
+    // Create subscription
+    const subscription = await createSubscription(customer.id, priceId);
+    
+    // Update user profile
+    await updateUserProfile(customer.id, {
+      name,
+      email,
+      subscription_status: 'pending',
+      stripe_customer_id: customer.id
+    });
+
+    res.json({
+      customerId: customer.id,
+      subscriptionId: subscription.subscriptionId,
+      clientSecret: subscription.clientSecret
+    });
+  } catch (error) {
+    console.error('Subscription error:', error);
+    res.status(500).json({ error: 'Failed to create subscription' });
+  }
+});
+
+// Handle successful payment webhook
+app.post('/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const event = constructEvent(req.body, req.headers['stripe-signature']);
+    
+    if (event.type === 'invoice.payment_succeeded') {
+      const invoice = event.data.object;
+      const customerId = invoice.customer;
+      
+      // Update user subscription status
+      await updateUserProfile(customerId, {
+        subscription_status: 'active',
+        subscription_start: new Date().toISOString()
+      });
+      
+      // Get user profile for shipping
+      const userProfile = await getUserProfile(customerId);
+      
+      // Send welcome t-shirt if it's their first payment
+      if (userProfile.welcome_shirt_sent !== true) {
+        try {
+          const order = await createWelcomeShirtOrder({
+            name: userProfile.name,
+            address: userProfile.shipping_address || {
+              line1: '123 Main St', // You'll need to collect this
+              city: 'City',
+              state: 'State',
+              country: 'US',
+              postal_code: '12345'
+            }
+          });
+          
+          await confirmOrder(order.id);
+          
+          // Mark t-shirt as sent
+          await updateUserProfile(customerId, {
+            welcome_shirt_sent: true,
+            printful_order_id: order.id
+          });
+          
+          console.log(`Welcome t-shirt ordered for customer ${customerId}`);
+        } catch (shirtError) {
+          console.error('Failed to send welcome shirt:', shirtError);
+        }
+      }
+    }
+    
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(400).send('Webhook Error');
+  }
+});
+
+// Get subscription status
+app.get('/api/subscription/:userId', async (req, res) => {
+  try {
+    const profile = await getUserProfile(req.params.userId);
+    res.json({ 
+      status: profile.subscription_status || 'inactive',
+      welcomeShirtSent: profile.welcome_shirt_sent || false
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch subscription status' });
   }
 });
 
