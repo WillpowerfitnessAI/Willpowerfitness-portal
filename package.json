@@ -12,6 +12,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.52.0",
     "@types/node": "^22.13.11",
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
   }
 }
