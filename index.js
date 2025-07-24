@@ -265,7 +265,7 @@ app.get('/', (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                   message: message,
-                  userId: 'premium@client.com' // Premium client identifier
+                  userId: 'premium@client.com'
                 })
               });
               
@@ -277,7 +277,7 @@ app.get('/', (req, res) => {
               // Add AI response with animation
               const aiMessage = document.createElement('div');
               aiMessage.className = 'message ai';
-              aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
+              aiMessage.innerHTML = data.response.replace(/\\n/g, '<br>');
               chatBox.appendChild(aiMessage);
               chatBox.scrollTop = chatBox.scrollHeight;
               
