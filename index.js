@@ -277,7 +277,7 @@ app.get('/', (req, res) => {
               // Add AI response with animation
               const aiMessage = document.createElement('div');
               aiMessage.className = 'message ai';
-              aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
+              aiMessage.innerHTML = data.response.replace(/\\n/g, '<br>');
               chatBox.appendChild(aiMessage);
               chatBox.scrollTop = chatBox.scrollHeight;
               
@@ -291,19 +291,27 @@ app.get('/', (req, res) => {
             }
           }
           
-          // Add send button event listener
-          document.getElementById('send-btn').addEventListener('click', sendMessage);
-          
-          document.getElementById('user-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              sendMessage();
+          // Wait for DOM to be fully loaded before adding event listeners
+          document.addEventListener('DOMContentLoaded', function() {
+            // Add send button event listener
+            const sendBtn = document.getElementById('send-btn');
+            const userInput = document.getElementById('user-input');
+            
+            if (sendBtn) {
+              sendBtn.addEventListener('click', sendMessage);
             }
-          });
-          
-          // Auto-focus input on load
-          window.addEventListener('load', function() {
-            document.getElementById('user-input').focus();
+            
+            if (userInput) {
+              userInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  sendMessage();
+                }
+              });
+              
+              // Auto-focus input
+              userInput.focus();
+            }
           });
         </script>
     </body>
