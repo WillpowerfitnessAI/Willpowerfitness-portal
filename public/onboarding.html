@@ -337,22 +337,32 @@
         document.getElementById('proceed-to-payment').addEventListener('click', () => nextStep());
         document.getElementById('start-subscription').addEventListener('click', async () => {
             try {
+                document.getElementById('start-subscription').disabled = true;
+                document.getElementById('start-subscription').textContent = 'Creating your membership...';
+                
                 const response = await fetch('/api/create-subscription', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email: userData.email,
                         name: userData.name,
-                        priceId: 'price_1234567890', // Your Stripe price ID
                         userData: userData
                     })
                 });
                 
                 const data = await response.json();
-                // Redirect to Stripe Checkout
-                window.location.href = data.checkoutUrl;
+                
+                if (data.checkoutUrl) {
+                    // Redirect to Stripe Checkout
+                    window.location.href = data.checkoutUrl;
+                } else {
+                    throw new Error('No checkout URL received');
+                }
             } catch (error) {
+                console.error('Subscription error:', error);
                 alert('Error creating subscription. Please try again.');
+                document.getElementById('start-subscription').disabled = false;
+                document.getElementById('start-subscription').textContent = 'Activate Elite Membership';
             }
         });
 

@@ -611,7 +611,7 @@ app.post('/api/consultation', async (req, res) => {
 // Create subscription with Stripe
 app.post('/api/create-subscription', async (req, res) => {
   try {
-    const { email, name, priceId, userData } = req.body;
+    const { email, name, userData } = req.body;
 
     // Create Stripe customer
     const customer = await createCustomer(email, name, {
@@ -620,8 +620,8 @@ app.post('/api/create-subscription', async (req, res) => {
       phone: userData.phone
     });
 
-    // Create subscription
-    const subscription = await createSubscription(customer.id, priceId || 'price_elite_225');
+    // Create Stripe checkout session instead of subscription
+    const checkoutSession = await createCheckoutSession(customer.id, email, userData);
 
     // Update lead status
     await query(
@@ -629,7 +629,7 @@ app.post('/api/create-subscription', async (req, res) => {
        status = 'payment_pending',
        payment_link = $1
        WHERE email = $2`,
-      [`subscription_${subscription.subscriptionId}`, email]
+      [checkoutSession.url, email]
     );
 
     // Create user profile
@@ -644,9 +644,8 @@ app.post('/api/create-subscription', async (req, res) => {
 
     res.json({
       customerId: customer.id,
-      subscriptionId: subscription.subscriptionId,
-      clientSecret: subscription.clientSecret,
-      checkoutUrl: `https://checkout.stripe.com/pay/${subscription.clientSecret}`
+      checkoutUrl: checkoutSession.url,
+      sessionId: checkoutSession.id
     });
   } catch (error) {
     console.error('Subscription creation error:', error);
@@ -657,6 +656,11 @@ app.post('/api/create-subscription', async (req, res) => {
 // Serve onboarding page
 app.get('/onboarding', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'onboarding.html'));
+});
+
+// Serve success page
+app.get('/success', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'success.html'));
 });
 
 // Webhook handler (enhanced for your workflow)
