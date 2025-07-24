@@ -19,12 +19,85 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Start Server"
+runButton = "WillpowerFitness Complete Pipeline"
 
 [[workflows.workflow]]
 name = "Start Server"
 author = 42978586
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "WillpowerFitness Complete Pipeline"
+author = 42978586
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node setup_database.js"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "Database Setup & Migration"
+author = 42978586
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node setup_database.js"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Database setup completed successfully!\""
+
+[[workflows.workflow]]
+name = "Health Check & Monitoring"
+author = 42978586
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "curl -s http://localhost:5000/health || echo \"Server not responding\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Checking database connection...\""
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node -e \"import('./lib/supabaseClient.js').then(({query}) => query('SELECT NOW()')).then(() => console.log('Database OK')).catch(e => console.log('Database Error:', e.message))\""
+
+[[workflows.workflow]]
+name = "Production Launch"
+author = 42978586
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node setup_database.js"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"WillpowerFitness AI is live at https://app.willpowerfitnessai.com\""
+
+[[workflows.workflow]]
+name = "Development with AI Features"
+author = 42978586
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node setup_database.js"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"

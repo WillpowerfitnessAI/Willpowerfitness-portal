@@ -277,7 +277,7 @@ app.get('/', (req, res) => {
               // Add AI response with animation
               const aiMessage = document.createElement('div');
               aiMessage.className = 'message ai';
-              aiMessage.innerHTML = data.response.replace(/\\n/g, '<br>');
+              aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
               chatBox.appendChild(aiMessage);
               chatBox.scrollTop = chatBox.scrollHeight;
               
@@ -494,6 +494,203 @@ app.get('/api/subscription/:userId', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch subscription status' });
+  }
+});
+
+// Onboarding Step 1 - Save user info
+app.post('/api/onboarding/step1', async (req, res) => {
+  try {
+    const { name, email, phone, goal, experience } = req.body;
+    
+    // Save lead to database
+    const result = await query(
+      `INSERT INTO leads (name, email, phone, goals, experience, status, source) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       ON CONFLICT (email) DO UPDATE SET 
+       name = $1, phone = $3, goals = $4, experience = $5, status = $6
+       RETURNING *`,
+      [name, email, phone, goal, experience, 'onboarding', 'website']
+    );
+
+    res.json({ success: true, leadId: result.rows[0].id });
+  } catch (error) {
+    console.error('Onboarding Step 1 error:', error);
+    res.status(500).json({ error: 'Failed to save information' });
+  }
+});
+
+// AI Consultation endpoint
+app.post('/api/consultation', async (req, res) => {
+  try {
+    const { message, userData } = req.body;
+    
+    // Use AI for consultation
+    const consultationPrompt = {
+      role: "system",
+      content: `You are conducting a fitness consultation for ${userData.name}. Their goal is ${userData.goal} and they have ${userData.experience} experience. Ask follow-up questions to understand their schedule, equipment access, injuries, and preferences. After 3-4 exchanges, conclude the consultation and indicate completion.`
+    };
+
+    const aiResponse = await getChatResponse([
+      consultationPrompt,
+      { role: "user", content: message }
+    ], userData);
+
+    // Determine if consultation is complete (simple logic)
+    const consultationComplete = message.toLowerCase().includes('ready') || 
+                                message.toLowerCase().includes('sounds good') ||
+                                aiResponse.toLowerCase().includes('perfect') ||
+                                aiResponse.toLowerCase().includes('ready to start');
+
+    // Update lead with consultation info
+    await query(
+      `UPDATE leads SET 
+       message = COALESCE(message, '') || $1 || E'\n',
+       ai_response = $2,
+       status = $3
+       WHERE email = $4`,
+      [
+        `User: ${message}`, 
+        aiResponse,
+        consultationComplete ? 'consultation_complete' : 'in_consultation',
+        userData.email
+      ]
+    );
+
+    res.json({ 
+      response: aiResponse,
+      consultationComplete 
+    });
+  } catch (error) {
+    console.error('Consultation error:', error);
+    res.status(500).json({ error: 'Consultation failed' });
+  }
+});
+
+// Create subscription with Stripe
+app.post('/api/create-subscription', async (req, res) => {
+  try {
+    const { email, name, priceId, userData } = req.body;
+    
+    // Create Stripe customer
+    const customer = await createCustomer(email, name, {
+      fitness_goal: userData.goal,
+      experience_level: userData.experience,
+      phone: userData.phone
+    });
+
+    // Create subscription
+    const subscription = await createSubscription(customer.id, priceId || 'price_elite_225');
+
+    // Update lead status
+    await query(
+      `UPDATE leads SET 
+       status = 'payment_pending',
+       payment_link = $1
+       WHERE email = $2`,
+      [`subscription_${subscription.subscriptionId}`, email]
+    );
+
+    // Create user profile
+    await updateUserProfile(customer.id, {
+      name,
+      email,
+      goal: userData.goal,
+      subscription_status: 'pending',
+      stripe_customer_id: customer.id,
+      onboarding_data: JSON.stringify(userData)
+    });
+
+    res.json({
+      customerId: customer.id,
+      subscriptionId: subscription.subscriptionId,
+      clientSecret: subscription.clientSecret,
+      checkoutUrl: `https://checkout.stripe.com/pay/${subscription.clientSecret}`
+    });
+  } catch (error) {
+    console.error('Subscription creation error:', error);
+    res.status(500).json({ error: 'Failed to create subscription' });
+  }
+});
+
+// Serve onboarding page
+app.get('/onboarding', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'onboarding.html'));
+});
+
+// Webhook handler (enhanced for your workflow)
+app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
+  try {
+    const event = constructEvent(req.body, req.headers['stripe-signature']);
+    
+    if (event.type === 'invoice.payment_succeeded') {
+      const invoice = event.data.object;
+      const customerId = invoice.customer;
+      
+      // Update user and lead status
+      await updateUserProfile(customerId, {
+        subscription_status: 'active',
+        subscription_start: new Date().toISOString()
+      });
+
+      // Update lead status
+      const userProfile = await getUserProfile(customerId);
+      if (userProfile.email) {
+        await query(
+          `UPDATE leads SET status = 'active_subscriber' WHERE email = $1`,
+          [userProfile.email]
+        );
+      }
+
+      // Send welcome shirt (if address available)
+      if (userProfile.welcome_shirt_sent !== true) {
+        try {
+          // You'll need to collect shipping address in onboarding
+          const order = await createWelcomeShirtOrder({
+            name: userProfile.name,
+            address: {
+              line1: '123 Main St', // Collect this in onboarding
+              city: 'City',
+              state: 'State', 
+              country: 'US',
+              postal_code: '12345'
+            }
+          });
+          
+          await confirmOrder(order.id);
+          await updateUserProfile(customerId, { welcome_shirt_sent: true });
+          
+          console.log(`✓ Welcome shirt ordered for ${userProfile.name}`);
+        } catch (shirtError) {
+          console.error('Welcome shirt error:', shirtError);
+        }
+      }
+
+      console.log(`✓ New subscriber activated: ${customerId}`);
+    }
+
+    res.status(200).send('OK');
+  } catch (error) {
+    console.error('Webhook error:', error);
+    res.status(400).send('Webhook Error');
+  }
+});
+
+// Admin dashboard endpoint
+app.get('/api/admin/stats', async (req, res) => {
+  try {
+    const [leads, activeUsers, revenue] = await Promise.all([
+      query('SELECT COUNT(*) FROM leads'),
+      query(`SELECT COUNT(*) FROM user_profiles WHERE subscription_status = 'active'`),
+      query(`SELECT COUNT(*) * 225 as mrr FROM user_profiles WHERE subscription_status = 'active'`)
+    ]);
+
+    res.json({
+      totalLeads: leads.rows[0].count,
+      activeSubscribers: activeUsers.rows[0].count,
+      monthlyRevenue: revenue.rows[0].mrr
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch stats' });
   }
 });
 
