@@ -240,7 +240,7 @@ app.get('/', (req, res) => {
         </div>
         
         <script>
-          async function sendMessage() {
+          function sendMessage() {
             const input = document.getElementById('user-input');
             const chatBox = document.getElementById('chat-box');
             const typingIndicator = document.getElementById('typing-indicator');
@@ -259,36 +259,34 @@ app.get('/', (req, res) => {
             typingIndicator.style.display = 'flex';
             chatBox.scrollTop = chatBox.scrollHeight;
             
-            try {
-              const response = await fetch('/api/chat', {
+            fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                   message: message,
                   userId: 'premium@client.com'
                 })
+              })
+              .then(response => response.json())
+              .then(data => {
+                // Hide typing indicator
+                typingIndicator.style.display = 'none';
+                
+                // Add AI response with animation
+                const aiMessage = document.createElement('div');
+                aiMessage.className = 'message ai';
+                aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
+                chatBox.appendChild(aiMessage);
+                chatBox.scrollTop = chatBox.scrollHeight;
+              })
+              .catch(error => {
+              typingIndicator.style.display = 'none';
+                const errorMessage = document.createElement('div');
+                errorMessage.className = 'message ai';
+                errorMessage.innerHTML = '<strong>⚠️ Service Temporarily Unavailable</strong><br>Our premium AI coaching service is experiencing high demand. Please try again in a moment.';
+                chatBox.appendChild(errorMessage);
+                chatBox.scrollTop = chatBox.scrollHeight;
               });
-              
-              const data = await response.json();
-              
-              // Hide typing indicator
-              typingIndicator.style.display = 'none';
-              
-              // Add AI response with animation
-              const aiMessage = document.createElement('div');
-              aiMessage.className = 'message ai';
-              aiMessage.innerHTML = data.response.replace(/\\n/g, '<br>');
-              chatBox.appendChild(aiMessage);
-              chatBox.scrollTop = chatBox.scrollHeight;
-              
-            } catch (error) {
-              typingIndicator.style.display = 'none';
-              const errorMessage = document.createElement('div');
-              errorMessage.className = 'message ai';
-              errorMessage.innerHTML = '<strong>⚠️ Service Temporarily Unavailable</strong><br>Our premium AI coaching service is experiencing high demand. Please try again in a moment.';
-              chatBox.appendChild(errorMessage);
-              chatBox.scrollTop = chatBox.scrollHeight;
-            }
           }
           
           // Wait for DOM to be fully loaded before adding event listeners
