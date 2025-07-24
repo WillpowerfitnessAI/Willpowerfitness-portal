@@ -277,7 +277,7 @@ app.get('/', (req, res) => {
               // Add AI response with animation
               const aiMessage = document.createElement('div');
               aiMessage.className = 'message ai';
-              aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
+              aiMessage.innerHTML = data.response.replace(/\\n/g, '<br>');
               chatBox.appendChild(aiMessage);
               chatBox.scrollTop = chatBox.scrollHeight;
               
