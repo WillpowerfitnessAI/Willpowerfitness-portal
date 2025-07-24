@@ -199,7 +199,10 @@
                         <button type="button" id="consultation-send" class="btn">Send Answer</button>
                     </div>
                 </div>
-                <button type="button" id="proceed-to-payment" class="btn" style="display: none;">Proceed to Elite Membership</button>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button type="button" id="proceed-to-payment" class="btn" style="display: none;">Proceed to Elite Membership</button>
+                    <button type="button" id="export-consultation" class="btn" style="display: none; background: #6b7280; margin-left: 10px;">Get Copy of Consultation</button>
+                </div>
             </div>
 
             <!-- Step 3: Payment -->
@@ -324,7 +327,8 @@
                 
                 if (data.consultationComplete) {
                     consultationComplete = true;
-                    document.getElementById('proceed-to-payment').style.display = 'block';
+                    document.getElementById('proceed-to-payment').style.display = 'inline-block';
+                    document.getElementById('export-consultation').style.display = 'inline-block';
                 }
             } catch (error) {
                 chatDiv.innerHTML += '<div class="ai-message">I apologize, there was an error. Let\'s proceed to the next step.</div>';
@@ -332,6 +336,66 @@
                 document.getElementById('proceed-to-payment').style.display = 'block';
             }
         }
+
+        // Export consultation handler
+        document.getElementById('export-consultation').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/send-consultation-copy', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: userData.email })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Create and download consultation summary
+                    const consultationSummary = `
+WILLPOWERFITNESSAI CONSULTATION SUMMARY
+=====================================
+
+Name: ${userData.name}
+Email: ${userData.email}
+Fitness Goal: ${userData.goal}
+Experience Level: ${userData.experience}
+Consultation Date: ${new Date().toLocaleDateString()}
+
+CONSULTATION TRANSCRIPT:
+${document.getElementById('consultation-chat').innerText}
+
+RECOMMENDED NEXT STEPS:
+• WillpowerFitness AI Elite Membership 
+• Personalized workout & nutrition plans
+• 24/7 AI coaching support
+• Progress tracking & analytics
+• Welcome fitness apparel included
+
+Ready to transform your fitness journey?
+Visit: https://app.willpowerfitnessai.com
+
+Questions? Contact our support team.
+                    `.trim();
+
+                    // Create downloadable file
+                    const blob = new Blob([consultationSummary], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `WillpowerFitness-Consultation-${userData.name.replace(/\s+/g, '')}-${Date.now()}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                    
+                    alert('✓ Consultation summary downloaded! Check your downloads folder.');
+                } else {
+                    alert('Unable to export consultation. Please try again.');
+                }
+            } catch (error) {
+                console.error('Export error:', error);
+                alert('Export failed. Please try again or contact support.');
+            }
+        });
 
         // Payment Handler
         document.getElementById('proceed-to-payment').addEventListener('click', () => nextStep());

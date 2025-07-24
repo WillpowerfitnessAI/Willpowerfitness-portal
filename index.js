@@ -694,6 +694,101 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
   }
 });
 
+// Export consultation transcript
+app.get('/api/consultation-export/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    // Get lead data with consultation
+    const result = await query(
+      `SELECT name, email, goals, experience, message, ai_response, timestamp 
+       FROM leads 
+       WHERE email = $1 AND message IS NOT NULL`,
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'No consultation found for this email' });
+    }
+
+    const lead = result.rows[0];
+    
+    // Format consultation transcript
+    const transcript = {
+      consultationSummary: {
+        name: lead.name,
+        email: lead.email,
+        fitnessGoal: lead.goals,
+        experienceLevel: lead.experience,
+        consultationDate: lead.timestamp,
+        consultationId: `WF-${Date.now()}`
+      },
+      conversation: {
+        userMessages: lead.message ? lead.message.split('\n').filter(msg => msg.startsWith('User:')).map(msg => msg.replace('User: ', '')) : [],
+        aiResponse: lead.ai_response,
+        nextSteps: "Based on your consultation, we recommend WillpowerFitness AI Elite membership for personalized training plans, 24/7 AI coaching, and comprehensive progress tracking."
+      },
+      recommendedProgram: {
+        title: "WillpowerFitness AI Elite Membership",
+        features: [
+          "Personalized AI workout plans",
+          "Custom nutrition guidance", 
+          "24/7 AI coach access",
+          "Progress tracking & analytics",
+          "Welcome fitness apparel",
+          "Priority support"
+        ],
+        pricing: "$225/month",
+        benefits: `Tailored specifically for ${lead.goals} with ${lead.experience} experience level`
+      }
+    };
+
+    res.json(transcript);
+  } catch (error) {
+    console.error('Consultation export error:', error);
+    res.status(500).json({ error: 'Failed to export consultation' });
+  }
+});
+
+// Send consultation copy via email endpoint
+app.post('/api/send-consultation-copy', async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    // Get consultation data
+    const response = await fetch(`${req.protocol}://${req.get('host')}/api/consultation-export/${email}`);
+    const consultationData = await response.json();
+    
+    if (!response.ok) {
+      return res.status(404).json({ error: 'Consultation not found' });
+    }
+
+    // Here you would integrate with your email service (SendGrid, etc.)
+    // For now, we'll just return the data that would be emailed
+    const emailContent = {
+      to: email,
+      subject: `Your WillpowerFitness AI Consultation Summary - ${consultationData.consultationSummary.consultationId}`,
+      content: consultationData,
+      message: "Thank you for your consultation! Here's a summary of our conversation and next steps to transform your fitness journey."
+    };
+
+    // Update lead to mark consultation copy sent
+    await query(
+      `UPDATE leads SET status = 'consultation_copy_sent' WHERE email = $1`,
+      [email]
+    );
+
+    res.json({ 
+      success: true, 
+      message: 'Consultation copy prepared',
+      emailContent 
+    });
+  } catch (error) {
+    console.error('Send consultation copy error:', error);
+    res.status(500).json({ error: 'Failed to send consultation copy' });
+  }
+});
+
 // Admin dashboard endpoint
 app.get('/api/admin/stats', async (req, res) => {
   try {
