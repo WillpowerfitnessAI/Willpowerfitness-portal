@@ -72,7 +72,7 @@ app.get('/', (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                   message: message,
-                  userId: 'demo-user' // In production, get from auth
+                  userId: 'demo@willpowerfitness.com' // Use email format for demo
                 })
               });
               
