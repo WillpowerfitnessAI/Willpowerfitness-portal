@@ -50,10 +50,11 @@ app.get('/', (req, res) => {
             border-radius: 24px;
             box-shadow: 0 25px 50px rgba(0,0,0,0.15);
             overflow: hidden;
-            display: grid;
-            grid-template-rows: auto 1fr;
+            display: flex;
+            flex-direction: column;
             height: 90vh;
             max-height: 800px;
+            min-height: 600px;
           }
           .header {
             background: linear-gradient(135deg, #1e3c72, #2a5298);
@@ -77,7 +78,8 @@ app.get('/', (req, res) => {
             padding: 40px; 
             display: flex; 
             flex-direction: column; 
-            height: 100%;
+            flex: 1;
+            min-height: 0;
           }
           .chat-box { 
             flex: 1;
@@ -88,6 +90,7 @@ app.get('/', (req, res) => {
             overflow-y: auto;
             box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
             border: 1px solid #e2e8f0;
+            min-height: 200px;
           }
           .message { 
             margin: 20px 0; 
@@ -126,6 +129,8 @@ app.get('/', (req, res) => {
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             border: 2px solid #e2e8f0;
             transition: border-color 0.3s, box-shadow 0.3s;
+            flex-shrink: 0;
+            margin-top: auto;
           }
           .input-container:focus-within {
             border-color: #667eea;
