@@ -1,4 +1,3 @@
-
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -63,7 +62,7 @@ app.get('/', (req, res) => {
             text-align: center;
             position: relative;
           }
-          
+
           .header h1 { 
             font-size: 3rem; 
             font-weight: 700; 
@@ -193,7 +192,7 @@ app.get('/', (req, res) => {
             0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
             30% { transform: translateY(-10px); opacity: 1; }
           }
-          
+
           @media (max-width: 768px) {
             .container { margin: 10px; height: 95vh; }
             .header { padding: 25px 20px; }
@@ -238,7 +237,7 @@ app.get('/', (req, res) => {
                 </div>
             </div>
         </div>
-        
+
         <script>
           // Global sendMessage function
           function sendMessage() {
@@ -246,20 +245,20 @@ app.get('/', (req, res) => {
             const chatBox = document.getElementById('chat-box');
             const typingIndicator = document.getElementById('typing-indicator');
             const message = input.value.trim();
-            
+
             if (!message) return;
-            
+
             // Add user message with animation
             const userMessage = document.createElement('div');
             userMessage.className = 'message user';
             userMessage.textContent = message;
             chatBox.appendChild(userMessage);
             input.value = '';
-            
+
             // Show typing indicator
             typingIndicator.style.display = 'flex';
             chatBox.scrollTop = chatBox.scrollHeight;
-            
+
             fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -272,11 +271,11 @@ app.get('/', (req, res) => {
               .then(data => {
                 // Hide typing indicator
                 typingIndicator.style.display = 'none';
-                
+
                 // Add AI response with animation
                 const aiMessage = document.createElement('div');
                 aiMessage.className = 'message ai';
-                aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
+                aiMessage.innerHTML = data.response.replace(/\\\\n/g, '<br>');
                 chatBox.appendChild(aiMessage);
                 chatBox.scrollTop = chatBox.scrollHeight;
               })
@@ -289,26 +288,20 @@ app.get('/', (req, res) => {
                 chatBox.scrollTop = chatBox.scrollHeight;
               });
           }
-          
+
           // Wait for DOM to be fully loaded before adding event listeners
           document.addEventListener('DOMContentLoaded', function() {
-            // Add send button event listener
             const sendBtn = document.getElementById('send-btn');
             const userInput = document.getElementById('user-input');
-            
-            if (sendBtn) {
-              sendBtn.addEventListener('click', sendMessage);
-            }
-            
-            if (userInput) {
-              userInput.addEventListener('keypress', function(e) {
+
+            if (sendBtn && userInput) {
+              sendBtn.onclick = sendMessage;
+              userInput.onkeypress = function(e) {
                 if (e.key === 'Enter') {
                   e.preventDefault();
                   sendMessage();
                 }
-              });
-              
-              // Auto-focus input
+              };
               userInput.focus();
             }
           });
@@ -322,7 +315,7 @@ app.get('/', (req, res) => {
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, userId } = req.body;
-    
+
     if (!message || !userId) {
       return res.status(400).json({ error: 'Message and userId required' });
     }
@@ -330,7 +323,7 @@ app.post('/api/chat', async (req, res) => {
     // Get user context for personalized responses
     const userProfile = await getUserProfile(userId);
     const recentHistory = await getConversationHistory(userId, 5);
-    
+
     // Prepare context for AI
     const context = {
       profile: userProfile,
@@ -342,11 +335,11 @@ app.post('/api/chat', async (req, res) => {
       { role: 'user', content: conv.user_message },
       { role: 'assistant', content: conv.ai_response }
     ]).flat();
-    
+
     messages.push({ role: 'user', content: message });
 
     const aiResponse = await getChatResponse(messages, context);
-    
+
     if (!aiResponse || aiResponse.trim() === '') {
       throw new Error('Empty response from AI');
     }
@@ -366,9 +359,9 @@ app.post('/api/workout-plan', async (req, res) => {
   try {
     const { userId, goals, preferences } = req.body;
     const userProfile = await getUserProfile(userId);
-    
+
     const workoutPlan = await generateWorkoutPlan(userProfile, goals, preferences);
-    
+
     res.json({ workoutPlan });
   } catch (error) {
     console.error('Workout plan error:', error);
@@ -409,15 +402,15 @@ app.get('/api/export/:userId', async (req, res) => {
 app.post('/api/subscribe', async (req, res) => {
   try {
     const { email, name, priceId, shippingAddress } = req.body;
-    
+
     // Create Stripe customer
     const customer = await createCustomer(email, name, { 
       fitness_subscriber: 'true' 
     });
-    
+
     // Create subscription
     const subscription = await createSubscription(customer.id, priceId);
-    
+
     // Update user profile
     await updateUserProfile(customer.id, {
       name,
@@ -441,20 +434,20 @@ app.post('/api/subscribe', async (req, res) => {
 app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const event = constructEvent(req.body, req.headers['stripe-signature']);
-    
+
     if (event.type === 'invoice.payment_succeeded') {
       const invoice = event.data.object;
       const customerId = invoice.customer;
-      
+
       // Update user subscription status
       await updateUserProfile(customerId, {
         subscription_status: 'active',
         subscription_start: new Date().toISOString()
       });
-      
+
       // Get user profile for shipping
       const userProfile = await getUserProfile(customerId);
-      
+
       // Send welcome t-shirt if it's their first payment
       if (userProfile.welcome_shirt_sent !== true) {
         try {
@@ -468,22 +461,22 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
               postal_code: '12345'
             }
           });
-          
+
           await confirmOrder(order.id);
-          
+
           // Mark t-shirt as sent
           await updateUserProfile(customerId, {
             welcome_shirt_sent: true,
             printful_order_id: order.id
           });
-          
+
           console.log(`Welcome t-shirt ordered for customer ${customerId}`);
         } catch (shirtError) {
           console.error('Failed to send welcome shirt:', shirtError);
         }
       }
     }
-    
+
     res.status(200).send('OK');
   } catch (error) {
     console.error('Webhook error:', error);
@@ -508,7 +501,7 @@ app.get('/api/subscription/:userId', async (req, res) => {
 app.post('/api/onboarding/step1', async (req, res) => {
   try {
     const { name, email, phone, goal, experience } = req.body;
-    
+
     // Save lead to database
     const result = await query(
       `INSERT INTO leads (name, email, phone, goals, experience, status, source) 
@@ -530,7 +523,7 @@ app.post('/api/onboarding/step1', async (req, res) => {
 app.post('/api/consultation', async (req, res) => {
   try {
     const { message, userData } = req.body;
-    
+
     // Use AI for consultation
     const consultationPrompt = {
       role: "system",
@@ -577,7 +570,7 @@ app.post('/api/consultation', async (req, res) => {
 app.post('/api/create-subscription', async (req, res) => {
   try {
     const { email, name, priceId, userData } = req.body;
-    
+
     // Create Stripe customer
     const customer = await createCustomer(email, name, {
       fitness_goal: userData.goal,
@@ -628,11 +621,11 @@ app.get('/onboarding', (req, res) => {
 app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
   try {
     const event = constructEvent(req.body, req.headers['stripe-signature']);
-    
+
     if (event.type === 'invoice.payment_succeeded') {
       const invoice = event.data.object;
       const customerId = invoice.customer;
-      
+
       // Update user and lead status
       await updateUserProfile(customerId, {
         subscription_status: 'active',
@@ -662,10 +655,10 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
               postal_code: '12345'
             }
           });
-          
+
           await confirmOrder(order.id);
           await updateUserProfile(customerId, { welcome_shirt_sent: true });
-          
+
           console.log(`✓ Welcome shirt ordered for ${userProfile.name}`);
         } catch (shirtError) {
           console.error('Welcome shirt error:', shirtError);
