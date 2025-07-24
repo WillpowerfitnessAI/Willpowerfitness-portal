@@ -241,6 +241,17 @@
             const formData = new FormData(e.target);
             userData = Object.fromEntries(formData);
             
+            // Validate required fields
+            if (!userData.name || !userData.email || !userData.goal || !userData.experience) {
+                alert('Please fill in all required fields.');
+                return;
+            }
+            
+            // Disable button during submission
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
+            
             // Save to database
             try {
                 const response = await fetch('/api/onboarding/step1', {
@@ -252,9 +263,14 @@
                 if (response.ok) {
                     nextStep();
                     startConsultation();
+                } else {
+                    throw new Error('Server error');
                 }
             } catch (error) {
+                console.error('Onboarding error:', error);
                 alert('Error saving your information. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Continue to AI Assessment';
             }
         });
 

@@ -513,6 +513,13 @@ app.post('/api/onboarding/step1', async (req, res) => {
   try {
     const { name, email, phone, goal, experience } = req.body;
 
+    // Validate required fields
+    if (!name || !email || !goal || !experience) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    console.log('Saving onboarding data:', { name, email, phone, goal, experience });
+
     // Save lead to database
     const result = await query(
       `INSERT INTO leads (name, email, phone, goals, experience, status, source) 
@@ -520,13 +527,14 @@ app.post('/api/onboarding/step1', async (req, res) => {
        ON CONFLICT (email) DO UPDATE SET 
        name = $1, phone = $3, goals = $4, experience = $5, status = $6
        RETURNING *`,
-      [name, email, phone, goal, experience, 'onboarding', 'website']
+      [name, email, phone || null, goal, experience, 'onboarding', 'website']
     );
 
+    console.log('Onboarding data saved successfully:', result.rows[0]);
     res.json({ success: true, leadId: result.rows[0].id });
   } catch (error) {
     console.error('Onboarding Step 1 error:', error);
-    res.status(500).json({ error: 'Failed to save information' });
+    res.status(500).json({ error: 'Failed to save information', details: error.message });
   }
 });
 
