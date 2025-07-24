@@ -234,7 +234,7 @@ app.get('/', (req, res) => {
                 </div>
                 <div class="input-container">
                     <input type="text" id="user-input" placeholder="Ask me about advanced workouts, nutrition optimization, or your fitness goals..." />
-                    <button onclick="sendMessage()">Send Message</button>
+                    <button id="send-btn">Send Message</button>
                 </div>
             </div>
         </div>
@@ -277,7 +277,7 @@ app.get('/', (req, res) => {
               // Add AI response with animation
               const aiMessage = document.createElement('div');
               aiMessage.className = 'message ai';
-              aiMessage.innerHTML = data.response.replace(/\\n/g, '<br>');
+              aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
               chatBox.appendChild(aiMessage);
               chatBox.scrollTop = chatBox.scrollHeight;
               
@@ -290,6 +290,9 @@ app.get('/', (req, res) => {
               chatBox.scrollTop = chatBox.scrollHeight;
             }
           }
+          
+          // Add send button event listener
+          document.getElementById('send-btn').addEventListener('click', sendMessage);
           
           document.getElementById('user-input').addEventListener('keypress', function(e) {
             if (e.key === 'Enter') {
