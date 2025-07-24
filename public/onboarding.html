@@ -249,28 +249,34 @@
             
             // Disable button during submission
             const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
             submitBtn.disabled = true;
             submitBtn.textContent = 'Processing...';
             
             // Save to database
             try {
+                console.log('Submitting form data:', userData);
                 const response = await fetch('/api/onboarding/step1', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(userData)
                 });
                 
+                const responseData = await response.json();
+                console.log('Server response:', responseData);
+                
                 if (response.ok) {
+                    console.log('Form submitted successfully, proceeding to next step');
                     nextStep();
                     startConsultation();
                 } else {
-                    throw new Error('Server error');
+                    throw new Error(responseData.error || 'Server error');
                 }
             } catch (error) {
                 console.error('Onboarding error:', error);
-                alert('Error saving your information. Please try again.');
+                alert('Error saving your information: ' + error.message + '. Please try again.');
                 submitBtn.disabled = false;
-                submitBtn.textContent = 'Continue to AI Assessment';
+                submitBtn.textContent = originalText;
             }
         });
 

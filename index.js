@@ -10,6 +10,9 @@ import { storeConversation, getConversationHistory, getUserProfile, updateUserPr
 import { createSubscription, createPaymentIntent, createCustomer, constructEvent } from './lib/stripePayments.js';
 import { createWelcomeShirtOrder, confirmOrder } from './lib/printfulIntegration.js';
 
+// Import database client
+import { query } from './lib/supabaseClient.js';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -515,10 +518,20 @@ app.post('/api/onboarding/step1', async (req, res) => {
 
     // Validate required fields
     if (!name || !email || !goal || !experience) {
+      console.log('Missing required fields:', { name, email, goal, experience });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     console.log('Saving onboarding data:', { name, email, phone, goal, experience });
+
+    // Test database connection first
+    try {
+      await query('SELECT NOW()');
+      console.log('Database connection verified');
+    } catch (dbError) {
+      console.error('Database connection failed:', dbError);
+      return res.status(500).json({ error: 'Database connection failed', details: dbError.message });
+    }
 
     // Save lead to database
     const result = await query(
@@ -534,7 +547,12 @@ app.post('/api/onboarding/step1', async (req, res) => {
     res.json({ success: true, leadId: result.rows[0].id });
   } catch (error) {
     console.error('Onboarding Step 1 error:', error);
-    res.status(500).json({ error: 'Failed to save information', details: error.message });
+    console.error('Error stack:', error.stack);
+    res.status(500).json({ 
+      error: 'Failed to save information', 
+      details: error.message,
+      code: error.code 
+    });
   }
 });
 
