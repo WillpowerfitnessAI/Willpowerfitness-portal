@@ -1,0 +1,90 @@
+WILLPOWERFITNESSAI WORKFLOW (END-TO-END)
+Platform: Replit+ Stripe  Supabase + Printful 
+________________________________________
+1. CLIENT DISCOVERY & TRAFFIC SOURCES
+•	Traffic arrives via:
+o	Social links (IG, LinkedIn, etc.)
+o	QR code on shirts or flyers
+o	Direct URL: https://app.willpowerfitnessai.com
+o	Google Ads, Thumbtack, SEO, referrals
+________________________________________
+2. LANDING PAGE (React/Next.js)
+•	Design goals: Clean, elite, tech-forward
+•	Sections:
+o	Hero: "Train Smarter with WillpowerFitness AI"
+o	What You Get: AI coaching, personalized plans, real-time feedback
+o	Testimonials
+o	Pricing
+o	CTA: "Get Started"
+________________________________________
+3. ONBOARDING FLOW (Client-Facing Flow) 
+1.	Step 1 – Name + Fitness Goals
+o	Form on frontend saves data to Supabase
+o	POST to /onboarding route on Flask (backend)
+2.	Step 2 – Consultation
+o	AI-based assessment
+
+3.	Step 3 – Stripe Payment
+o	Stripe Buy Button or Checkout Link
+o	$225/mo subscription (WillpowerFitness Elite AI)
+o	Stripe webhook → /webhook route
+________________________________________
+4. BACKEND EVENTS 
+•	Webhook handles:
+o	New subscription event → saves to Supabase
+o	Creates default user record: goals, name, subscription ID, start date
+o	 Sends confirmation email/SMS
+________________________________________
+5. AI PERSONAL TRAINING ASSISTANT (Hosted via Replit
+•	Users interact via:
+o	Embedded chat portal on app.willpowerfitnessai.com
+o	Memory saved by user_id: tracks goals, sessions, and feedback
+•	AI Functions:
+o	Workout generation (daily/weekly splits)
+o	Diet recommendations (macros, recipes)
+o	Recovery suggestions
+o	Goal tracking + progress motivation
+o	Resurfacing previous chats + tips
+________________________________________
+6. AUTOMATED MERCHANDISE (Printful)
+•	Triggered on successful subscription
+•	Supabase function calls the Printful API
+o	Orders branded WillpowerFitnessAI shirt (auto-fulfillment)
+•	Delivery tracking optional
+________________________________________
+7. CLIENT PORTAL 
+•	Hosted at: https://app.willpowerfitnessai.com/dashboard
+•	Features:
+o	View past AI messages
+o	Update fitness goals
+o	Submit new questions/workout needs
+o	Cancel subscription / manage billing (Stripe portal)
+o	Upload progress photos or log workouts (future add-on)
+________________________________________
+8. ADMIN DASHBOARD (Internal Use)
+•	View all active clients
+•	Stripe subscription status
+•	Workout engagement history
+•	Goal progress analytics
+•	(Future) AI insights: client churn risk, feedback trends
+________________________________________
+9. SUPPORT AUTOMATION
+•	AI Assistant triages common support requests:
+o	“Where’s my shirt?”
+o	“How do I cancel?”
+o	“What do I eat after leg day?”
+•	Escalates to human (you or assistant) via email/SMS
+________________________________________
+10. ANALYTICS + GROWTH LOOP
+•	Supabase logs:
+o	Logins, engagement events, messages
+•	Stripe analytics: MRR, churn
+•	Export-ready for cohort analysis, LTV, CAC, etc.
+________________________________________
+🚀 FUTURE INTEGRATIONS
+•	Apple Watch / Health sync for biofeedback
+•	AI Trainer personalization with voice or video
+•	Ability to export information 
+•	Challenges + Leaderboards
+•	Affiliate system for referrals
+
