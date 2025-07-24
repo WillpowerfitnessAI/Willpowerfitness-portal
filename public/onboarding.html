@@ -274,7 +274,19 @@
                 }
             } catch (error) {
                 console.error('Onboarding error:', error);
-                alert('Error saving your information: ' + error.message + '. Please try again.');
+                
+                // Show user-friendly error message
+                let errorMessage = 'Unable to save your information. ';
+                
+                if (error.message.includes('connection') || error.message.includes('timeout')) {
+                    errorMessage += 'There seems to be a connection issue. Please check your internet and try again.';
+                } else if (error.message.includes('Database')) {
+                    errorMessage += 'Our system is experiencing temporary issues. Please try again in a moment.';
+                } else {
+                    errorMessage += 'Please try again or contact support if the issue persists.';
+                }
+                
+                alert(errorMessage);
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
             }
