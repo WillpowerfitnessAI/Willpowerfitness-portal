@@ -240,8 +240,8 @@ app.get('/', (req, res) => {
         </div>
         
         <script>
-          // Define sendMessage function in global scope
-          window.sendMessage = function() {
+          // Global sendMessage function
+          function sendMessage() {
             const input = document.getElementById('user-input');
             const chatBox = document.getElementById('chat-box');
             const typingIndicator = document.getElementById('typing-indicator');
@@ -276,7 +276,7 @@ app.get('/', (req, res) => {
                 // Add AI response with animation
                 const aiMessage = document.createElement('div');
                 aiMessage.className = 'message ai';
-                aiMessage.innerHTML = data.response.replace(/\\n/g, '<br>');
+                aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
                 chatBox.appendChild(aiMessage);
                 chatBox.scrollTop = chatBox.scrollHeight;
               })
@@ -288,7 +288,7 @@ app.get('/', (req, res) => {
                 chatBox.appendChild(errorMessage);
                 chatBox.scrollTop = chatBox.scrollHeight;
               });
-          };
+          }
           
           // Wait for DOM to be fully loaded before adding event listeners
           document.addEventListener('DOMContentLoaded', function() {
@@ -297,14 +297,14 @@ app.get('/', (req, res) => {
             const userInput = document.getElementById('user-input');
             
             if (sendBtn) {
-              sendBtn.addEventListener('click', window.sendMessage);
+              sendBtn.addEventListener('click', sendMessage);
             }
             
             if (userInput) {
               userInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                   e.preventDefault();
-                  window.sendMessage();
+                  sendMessage();
                 }
               });
               
