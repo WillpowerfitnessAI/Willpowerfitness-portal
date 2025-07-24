@@ -237,7 +237,7 @@ app.get('/', (req, res) => {
                     <button onclick="sendMessage()">Send Message</button>
                 </div>
             </div>
-        </div></div>
+        </div>
         
         <script>
           async function sendMessage() {
