@@ -204,20 +204,27 @@
 
             <!-- Step 3: Payment -->
             <div id="step3-content" class="hidden">
-                <h2 style="text-align: center; margin-bottom: 30px;">Join WillpowerFitness Elite AI</h2>
+                <h2 style="text-align: center; margin-bottom: 30px;">Unlock Your Elite AI Fitness Coach</h2>
                 <div class="pricing-card">
-                    <h3>Elite AI Personal Training</h3>
+                    <h3>WillpowerFitness AI Elite Membership</h3>
                     <div class="price">$225<span style="font-size: 1rem; color: #64748b;">/month</span></div>
+                    <p style="text-align: center; margin: 15px 0; color: #4a5568;">
+                        Based on your consultation, our AI will create your personalized fitness experience
+                    </p>
                     <ul class="features">
-                        <li>24/7 AI Personal Trainer</li>
-                        <li>Personalized Workout Plans</li>
-                        <li>Advanced Nutrition Coaching</li>
-                        <li>Real-time Form Feedback</li>
-                        <li>Progress Analytics</li>
-                        <li>Welcome Fitness Apparel</li>
-                        <li>Priority Support</li>
+                        <li>Your Dedicated AI Personal Trainer</li>
+                        <li>Custom Workout Plans (Updated Weekly)</li>
+                        <li>Personalized Nutrition Coaching</li>
+                        <li>Real-time Form & Technique Feedback</li>
+                        <li>Progress Analytics & Goal Tracking</li>
+                        <li>Complimentary Welcome Fitness Apparel</li>
+                        <li>24/7 Support & Motivation</li>
+                        <li>Access to Premium AI Chat Interface</li>
                     </ul>
-                    <button type="button" id="start-subscription" class="btn">Start Elite Training</button>
+                    <button type="button" id="start-subscription" class="btn">Activate Elite Membership</button>
+                    <p style="text-align: center; margin-top: 15px; font-size: 0.9rem; color: #6b7280;">
+                        Only after membership activation will you gain access to your personal AI trainer
+                    </p>
                 </div>
             </div>
         </div>
@@ -254,7 +261,7 @@
         // AI Consultation Handler
         async function startConsultation() {
             const chatDiv = document.getElementById('consultation-chat');
-            chatDiv.innerHTML = '<div class="ai-message">Hello ' + userData.name + '! Based on your goal of ' + userData.goal + ', I have some questions to create your perfect training plan. What days of the week are you available to train?</div>';
+            chatDiv.innerHTML = '<div class="ai-message">Hello ' + userData.name + '! I\'m excited to help you achieve your ' + userData.goal + ' goals. To provide you with the most effective personalized plan, I need to understand your current situation better. What days of the week are you typically available to exercise?</div>';
             
             document.getElementById('consultation-send').addEventListener('click', sendConsultationMessage);
             document.getElementById('consultation-input').addEventListener('keypress', (e) => {

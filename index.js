@@ -118,54 +118,42 @@ app.get('/', (req, res) => {
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             color: #374151;
           }
-          .input-container {
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            background: white;
-            padding: 8px;
-            border-radius: 30px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            border: 2px solid #e2e8f0;
-            transition: border-color 0.3s, box-shadow 0.3s;
-            flex-shrink: 0;
-            margin-top: auto;
-          }
-          .input-container:focus-within {
-            border-color: #667eea;
-            box-shadow: 0 4px 25px rgba(102, 126, 234, 0.2);
-          }
-          input[type="text"] { 
-            flex: 1;
-            padding: 18px 25px;
-            border: none;
-            background: transparent;
-            font-size: 16px;
-            outline: none;
-            font-family: inherit;
-            color: #374151;
-          }
-          input[type="text"]::placeholder {
-            color: #9ca3af;
-          }
-          button { 
-            padding: 18px 35px;
+          .cta-button {
+            padding: 25px 50px;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
             border-radius: 25px;
             cursor: pointer;
             font-weight: 600;
-            font-size: 16px;
+            font-size: 18px;
             transition: all 0.3s;
             box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            margin: 20px auto;
           }
-          button:hover {
+          .cta-button:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
           }
-          button:active {
-            transform: translateY(0);
+          .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+          }
+          .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+          }
+          .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
           }
           .typing-indicator {
             display: none;
@@ -212,98 +200,61 @@ app.get('/', (req, res) => {
                 <p>Premium Personalized Training & Nutrition Guidance</p>
             </div>
             <div class="chat-container">
-                <div id="chat-box" class="chat-box">
-                    <div class="message ai">
-                        Welcome to your premium AI fitness coaching experience. I'm your dedicated AI coach, equipped with advanced algorithms and personalized insights to help you achieve exceptional results. 
-                        <br><br>
-                        <strong>Premium Features Available:</strong>
-                        <br>• Advanced workout plan generation
-                        <br>• Detailed nutrition analysis 
-                        <br>• Progress tracking & analytics
-                        <br>• 24/7 expert guidance
-                        <br><br>
-                        How can I help you dominate your fitness goals today?
+                <div class="chat-box">
+                    <div style="text-align: center; padding: 20px;">
+                        <h2 style="color: #1e3c72; margin-bottom: 20px;">Transform Your Fitness Journey</h2>
+                        <p style="font-size: 1.1rem; color: #4a5568; margin-bottom: 30px;">
+                            Get personalized AI coaching tailored specifically to your goals, schedule, and fitness level.
+                        </p>
+                        
+                        <div class="features-grid">
+                            <div class="feature-card">
+                                <div class="feature-icon">🎯</div>
+                                <h3>Personalized Plans</h3>
+                                <p>Custom workout and nutrition plans designed for your specific goals and lifestyle.</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">🤖</div>
+                                <h3>24/7 AI Coach</h3>
+                                <p>Your dedicated AI personal trainer available whenever you need guidance or motivation.</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">📊</div>
+                                <h3>Progress Tracking</h3>
+                                <p>Advanced analytics to monitor your progress and optimize your training approach.</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">👕</div>
+                                <h3>Welcome Gear</h3>
+                                <p>Complimentary WillpowerFitness apparel to kickstart your journey in style.</p>
+                            </div>
+                        </div>
+                        
+                        <a href="/onboarding" class="cta-button">Start Your Free Consultation</a>
+                        
+                        <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
+                            Begin with a personalized consultation to unlock your elite fitness coaching experience.
+                        </p>
                     </div>
-                </div>
-                <div class="typing-indicator" id="typing-indicator">
-                    AI Coach is thinking
-                    <div class="typing-dots">
-                        <span></span><span></span><span></span>
-                    </div>
-                </div>
-                <div class="input-container">
-                    <input type="text" id="user-input" placeholder="Ask about workouts, nutrition, or fitness goals..." />
-                    <button id="send-btn">Send Message</button>
                 </div>
             </div>
         </div>
 
         <script>
-          // Global sendMessage function
-          function sendMessage() {
-            const input = document.getElementById('user-input');
-            const chatBox = document.getElementById('chat-box');
-            const typingIndicator = document.getElementById('typing-indicator');
-            const message = input.value.trim();
-
-            if (!message) return;
-
-            // Add user message with animation
-            const userMessage = document.createElement('div');
-            userMessage.className = 'message user';
-            userMessage.textContent = message;
-            chatBox.appendChild(userMessage);
-            input.value = '';
-
-            // Show typing indicator
-            typingIndicator.style.display = 'flex';
-            chatBox.scrollTop = chatBox.scrollHeight;
-
-            fetch('/api/chat', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  message: message,
-                  userId: 'premium@client.com'
-                })
-              })
-              .then(response => response.json())
-              .then(data => {
-                // Hide typing indicator
-                typingIndicator.style.display = 'none';
-
-                // Add AI response with animation
-                const aiMessage = document.createElement('div');
-                aiMessage.className = 'message ai';
-                aiMessage.innerHTML = data.response.replace(/\\\\n/g, '<br>');
-                chatBox.appendChild(aiMessage);
-                chatBox.scrollTop = chatBox.scrollHeight;
-              })
-              .catch(error => {
-                typingIndicator.style.display = 'none';
-                const errorMessage = document.createElement('div');
-                errorMessage.className = 'message ai';
-                errorMessage.innerHTML = '<strong>⚠️ Service Temporarily Unavailable</strong><br>Our premium AI coaching service is experiencing high demand. Please try again in a moment.';
-                chatBox.appendChild(errorMessage);
-                chatBox.scrollTop = chatBox.scrollHeight;
-              });
-          }
-
-          // Wait for DOM to be fully loaded before adding event listeners
+          // Simple page interactions
           document.addEventListener('DOMContentLoaded', function() {
-            const sendBtn = document.getElementById('send-btn');
-            const userInput = document.getElementById('user-input');
-
-            if (sendBtn && userInput) {
-              sendBtn.onclick = sendMessage;
-              userInput.onkeypress = function(e) {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  sendMessage();
-                }
-              };
-              userInput.focus();
-            }
+            // Add smooth hover effects
+            const cards = document.querySelectorAll('.feature-card');
+            cards.forEach(card => {
+              card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-5px)';
+                this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+              });
+              card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
+              });
+            });
           });
         </script>
     </body>
@@ -311,7 +262,7 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Chat endpoint using Groq for fast responses
+// Chat endpoint - restricted to paying members only
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, userId } = req.body;
@@ -320,8 +271,17 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message and userId required' });
     }
 
-    // Get user context for personalized responses
+    // Check if user has active subscription
     const userProfile = await getUserProfile(userId);
+    
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.json({ 
+        response: "🔒 **Premium Feature Access Required**\n\nTo access your personal AI fitness coach and receive detailed workout plans, nutrition guidance, and 24/7 support, please upgrade to WillpowerFitness AI Elite membership.\n\n**Elite Benefits:**\n• Personalized workout plans\n• Advanced nutrition coaching\n• Real-time form feedback\n• Progress analytics\n• Welcome fitness apparel\n• Priority support\n\n[Start your consultation](/onboarding) to begin your fitness journey!",
+        requiresUpgrade: true
+      });
+    }
+
+    // Get user context for personalized responses
     const recentHistory = await getConversationHistory(userId, 5);
 
     // Prepare context for AI
@@ -524,10 +484,24 @@ app.post('/api/consultation', async (req, res) => {
   try {
     const { message, userData } = req.body;
 
+    // Track conversation count
+    const conversationCount = await query(
+      'SELECT COUNT(*) FROM leads WHERE email = $1 AND message IS NOT NULL',
+      [userData.email]
+    );
+    
+    const exchangeCount = parseInt(conversationCount.rows[0].count) || 0;
+
     // Use AI for consultation
     const consultationPrompt = {
       role: "system",
-      content: `You are conducting a fitness consultation for ${userData.name}. Their goal is ${userData.goal} and they have ${userData.experience} experience. Ask follow-up questions to understand their schedule, equipment access, injuries, and preferences. After 3-4 exchanges, conclude the consultation and indicate completion.`
+      content: `You are conducting a fitness consultation for ${userData.name}. Their goal is ${userData.goal} and they have ${userData.experience} experience. 
+      
+      Ask 2-3 questions about their schedule, equipment access, and any limitations. DO NOT provide specific workout routines or detailed nutrition advice.
+      
+      After 3-4 exchanges, recommend WillpowerFitness AI Elite membership and explain how our AI personal trainer will create their customized plan. Mention benefits like 24/7 coaching, progress tracking, and welcome apparel.
+      
+      Current exchange: ${exchangeCount + 1}`
     };
 
     const aiResponse = await getChatResponse([
@@ -535,11 +509,12 @@ app.post('/api/consultation', async (req, res) => {
       { role: "user", content: message }
     ], userData);
 
-    // Determine if consultation is complete (simple logic)
-    const consultationComplete = message.toLowerCase().includes('ready') || 
+    // Determine if consultation is complete after 3+ exchanges
+    const consultationComplete = exchangeCount >= 2 || 
+                                message.toLowerCase().includes('ready') || 
                                 message.toLowerCase().includes('sounds good') ||
-                                aiResponse.toLowerCase().includes('perfect') ||
-                                aiResponse.toLowerCase().includes('ready to start');
+                                aiResponse.toLowerCase().includes('elite membership') ||
+                                aiResponse.toLowerCase().includes('join our program');
 
     // Update lead with consultation info
     await query(
