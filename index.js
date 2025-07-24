@@ -216,7 +216,7 @@ app.get('/', (req, res) => {
         <div class="container">
             <div class="header">
                 <div class="premium-badge">PREMIUM $225/mo</div>
-                <h1>🏋️ Your Elite AI Fitness Coach</h1>
+                <h1>Your Elite AI Fitness Coach</h1>
                 <p>Premium Personalized Training & Nutrition Guidance</p>
             </div>
             <div class="chat-container">
