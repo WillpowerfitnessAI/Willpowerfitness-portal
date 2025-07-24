@@ -184,30 +184,7 @@ app.get('/', (req, res) => {
             30% { transform: translateY(-10px); opacity: 1; }
           }
 
-          .input-container { 
-            display: flex;
-            gap: 20px;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.9);
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
-          }
-          input[type="text"] { 
-            flex: 1;
-            padding: 18px 25px;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
-            font-size: 16px;
-            outline: none;
-            transition: all 0.3s;
-            background: white;
-          }
-          input[type="text"]:focus { 
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-          }
+          
           button { 
             padding: 18px 35px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -237,8 +214,7 @@ app.get('/', (req, res) => {
             .header h1 { font-size: 2.2rem; }
             .chat-container { padding: 20px; }
             .message { max-width: 95%; padding: 15px 20px; }
-            .input-container { flex-direction: column; gap: 15px; }
-            input[type="text"] { width: 100%; }
+            
             button { width: 100%; }
           }
         </style>
@@ -287,10 +263,7 @@ app.get('/', (req, res) => {
                         </p>
                     </div>
                 </div>
-                <div class="input-container">
-                    <input type="text" id="userInput" placeholder="How can I help you dominate your fitness goals today?" />
-                    <button onclick="sendMessage()" id="sendBtn">Send Message</button>
-                </div>
+                
             </div>
         </div>
 
