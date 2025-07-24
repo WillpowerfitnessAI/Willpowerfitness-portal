@@ -1,3 +1,4 @@
+
 import { query } from './lib/supabaseClient.js';
 import fs from 'fs';
 import path from 'path';
@@ -12,27 +13,37 @@ async function setupDatabase() {
 
     // Read the SQL file
     const sqlFile = path.join(__dirname, 'database_setup.sql');
-    const sqlCommands = fs.readFileSync(sqlFile, 'utf8');
+    const sqlContent = fs.readFileSync(sqlFile, 'utf8');
 
-    // Split SQL commands by semicolon and filter out empty ones
-    const commands = sqlCommands
+    // Remove comments and split by semicolons
+    const cleanedSql = sqlContent
+      .replace(/--.*$/gm, '') // Remove comments
+      .replace(/\n\s*\n/g, '\n') // Remove empty lines
+      .trim();
+
+    // Split into individual commands
+    const commands = cleanedSql
       .split(';')
       .map(cmd => cmd.trim())
-      .filter(cmd => cmd.length > 0 && !cmd.startsWith('--'));
+      .filter(cmd => cmd.length > 0);
 
     console.log(`Found ${commands.length} SQL commands to execute`);
 
-    // Execute each command
+    // Execute each command individually
     for (let i = 0; i < commands.length; i++) {
-      const command = commands[i];
+      const command = commands[i] + ';'; // Add semicolon back
       console.log(`Executing command ${i + 1}/${commands.length}...`);
-
+      
       try {
         await query(command);
         console.log(`✓ Command ${i + 1} executed successfully`);
       } catch (error) {
-        console.error(`Error executing command ${i + 1}:`, error.message);
-        // Continue with other commands
+        // Only log as error if it's not a "already exists" error
+        if (error.message.includes('already exists')) {
+          console.log(`- Command ${i + 1} skipped (already exists)`);
+        } else {
+          console.error(`✗ Error executing command ${i + 1}:`, error.message);
+        }
       }
     }
 
