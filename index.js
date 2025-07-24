@@ -181,6 +181,53 @@ app.get('/', (req, res) => {
             30% { transform: translateY(-10px); opacity: 1; }
           }
 
+          .input-container { 
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            border: 1px solid #e2e8f0;
+          }
+          input[type="text"] { 
+            flex: 1;
+            padding: 18px 25px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s;
+            background: white;
+          }
+          input[type="text"]:focus { 
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+          }
+          button { 
+            padding: 18px 35px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+            white-space: nowrap;
+          }
+          button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+          }
+          button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+          }
+
           @media (max-width: 768px) {
             .container { margin: 10px; height: 95vh; }
             .header { padding: 25px 20px; }
@@ -206,7 +253,7 @@ app.get('/', (req, res) => {
                         <p style="font-size: 1.1rem; color: #4a5568; margin-bottom: 30px;">
                             Get personalized AI coaching tailored specifically to your goals, schedule, and fitness level.
                         </p>
-                        
+
                         <div class="features-grid">
                             <div class="feature-card">
                                 <div class="feature-icon">🎯</div>
@@ -229,13 +276,17 @@ app.get('/', (req, res) => {
                                 <p>Complimentary WillpowerFitness apparel to kickstart your journey in style.</p>
                             </div>
                         </div>
-                        
+
                         <a href="/onboarding" class="cta-button">Start Your Free Consultation</a>
-                        
+
                         <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
                             Begin with a personalized consultation to unlock your elite fitness coaching experience.
                         </p>
                     </div>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="userInput" placeholder="How can I help you dominate your fitness goals today?" />
+                    <button onclick="sendMessage()" id="sendBtn">Send Message</button>
                 </div>
             </div>
         </div>
@@ -273,7 +324,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Check if user has active subscription
     const userProfile = await getUserProfile(userId);
-    
+
     if (!userProfile || userProfile.subscription_status !== 'active') {
       return res.json({ 
         response: "🔒 **Premium Feature Access Required**\n\nTo access your personal AI fitness coach and receive detailed workout plans, nutrition guidance, and 24/7 support, please upgrade to WillpowerFitness AI Elite membership.\n\n**Elite Benefits:**\n• Personalized workout plans\n• Advanced nutrition coaching\n• Real-time form feedback\n• Progress analytics\n• Welcome fitness apparel\n• Priority support\n\n[Start your consultation](/onboarding) to begin your fitness journey!",
@@ -489,18 +540,18 @@ app.post('/api/consultation', async (req, res) => {
       'SELECT COUNT(*) FROM leads WHERE email = $1 AND message IS NOT NULL',
       [userData.email]
     );
-    
+
     const exchangeCount = parseInt(conversationCount.rows[0].count) || 0;
 
     // Use AI for consultation
     const consultationPrompt = {
       role: "system",
       content: `You are conducting a fitness consultation for ${userData.name}. Their goal is ${userData.goal} and they have ${userData.experience} experience. 
-      
+
       Ask 2-3 questions about their schedule, equipment access, and any limitations. DO NOT provide specific workout routines or detailed nutrition advice.
-      
+
       After 3-4 exchanges, recommend WillpowerFitness AI Elite membership and explain how our AI personal trainer will create their customized plan. Mention benefits like 24/7 coaching, progress tracking, and welcome apparel.
-      
+
       Current exchange: ${exchangeCount + 1}`
     };
 
