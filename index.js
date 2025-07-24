@@ -233,7 +233,7 @@ app.get('/', (req, res) => {
                     </div>
                 </div>
                 <div class="input-container">
-                    <input type="text" id="user-input" placeholder="Ask me about advanced workouts, nutrition optimization, or your fitness goals..." />
+                    <input type="text" id="user-input" placeholder="Ask about workouts, nutrition, or fitness goals..." />
                     <button id="send-btn">Send Message</button>
                 </div>
             </div>
