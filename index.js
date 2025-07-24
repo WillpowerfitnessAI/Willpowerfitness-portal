@@ -524,69 +524,24 @@ app.post('/api/onboarding/step1', async (req, res) => {
 
     console.log('Saving onboarding data:', { name, email, phone, goal, experience });
 
-    // Test database connection with timeout
-    const connectionTest = new Promise(async (resolve, reject) => {
-      const timeout = setTimeout(() => reject(new Error('Connection timeout')), 5000);
-      try {
-        await query('SELECT NOW()');
-        clearTimeout(timeout);
-        resolve(true);
-      } catch (error) {
-        clearTimeout(timeout);
-        reject(error);
-      }
-    });
-
-    try {
-      await connectionTest;
-      console.log('Database connection verified');
-    } catch (dbError) {
-      console.error('Database connection failed:', dbError);
-      return res.status(500).json({ 
-        error: 'Database connection failed', 
-        details: dbError.message,
-        suggestion: 'Please try again in a moment'
-      });
-    }
-
-    // Save lead to database with retry logic
-    let retries = 3;
-    let result;
-    
-    while (retries > 0) {
-      try {
-        result = await query(
-          `INSERT INTO leads (name, email, phone, goals, experience, status, source) 
-           VALUES ($1, $2, $3, $4, $5, $6, $7) 
-           ON CONFLICT (email) DO UPDATE SET 
-           name = $1, phone = $3, goals = $4, experience = $5, status = $6
-           RETURNING *`,
-          [name, email, phone || null, goal, experience, 'onboarding', 'website']
-        );
-        break; // Success, exit retry loop
-      } catch (retryError) {
-        retries--;
-        console.error(`Database save attempt failed (${3 - retries}/3):`, retryError.message);
-        
-        if (retries === 0) {
-          throw retryError; // Give up after 3 attempts
-        }
-        
-        // Wait 1 second before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-    }
+    // Save lead to database (query function now has built-in retries)
+    const result = await query(
+      `INSERT INTO leads (name, email, phone, goals, experience, status, source) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) 
+       ON CONFLICT (email) DO UPDATE SET 
+       name = $1, phone = $3, goals = $4, experience = $5, status = $6
+       RETURNING *`,
+      [name, email, phone || null, goal, experience, 'onboarding', 'website']
+    );
 
     console.log('Onboarding data saved successfully:', result.rows[0]);
     res.json({ success: true, leadId: result.rows[0].id });
   } catch (error) {
     console.error('Onboarding Step 1 error:', error);
-    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to save information', 
       details: error.message,
-      code: error.code,
-      suggestion: 'Please check your internet connection and try again'
+      suggestion: 'Please try again in a moment'
     });
   }
 });

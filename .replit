@@ -114,7 +114,7 @@ args = "pkill -f \"node index.js\" || true"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "sleep 2"
+args = "sleep 3"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
