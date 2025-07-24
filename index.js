@@ -62,18 +62,7 @@ app.get('/', (req, res) => {
             text-align: center;
             position: relative;
           }
-          .premium-badge {
-            position: absolute;
-            top: 20px;
-            right: 30px;
-            background: linear-gradient(135deg, #ffd700, #ffed4e);
-            color: #333;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-          }
+          
           .header h1 { 
             font-size: 3rem; 
             font-weight: 700; 
@@ -215,7 +204,6 @@ app.get('/', (req, res) => {
     <body>
         <div class="container">
             <div class="header">
-                <div class="premium-badge">PREMIUM $225/mo</div>
                 <h1>Your Elite AI Fitness Coach</h1>
                 <p>Premium Personalized Training & Nutrition Guidance</p>
             </div>
