@@ -21,7 +21,7 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Basic route
+// Premium white-label route
 app.get('/', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -29,42 +29,242 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Willpower Fitness AI</title>
+        <title>Premium AI Fitness Coach</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
-          body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
-          .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; }
-          .chat-box { border: 1px solid #ddd; height: 400px; overflow-y: auto; padding: 10px; margin: 20px 0; }
-          .message { margin: 10px 0; padding: 10px; border-radius: 5px; }
-          .user { background: #007bff; color: white; text-align: right; }
-          .ai { background: #f1f1f1; }
-          input[type="text"] { width: 70%; padding: 10px; }
-          button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; }
+          * { margin: 0; padding: 0; box-sizing: border-box; }
+          body { 
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+          }
+          .container { 
+            max-width: 1200px; 
+            width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            overflow: hidden;
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 90vh;
+            max-height: 800px;
+          }
+          .header {
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            padding: 40px;
+            text-align: center;
+            position: relative;
+          }
+          .premium-badge {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+          }
+          .header h1 { 
+            font-size: 3rem; 
+            font-weight: 700; 
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, #fff, #e0e7ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+          }
+          .header p { font-size: 1.3rem; opacity: 0.95; font-weight: 400; }
+          .chat-container { 
+            padding: 40px; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100%;
+          }
+          .chat-box { 
+            flex: 1;
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            overflow-y: auto;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
+            border: 1px solid #e2e8f0;
+          }
+          .message { 
+            margin: 20px 0; 
+            padding: 20px 25px; 
+            border-radius: 20px;
+            max-width: 85%;
+            line-height: 1.6;
+            font-size: 1rem;
+            animation: fadeInUp 0.3s ease;
+          }
+          @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .user { 
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; 
+            margin-left: auto;
+            border-bottom-right-radius: 6px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+          }
+          .ai { 
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            color: #374151;
+          }
+          .input-container {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            background: white;
+            padding: 8px;
+            border-radius: 30px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border: 2px solid #e2e8f0;
+            transition: border-color 0.3s, box-shadow 0.3s;
+          }
+          .input-container:focus-within {
+            border-color: #667eea;
+            box-shadow: 0 4px 25px rgba(102, 126, 234, 0.2);
+          }
+          input[type="text"] { 
+            flex: 1;
+            padding: 18px 25px;
+            border: none;
+            background: transparent;
+            font-size: 16px;
+            outline: none;
+            font-family: inherit;
+            color: #374151;
+          }
+          input[type="text"]::placeholder {
+            color: #9ca3af;
+          }
+          button { 
+            padding: 18px 35px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+          }
+          button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+          }
+          button:active {
+            transform: translateY(0);
+          }
+          .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            color: #6b7280;
+            font-style: italic;
+            margin: 10px 0;
+          }
+          .typing-dots {
+            display: flex;
+            gap: 4px;
+          }
+          .typing-dots span {
+            width: 6px;
+            height: 6px;
+            background: #9ca3af;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+          }
+          .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+          .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+          @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-10px); opacity: 1; }
+          }
+          
+          @media (max-width: 768px) {
+            .container { margin: 10px; height: 95vh; }
+            .header { padding: 25px 20px; }
+            .header h1 { font-size: 2.2rem; }
+            .chat-container { padding: 20px; }
+            .message { max-width: 95%; padding: 15px 20px; }
+            .input-container { flex-direction: column; gap: 15px; }
+            input[type="text"] { width: 100%; }
+            button { width: 100%; }
+          }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>🏋️ WillPower Fitness AI Assistant</h1>
-            <p>Your 24/7 Personal Training Companion</p>
-            <div id="chat-box" class="chat-box">
-                <div class="message ai">Hi! I'm WillPower, your AI fitness coach. How can I help you reach your goals today?</div>
+            <div class="header">
+                <div class="premium-badge">PREMIUM $225/mo</div>
+                <h1>🏋️ Your Elite AI Fitness Coach</h1>
+                <p>Premium Personalized Training & Nutrition Guidance</p>
             </div>
-            <div>
-                <input type="text" id="user-input" placeholder="Ask me about workouts, nutrition, or your fitness goals..." />
-                <button onclick="sendMessage()">Send</button>
+            <div class="chat-container">
+                <div id="chat-box" class="chat-box">
+                    <div class="message ai">
+                        Welcome to your premium AI fitness coaching experience. I'm your dedicated AI coach, equipped with advanced algorithms and personalized insights to help you achieve exceptional results. 
+                        <br><br>
+                        <strong>Premium Features Available:</strong>
+                        <br>• Advanced workout plan generation
+                        <br>• Detailed nutrition analysis 
+                        <br>• Progress tracking & analytics
+                        <br>• 24/7 expert guidance
+                        <br><br>
+                        How can I help you dominate your fitness goals today?
+                    </div>
+                </div>
+                <div class="typing-indicator" id="typing-indicator">
+                    AI Coach is thinking
+                    <div class="typing-dots">
+                        <span></span><span></span><span></span>
+                    </div>
+                </div>
+                <div class="input-container">
+                    <input type="text" id="user-input" placeholder="Ask me about advanced workouts, nutrition optimization, or your fitness goals..." />
+                    <button onclick="sendMessage()">Send Message</button>
+                </div>
             </div>
-        </div>
+        </div></div>
         
         <script>
           async function sendMessage() {
             const input = document.getElementById('user-input');
             const chatBox = document.getElementById('chat-box');
+            const typingIndicator = document.getElementById('typing-indicator');
             const message = input.value.trim();
             
             if (!message) return;
             
-            // Add user message
-            chatBox.innerHTML += '<div class="message user">' + message + '</div>';
+            // Add user message with animation
+            const userMessage = document.createElement('div');
+            userMessage.className = 'message user';
+            userMessage.textContent = message;
+            chatBox.appendChild(userMessage);
             input.value = '';
+            
+            // Show typing indicator
+            typingIndicator.style.display = 'flex';
+            chatBox.scrollTop = chatBox.scrollHeight;
             
             try {
               const response = await fetch('/api/chat', {
@@ -72,20 +272,42 @@ app.get('/', (req, res) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
                   message: message,
-                  userId: 'demo@willpowerfitness.com' // Use email format for demo
+                  userId: 'premium@client.com' // Premium client identifier
                 })
               });
               
               const data = await response.json();
-              chatBox.innerHTML += '<div class="message ai">' + data.response + '</div>';
+              
+              // Hide typing indicator
+              typingIndicator.style.display = 'none';
+              
+              // Add AI response with animation
+              const aiMessage = document.createElement('div');
+              aiMessage.className = 'message ai';
+              aiMessage.innerHTML = data.response.replace(/\n/g, '<br>');
+              chatBox.appendChild(aiMessage);
               chatBox.scrollTop = chatBox.scrollHeight;
+              
             } catch (error) {
-              chatBox.innerHTML += '<div class="message ai">Sorry, I had trouble responding. Please try again.</div>';
+              typingIndicator.style.display = 'none';
+              const errorMessage = document.createElement('div');
+              errorMessage.className = 'message ai';
+              errorMessage.innerHTML = '<strong>⚠️ Service Temporarily Unavailable</strong><br>Our premium AI coaching service is experiencing high demand. Please try again in a moment.';
+              chatBox.appendChild(errorMessage);
+              chatBox.scrollTop = chatBox.scrollHeight;
             }
           }
           
           document.getElementById('user-input').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') sendMessage();
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              sendMessage();
+            }
+          });
+          
+          // Auto-focus input on load
+          window.addEventListener('load', function() {
+            document.getElementById('user-input').focus();
           });
         </script>
     </body>
