@@ -618,34 +618,47 @@ app.post('/api/create-subscription', async (req, res) => {
   try {
     const { email, name, userData } = req.body;
 
-    // Create Stripe customer
+    console.log('Creating subscription for:', { email, name, userData });
+
+    // Create Stripe customer first (this doesn't depend on our database)
     const customer = await createCustomer(email, name, {
       fitness_goal: userData.goal,
       experience_level: userData.experience,
       phone: userData.phone
     });
 
-    // Create Stripe checkout session instead of subscription
+    console.log('Stripe customer created:', customer.id);
+
+    // Create Stripe checkout session
     const checkoutSession = await createCheckoutSession(customer.id, email, userData);
 
-    // Update lead status
-    await query(
-      `UPDATE leads SET 
-       status = 'payment_pending',
-       payment_link = $1
-       WHERE email = $2`,
-      [checkoutSession.url, email]
-    );
+    console.log('Checkout session created:', checkoutSession.id);
 
-    // Create user profile
-    await updateUserProfile(customer.id, {
-      name,
-      email,
-      goal: userData.goal,
-      subscription_status: 'pending',
-      stripe_customer_id: customer.id,
-      onboarding_data: JSON.stringify(userData)
-    });
+    // Try to update database, but don't fail if it's down
+    try {
+      await query(
+        `UPDATE leads SET 
+         status = 'payment_pending',
+         payment_link = $1
+         WHERE email = $2`,
+        [checkoutSession.url, email]
+      );
+
+      // Create user profile 
+      await updateUserProfile(customer.id, {
+        name,
+        email,
+        goal: userData.goal,
+        subscription_status: 'pending',
+        stripe_customer_id: customer.id,
+        onboarding_data: JSON.stringify(userData)
+      });
+
+      console.log('Database updated successfully');
+    } catch (dbError) {
+      console.error('Database update failed, but continuing with payment:', dbError.message);
+      // Continue anyway - webhook will handle the database update
+    }
 
     res.json({
       customerId: customer.id,
@@ -654,7 +667,10 @@ app.post('/api/create-subscription', async (req, res) => {
     });
   } catch (error) {
     console.error('Subscription creation error:', error);
-    res.status(500).json({ error: 'Failed to create subscription' });
+    res.status(500).json({ 
+      error: 'Failed to create subscription',
+      details: error.message 
+    });
   }
 });
 

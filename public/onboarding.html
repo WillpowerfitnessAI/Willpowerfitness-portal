@@ -398,10 +398,11 @@ Questions? Contact our support team.
 
         // Payment Handler
         document.getElementById('proceed-to-payment').addEventListener('click', () => nextStep());
-        document.getElementById('start-subscription').addEventListener('click', async () => {
+        document.getElementById('start-subscription').addEventListener('click', async function() {
             try {
-                document.getElementById('start-subscription').disabled = true;
-                document.getElementById('start-subscription').textContent = 'Creating your membership...';
+                console.log('Starting subscription process...');
+                this.disabled = true;
+                this.textContent = 'Creating your membership...';
 
                 const response = await fetch('/api/create-subscription', {
                     method: 'POST',
@@ -413,19 +414,27 @@ Questions? Contact our support team.
                     })
                 });
 
-                const data = await response.json();
+                const result = await response.json();
+                console.log('Subscription response:', result);
 
-                if (data.checkoutUrl) {
-                    // Redirect to Stripe Checkout
-                    window.location.href = data.checkoutUrl;
+                if (response.ok && result.checkoutUrl) {
+                    // Redirect to Stripe checkout
+                    console.log('Redirecting to checkout:', result.checkoutUrl);
+                    window.location.href = result.checkoutUrl;
                 } else {
-                    throw new Error('No checkout URL received');
+                    throw new Error(result.error || result.details || 'Failed to create subscription');
                 }
             } catch (error) {
                 console.error('Subscription error:', error);
-                alert('Error creating subscription. Please try again.');
-                document.getElementById('start-subscription').disabled = false;
-                document.getElementById('start-subscription').textContent = 'Activate Elite Membership';
+                this.disabled = false;
+                this.textContent = 'Activate Elite Membership';
+
+                // Show more detailed error message
+                const errorMessage = error.message.includes('Failed to fetch') ? 
+                    'Connection error. Please check your internet and try again.' : 
+                    `Error: ${error.message}`;
+
+                alert(errorMessage);
             }
         });
 
