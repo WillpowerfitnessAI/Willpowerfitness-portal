@@ -432,13 +432,14 @@ Questions? Contact our support team.
                     // Show success message before redirect
                     loadingDiv.innerHTML = `
                         <div style="text-align: center; margin: 20px 0; color: #10b981;">
-                            <div style="font-size: 1.2rem; margin-bottom: 10px;">✅ Redirecting to secure payment...</div>
-                            <div style="font-size: 0.9rem;">If you're not redirected automatically, <a href="${result.checkoutUrl}" style="color: #667eea;">click here</a></div>
+                            <div style="font-size: 1.2rem; margin-bottom: 10px;">✅ Redirecting to secure checkout...</div>
+                            <div style="font-size: 0.9rem; margin-bottom: 15px;">If you're not redirected automatically, <a href="${result.checkoutUrl}" target="_blank" style="color: #667eea; text-decoration: underline;">click here to open checkout</a></div>
+                            <a href="${result.checkoutUrl}" target="_blank" class="btn" style="display: inline-block; padding: 12px 24px; margin-top: 10px; text-decoration: none;">Open Stripe Checkout</a>
                         </div>
                     `;
-                    
+
                     console.log('Redirecting to checkout:', result.checkoutUrl);
-                    
+
                     // Add a delay to show the success message, then redirect
                     setTimeout(() => {
                         window.location.href = result.checkoutUrl;
@@ -448,17 +449,17 @@ Questions? Contact our support team.
                 }
             } catch (error) {
                 console.error('Subscription error:', error);
-                
+
                 // Remove loading indicator
                 const loadingDiv = document.getElementById('loading-indicator');
                 if (loadingDiv) loadingDiv.remove();
-                
+
                 this.disabled = false;
                 this.innerHTML = 'Activate Elite Membership';
 
                 // Show more detailed error message
                 let errorMessage = 'Unable to process payment. ';
-                
+
                 if (error.message.includes('Failed to fetch')) {
                     errorMessage += 'Connection error. Please check your internet and try again.';
                 } else if (typeof result !== 'undefined' && result.error) {
