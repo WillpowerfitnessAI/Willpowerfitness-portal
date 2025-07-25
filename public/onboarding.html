@@ -351,6 +351,8 @@
                 return;
             }
 
+            console.log('Sending consultation message:', message);
+
             // Disable button and show loading
             sendBtn.disabled = true;
             sendBtn.textContent = 'Sending...';
@@ -369,11 +371,15 @@
             chatDiv.appendChild(typingDiv);
 
             try {
+                console.log('Sending to /api/consultation with userData:', userData);
+                
                 const response = await fetch('/api/consultation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message, userData })
                 });
+
+                console.log('Consultation response status:', response.status);
 
                 // Remove typing indicator
                 if (document.getElementById('typing-indicator')) {
@@ -381,10 +387,13 @@
                 }
 
                 if (!response.ok) {
-                    throw new Error(`Server error: ${response.status}`);
+                    const errorText = await response.text();
+                    console.error('Server response error:', errorText);
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
                 }
 
                 const data = await response.json();
+                console.log('Consultation response data:', data);
                 
                 if (data.response) {
                     chatDiv.innerHTML += '<div class="ai-message" style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #667eea;">' + data.response + '</div>';
@@ -393,6 +402,7 @@
                     chatDiv.scrollTop = chatDiv.scrollHeight;
 
                     if (data.consultationComplete) {
+                        console.log('Consultation marked as complete');
                         consultationComplete = true;
                         document.getElementById('proceed-to-payment').style.display = 'inline-block';
                         document.getElementById('export-consultation').style.display = 'inline-block';
@@ -413,7 +423,7 @@
                     document.getElementById('typing-indicator').remove();
                 }
                 
-                chatDiv.innerHTML += '<div class="ai-message" style="background: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 12px; margin: 15px 0; color: #dc2626;">I apologize, there was a connection error. Please try again or proceed to the next step if you\'d like to continue.</div>';
+                chatDiv.innerHTML += '<div class="ai-message" style="background: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 12px; margin: 15px 0; color: #dc2626;">I apologize, there was a connection error. Please try again or proceed to the next step if you\'d like to continue.<br><br>Error details: ' + error.message + '</div>';
                 
                 // Still allow proceeding if there's an error
                 consultationComplete = true;
@@ -429,17 +439,13 @@
         // Export consultation handler
         document.getElementById('export-consultation').addEventListener('click', async () => {
             try {
-                const response = await fetch('/api/send-consultation-copy', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: userData.email })
-                });
-
-                const data = await response.json();
-
-                if (data.success) {
-                    // Create and download consultation summary
-                    const consultationSummary = `
+                console.log('Export consultation button clicked');
+                
+                // Get consultation chat content
+                const chatContent = document.getElementById('consultation-chat').innerText || 'No consultation data available';
+                
+                // Create consultation summary
+                const consultationSummary = `
 WILLPOWERFITNESSAI CONSULTATION SUMMARY
 =====================================
 
@@ -450,36 +456,44 @@ Experience Level: ${userData.experience}
 Consultation Date: ${new Date().toLocaleDateString()}
 
 CONSULTATION TRANSCRIPT:
-${document.getElementById('consultation-chat').innerText}
+${chatContent}
 
 RECOMMENDED NEXT STEPS:
-• WillpowerFitness AI Elite Membership 
+• WillpowerFitness AI Elite Membership ($225/month)
 • Personalized workout & nutrition plans
 • 24/7 AI coaching support
 • Progress tracking & analytics
 • Welcome fitness apparel included
 
 Ready to transform your fitness journey?
-Visit: https://app.willpowerfitnessai.com
+Contact: support@willpowerfitnessai.com
 
-Questions? Contact our support team.
-                    `.trim();
+Consultation ID: WF-${Date.now()}
+                `.trim();
 
-                    // Create downloadable file
-                    const blob = new Blob([consultationSummary], { type: 'text/plain' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `WillpowerFitness-Consultation-${userData.name.replace(/\s+/g, '')}-${Date.now()}.txt`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
+                // Create downloadable file
+                const blob = new Blob([consultationSummary], { type: 'text/plain' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `WillpowerFitness-Consultation-${userData.name.replace(/\s+/g, '')}-${Date.now()}.txt`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
 
-                    alert('✓ Consultation summary downloaded! Check your downloads folder.');
-                } else {
-                    alert('Unable to export consultation. Please try again.');
+                // Update database to mark consultation copy sent
+                try {
+                    await fetch('/api/send-consultation-copy', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: userData.email })
+                    });
+                } catch (dbError) {
+                    console.log('Database update failed, but download succeeded');
                 }
+
+                alert('✓ Consultation summary downloaded! Check your downloads folder.');
             } catch (error) {
                 console.error('Export error:', error);
                 alert('Export failed. Please try again or contact support.');
