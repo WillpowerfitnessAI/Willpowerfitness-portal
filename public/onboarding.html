@@ -315,22 +315,58 @@
         // AI Consultation Handler
         async function startConsultation() {
             const chatDiv = document.getElementById('consultation-chat');
-            chatDiv.innerHTML = '<div class="ai-message">Hello ' + userData.name + '! I\'m excited to help you achieve your ' + userData.goal + ' goals. To provide you with the most effective personalized plan, I need to understand your current situation better. What days of the week are you typically available to exercise?</div>';
+            chatDiv.innerHTML = '<div class="ai-message" style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #667eea;">Hello ' + userData.name + '! I\'m excited to help you achieve your ' + userData.goal + ' goals. To provide you with the most effective personalized plan, I need to understand your current situation better. What days of the week are you typically available to exercise?</div>';
 
+            // Remove any existing event listeners
+            const sendBtn = document.getElementById('consultation-send');
+            const input = document.getElementById('consultation-input');
+            
+            // Clone nodes to remove existing event listeners
+            const newSendBtn = sendBtn.cloneNode(true);
+            const newInput = input.cloneNode(true);
+            
+            sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
+            input.parentNode.replaceChild(newInput, input);
+            
+            // Add fresh event listeners
             document.getElementById('consultation-send').addEventListener('click', sendConsultationMessage);
             document.getElementById('consultation-input').addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendConsultationMessage();
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendConsultationMessage();
+                }
             });
+            
+            // Focus on input
+            document.getElementById('consultation-input').focus();
         }
 
         async function sendConsultationMessage() {
             const input = document.getElementById('consultation-input');
+            const sendBtn = document.getElementById('consultation-send');
             const message = input.value.trim();
-            if (!message) return;
+            
+            if (!message) {
+                alert('Please enter your answer before sending.');
+                return;
+            }
 
+            // Disable button and show loading
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+            
             const chatDiv = document.getElementById('consultation-chat');
-            chatDiv.innerHTML += '<div class="user-message" style="text-align: right; background: #667eea; color: white; padding: 10px; border-radius: 8px; margin: 10px 0;">' + message + '</div>';
+            chatDiv.innerHTML += '<div class="user-message" style="text-align: right; background: #667eea; color: white; padding: 15px; border-radius: 12px; margin: 15px 0; max-width: 80%; margin-left: auto;">' + message + '</div>';
             input.value = '';
+
+            // Scroll to bottom
+            chatDiv.scrollTop = chatDiv.scrollHeight;
+
+            // Show typing indicator
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.innerHTML = '<div style="background: #f1f5f9; padding: 10px; border-radius: 8px; margin: 10px 0; font-style: italic; color: #666;">AI Coach is typing...</div>';
+            chatDiv.appendChild(typingDiv);
 
             try {
                 const response = await fetch('/api/consultation', {
@@ -339,18 +375,54 @@
                     body: JSON.stringify({ message, userData })
                 });
 
-                const data = await response.json();
-                chatDiv.innerHTML += '<div class="ai-message" style="background: #f1f5f9; padding: 10px; border-radius: 8px; margin: 10px 0;">' + data.response + '</div>';
+                // Remove typing indicator
+                if (document.getElementById('typing-indicator')) {
+                    document.getElementById('typing-indicator').remove();
+                }
 
-                if (data.consultationComplete) {
-                    consultationComplete = true;
-                    document.getElementById('proceed-to-payment').style.display = 'inline-block';
-                    document.getElementById('export-consultation').style.display = 'inline-block';
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                if (data.response) {
+                    chatDiv.innerHTML += '<div class="ai-message" style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #667eea;">' + data.response + '</div>';
+                    
+                    // Scroll to bottom
+                    chatDiv.scrollTop = chatDiv.scrollHeight;
+
+                    if (data.consultationComplete) {
+                        consultationComplete = true;
+                        document.getElementById('proceed-to-payment').style.display = 'inline-block';
+                        document.getElementById('export-consultation').style.display = 'inline-block';
+                        
+                        // Disable further input
+                        input.disabled = true;
+                        input.placeholder = 'Consultation complete! Proceed to next step.';
+                        sendBtn.style.display = 'none';
+                    }
+                } else {
+                    throw new Error('No response from AI');
                 }
             } catch (error) {
-                chatDiv.innerHTML += '<div class="ai-message">I apologize, there was an error. Let\'s proceed to the next step.</div>';
+                console.error('Consultation error:', error);
+                
+                // Remove typing indicator if still there
+                if (document.getElementById('typing-indicator')) {
+                    document.getElementById('typing-indicator').remove();
+                }
+                
+                chatDiv.innerHTML += '<div class="ai-message" style="background: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 12px; margin: 15px 0; color: #dc2626;">I apologize, there was a connection error. Please try again or proceed to the next step if you\'d like to continue.</div>';
+                
+                // Still allow proceeding if there's an error
                 consultationComplete = true;
-                document.getElementById('proceed-to-payment').style.display = 'block';
+                document.getElementById('proceed-to-payment').style.display = 'inline-block';
+                document.getElementById('export-consultation').style.display = 'inline-block';
+            } finally {
+                // Re-enable button
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Answer';
             }
         }
 
