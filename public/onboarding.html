@@ -218,7 +218,10 @@
                 </div>
                 <div style="text-align: center; margin-top: 30px;">
                     <button type="button" id="proceed-to-payment" class="btn btn-primary" style="display: none; margin-bottom: 15px;">Proceed to Elite Membership</button>
-                    <button type="button" id="export-consultation" class="btn btn-secondary" style="display: none;">Get Copy of Consultation</button>
+                    <div style="display: none;" id="consultation-export-options">
+                        <button type="button" id="email-consultation" class="btn btn-secondary" style="margin-bottom: 10px;">📧 Email Consultation Summary</button>
+                        <button type="button" id="download-consultation" class="btn btn-secondary">📁 Download Consultation Summary</button>
+                    </div>
                 </div>
             </div>
 
@@ -405,7 +408,7 @@
                         console.log('Consultation marked as complete');
                         consultationComplete = true;
                         document.getElementById('proceed-to-payment').style.display = 'inline-block';
-                        document.getElementById('export-consultation').style.display = 'inline-block';
+                        document.getElementById('consultation-export-options').style.display = 'block';
                         
                         // Disable further input
                         input.disabled = true;
@@ -428,7 +431,7 @@
                 // Still allow proceeding if there's an error
                 consultationComplete = true;
                 document.getElementById('proceed-to-payment').style.display = 'inline-block';
-                document.getElementById('export-consultation').style.display = 'inline-block';
+                document.getElementById('consultation-export-options').style.display = 'block';
             } finally {
                 // Re-enable button
                 sendBtn.disabled = false;
@@ -436,39 +439,118 @@
             }
         }
 
-        // Export consultation handler
-        document.getElementById('export-consultation').addEventListener('click', async () => {
+        // Email consultation handler
+        document.getElementById('email-consultation').addEventListener('click', async () => {
+            try {
+                const emailBtn = document.getElementById('email-consultation');
+                emailBtn.disabled = true;
+                emailBtn.textContent = '📧 Sending...';
+
+                const response = await fetch('/api/send-consultation-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: userData.email,
+                        userData: userData 
+                    })
+                });
+
+                if (response.ok) {
+                    emailBtn.textContent = '✅ Email Sent!';
+                    emailBtn.style.background = '#10b981';
+                    setTimeout(() => {
+                        emailBtn.disabled = false;
+                        emailBtn.textContent = '📧 Email Consultation Summary';
+                        emailBtn.style.background = '';
+                    }, 3000);
+                } else {
+                    throw new Error('Failed to send email');
+                }
+            } catch (error) {
+                console.error('Email error:', error);
+                const emailBtn = document.getElementById('email-consultation');
+                emailBtn.disabled = false;
+                emailBtn.textContent = '❌ Email Failed - Try Download';
+                emailBtn.style.background = '#dc2626';
+                setTimeout(() => {
+                    emailBtn.textContent = '📧 Email Consultation Summary';
+                    emailBtn.style.background = '';
+                }, 3000);
+            }
+        });
+
+        // Download consultation handler
+        document.getElementById('download-consultation').addEventListener('click', async () => {
             try {
                 console.log('Export consultation button clicked');
                 
-                // Get consultation chat content
-                const chatContent = document.getElementById('consultation-chat').innerText || 'No consultation data available';
+                // Get consultation messages in a cleaner format
+                const chatDiv = document.getElementById('consultation-chat');
+                const userMessages = Array.from(chatDiv.querySelectorAll('.user-message')).map(msg => msg.textContent.trim());
+                const aiMessages = Array.from(chatDiv.querySelectorAll('.ai-message')).map(msg => msg.textContent.trim());
                 
-                // Create consultation summary
+                // Format conversation properly
+                let conversationText = '';
+                for (let i = 0; i < Math.max(userMessages.length, aiMessages.length); i++) {
+                    if (i < userMessages.length) {
+                        conversationText += `You: ${userMessages[i]}\n\n`;
+                    }
+                    if (i < aiMessages.length) {
+                        conversationText += `AI Coach: ${aiMessages[i]}\n\n`;
+                    }
+                }
+                
+                // Create consultation summary with better formatting
                 const consultationSummary = `
-WILLPOWERFITNESSAI CONSULTATION SUMMARY
-=====================================
+═══════════════════════════════════════════════════════════════
+                    WILLPOWERFITNESSAI 
+                 CONSULTATION SUMMARY
+═══════════════════════════════════════════════════════════════
 
+📋 CLIENT INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Name: ${userData.name}
 Email: ${userData.email}
-Fitness Goal: ${userData.goal}
-Experience Level: ${userData.experience}
-Consultation Date: ${new Date().toLocaleDateString()}
+Phone: ${userData.phone || 'Not provided'}
+Primary Goal: ${userData.goal.replace(/_/g, ' ').toUpperCase()}
+Experience Level: ${userData.experience.toUpperCase()}
+Consultation Date: ${new Date().toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+})}
 
-CONSULTATION TRANSCRIPT:
-${chatContent}
+💬 CONSULTATION CONVERSATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${conversationText}
 
-RECOMMENDED NEXT STEPS:
-• WillpowerFitness AI Elite Membership ($225/month)
-• Personalized workout & nutrition plans
-• 24/7 AI coaching support
-• Progress tracking & analytics
-• Welcome fitness apparel included
+🎯 PERSONALIZED RECOMMENDATIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Based on your consultation, we recommend:
 
+🥇 WillpowerFitness AI Elite Membership - $225/month
+
+✓ Your Personal AI Trainer (24/7 access)
+✓ Custom workout plans updated weekly
+✓ Personalized nutrition coaching
+✓ Real-time form & technique feedback
+✓ Progress analytics & goal tracking
+✓ Welcome WillpowerFitnessAI apparel
+✓ Priority support & motivation
+
+📞 NEXT STEPS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Ready to transform your fitness journey?
-Contact: support@willpowerfitnessai.com
+
+• Activate your Elite Membership today
+• Contact: support@willpowerfitnessai.com
+• Visit: https://willpowerfitnessai.com
 
 Consultation ID: WF-${Date.now()}
+
+Thank you for choosing WillpowerFitness AI!
+═══════════════════════════════════════════════════════════════
                 `.trim();
 
                 // Create downloadable file
