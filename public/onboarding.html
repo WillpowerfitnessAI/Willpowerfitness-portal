@@ -219,7 +219,7 @@
                 <div style="text-align: center; margin-top: 30px;">
                     <button type="button" id="proceed-to-payment" class="btn btn-primary" style="display: none; margin-bottom: 15px;">Proceed to Elite Membership</button>
                     <div style="display: none;" id="consultation-export-options">
-                        <button type="button" id="email-consultation" class="btn btn-secondary" style="margin-bottom: 10px;">📧 Email Consultation Summary</button>
+                        <button type="button" id="email-consultation" class="btn btn-secondary" style="margin-bottom: 10px;">Email Consultation Summary</button>
                         <button type="button" id="download-consultation" class="btn btn-secondary">📁 Download Consultation Summary</button>
                     </div>
                 </div>
@@ -323,14 +323,14 @@
             // Remove any existing event listeners
             const sendBtn = document.getElementById('consultation-send');
             const input = document.getElementById('consultation-input');
-            
+
             // Clone nodes to remove existing event listeners
             const newSendBtn = sendBtn.cloneNode(true);
             const newInput = input.cloneNode(true);
-            
+
             sendBtn.parentNode.replaceChild(newSendBtn, sendBtn);
             input.parentNode.replaceChild(newInput, input);
-            
+
             // Add fresh event listeners
             document.getElementById('consultation-send').addEventListener('click', sendConsultationMessage);
             document.getElementById('consultation-input').addEventListener('keypress', (e) => {
@@ -339,7 +339,7 @@
                     sendConsultationMessage();
                 }
             });
-            
+
             // Focus on input
             document.getElementById('consultation-input').focus();
         }
@@ -348,7 +348,7 @@
             const input = document.getElementById('consultation-input');
             const sendBtn = document.getElementById('consultation-send');
             const message = input.value.trim();
-            
+
             if (!message) {
                 alert('Please enter your answer before sending.');
                 return;
@@ -359,7 +359,7 @@
             // Disable button and show loading
             sendBtn.disabled = true;
             sendBtn.textContent = 'Sending...';
-            
+
             const chatDiv = document.getElementById('consultation-chat');
             chatDiv.innerHTML += '<div class="user-message" style="text-align: right; background: #667eea; color: white; padding: 15px; border-radius: 12px; margin: 15px 0; max-width: 80%; margin-left: auto;">' + message + '</div>';
             input.value = '';
@@ -375,7 +375,7 @@
 
             try {
                 console.log('Sending to /api/consultation with userData:', userData);
-                
+
                 const response = await fetch('/api/consultation', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -397,10 +397,10 @@
 
                 const data = await response.json();
                 console.log('Consultation response data:', data);
-                
+
                 if (data.response) {
                     chatDiv.innerHTML += '<div class="ai-message" style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #667eea;">' + data.response + '</div>';
-                    
+
                     // Scroll to bottom
                     chatDiv.scrollTop = chatDiv.scrollHeight;
 
@@ -409,7 +409,7 @@
                         consultationComplete = true;
                         document.getElementById('proceed-to-payment').style.display = 'inline-block';
                         document.getElementById('consultation-export-options').style.display = 'block';
-                        
+
                         // Disable further input
                         input.disabled = true;
                         input.placeholder = 'Consultation complete! Proceed to next step.';
@@ -420,14 +420,14 @@
                 }
             } catch (error) {
                 console.error('Consultation error:', error);
-                
+
                 // Remove typing indicator if still there
                 if (document.getElementById('typing-indicator')) {
                     document.getElementById('typing-indicator').remove();
                 }
-                
+
                 chatDiv.innerHTML += '<div class="ai-message" style="background: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 12px; margin: 15px 0; color: #dc2626;">I apologize, there was a connection error. Please try again or proceed to the next step if you\'d like to continue.<br><br>Error details: ' + error.message + '</div>';
-                
+
                 // Still allow proceeding if there's an error
                 consultationComplete = true;
                 document.getElementById('proceed-to-payment').style.display = 'inline-block';
@@ -460,7 +460,7 @@
                     emailBtn.style.background = '#10b981';
                     setTimeout(() => {
                         emailBtn.disabled = false;
-                        emailBtn.textContent = '📧 Email Consultation Summary';
+                        emailBtn.textContent = 'Email Consultation Summary';
                         emailBtn.style.background = '';
                     }, 3000);
                 } else {
@@ -473,7 +473,7 @@
                 emailBtn.textContent = '❌ Email Failed - Try Download';
                 emailBtn.style.background = '#dc2626';
                 setTimeout(() => {
-                    emailBtn.textContent = '📧 Email Consultation Summary';
+                    emailBtn.textContent = 'Email Consultation Summary';
                     emailBtn.style.background = '';
                 }, 3000);
             }
@@ -483,12 +483,12 @@
         document.getElementById('download-consultation').addEventListener('click', async () => {
             try {
                 console.log('Export consultation button clicked');
-                
+
                 // Get consultation messages in a cleaner format
                 const chatDiv = document.getElementById('consultation-chat');
                 const userMessages = Array.from(chatDiv.querySelectorAll('.user-message')).map(msg => msg.textContent.trim());
                 const aiMessages = Array.from(chatDiv.querySelectorAll('.ai-message')).map(msg => msg.textContent.trim());
-                
+
                 // Format conversation properly
                 let conversationText = '';
                 for (let i = 0; i < Math.max(userMessages.length, aiMessages.length); i++) {
@@ -499,7 +499,7 @@
                         conversationText += `AI Coach: ${aiMessages[i]}\n\n`;
                     }
                 }
-                
+
                 // Create consultation summary with better formatting
                 const consultationSummary = `
 ═══════════════════════════════════════════════════════════════
