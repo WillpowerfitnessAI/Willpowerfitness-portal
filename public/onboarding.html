@@ -219,8 +219,7 @@
                 <div style="text-align: center; margin-top: 30px;">
                     <button type="button" id="proceed-to-payment" class="btn btn-primary" style="display: none; margin-bottom: 15px;">Proceed to Elite Membership</button>
                     <div style="display: none;" id="consultation-export-options">
-                        <button type="button" id="email-consultation" class="btn btn-secondary" style="margin-bottom: 10px;">Email Consultation Summary</button>
-                        <button type="button" id="download-consultation" class="btn btn-secondary">📁 Download Consultation Summary</button>
+                        <button type="button" id="download-consultation" class="btn btn-secondary">Download Consultation Summary</button>
                     </div>
                 </div>
             </div>
@@ -439,45 +438,7 @@
             }
         }
 
-        // Email consultation handler
-        document.getElementById('email-consultation').addEventListener('click', async () => {
-            try {
-                const emailBtn = document.getElementById('email-consultation');
-                emailBtn.disabled = true;
-                emailBtn.textContent = '📧 Sending...';
-
-                const response = await fetch('/api/send-consultation-email', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        email: userData.email,
-                        userData: userData 
-                    })
-                });
-
-                if (response.ok) {
-                    emailBtn.textContent = '✅ Email Sent!';
-                    emailBtn.style.background = '#10b981';
-                    setTimeout(() => {
-                        emailBtn.disabled = false;
-                        emailBtn.textContent = 'Email Consultation Summary';
-                        emailBtn.style.background = '';
-                    }, 3000);
-                } else {
-                    throw new Error('Failed to send email');
-                }
-            } catch (error) {
-                console.error('Email error:', error);
-                const emailBtn = document.getElementById('email-consultation');
-                emailBtn.disabled = false;
-                emailBtn.textContent = '❌ Email Failed - Try Download';
-                emailBtn.style.background = '#dc2626';
-                setTimeout(() => {
-                    emailBtn.textContent = 'Email Consultation Summary';
-                    emailBtn.style.background = '';
-                }, 3000);
-            }
-        });
+        
 
         // Download consultation handler
         document.getElementById('download-consultation').addEventListener('click', async () => {

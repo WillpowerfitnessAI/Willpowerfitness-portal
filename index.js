@@ -264,13 +264,14 @@ app.get('/', (req, res) => {
 
                         <!-- Member Workout Export (hidden by default, shown for active members) -->
                         <div id="member-features" style="display: none; margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 15px; border: 2px solid #e2e8f0;">
-                            <h3 style="color: #1e3c72; margin-bottom: 15px;">🏋️ Member Features</h3>
+                            <h3 style="color: #1e3c72; margin-bottom: 15px;">🏋️ Elite Member Features</h3>
                             <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                                <button id="export-workout-btn" class="cta-button" style="flex: 1; min-width: 200px; font-size: 14px; padding: 15px 25px;">📁 Export Current Workout</button>
-                                <button id="email-workout-btn" class="cta-button" style="flex: 1; min-width: 200px; font-size: 14px; padding: 15px 25px;">📧 Email Workout Plan</button>
+                                <button id="export-workout-btn" class="cta-button" style="flex: 1; min-width: 150px; font-size: 14px; padding: 15px 25px;">Export Current Workout</button>
+                                <button id="email-workout-btn" class="cta-button" style="flex: 1; min-width: 150px; font-size: 14px; padding: 15px 25px;">Email Workout Plan</button>
+                                <button id="email-consultation-btn" class="cta-button" style="flex: 1; min-width: 150px; font-size: 14px; padding: 15px 25px;">Email Consultation</button>
                             </div>
                             <p style="margin-top: 10px; color: #6b7280; font-size: 0.8rem; text-align: center;">
-                                Download or email your personalized AI-generated workout plans
+                                Download or email your personalized AI-generated content
                             </p>
                         </div>
                     </div>
