@@ -773,6 +773,56 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
   }
 });
 
+// Test Printful integration endpoint
+app.post('/api/test-printful', async (req, res) => {
+  try {
+    const { customerName = 'Test Customer', size = 'M' } = req.body;
+    
+    console.log('Testing Printful integration...');
+    
+    // Test customer info
+    const testCustomerInfo = {
+      name: customerName,
+      address: {
+        line1: '123 Test Street',
+        city: 'Test City',
+        state: 'CA',
+        country: 'US',
+        postal_code: '90210'
+      }
+    };
+
+    // Create test order (this will create a real order but not confirm it)
+    const order = await createWelcomeShirtOrder(testCustomerInfo, size);
+    
+    console.log('Printful test order created:', order.id);
+    
+    // Note: We're NOT calling confirmOrder() so this won't actually ship
+    // The order will remain in draft status in Printful
+    
+    res.json({
+      success: true,
+      message: 'Printful integration test successful!',
+      orderId: order.id,
+      status: 'draft',
+      note: 'Order created but not confirmed - no actual shipping will occur',
+      orderDetails: {
+        recipient: order.recipient,
+        items: order.items,
+        costs: order.costs
+      }
+    });
+    
+  } catch (error) {
+    console.error('Printful test error:', error);
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      note: 'Check that PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANTS are set correctly'
+    });
+  }
+});
+
 // Export consultation transcript
 app.get('/api/consultation-export/:email', async (req, res) => {
   try {
