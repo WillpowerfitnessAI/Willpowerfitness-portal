@@ -184,7 +184,7 @@ app.get('/', (req, res) => {
             30% { transform: translateY(-10px); opacity: 1; }
           }
 
-          
+
           button { 
             padding: 18px 35px;
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -214,7 +214,7 @@ app.get('/', (req, res) => {
             .header h1 { font-size: 2.2rem; }
             .chat-container { padding: 20px; }
             .message { max-width: 95%; padding: 15px 20px; }
-            
+
             button { width: 100%; }
           }
         </style>
@@ -263,7 +263,7 @@ app.get('/', (req, res) => {
                         </p>
                     </div>
                 </div>
-                
+
             </div>
         </div>
 
@@ -524,25 +524,47 @@ app.post('/api/consultation', async (req, res) => {
   try {
     const { message, userData } = req.body;
 
-    // Track conversation count
-    const conversationCount = await query(
-      'SELECT COUNT(*) FROM leads WHERE email = $1 AND message IS NOT NULL',
+    // Get existing conversation history for this user
+    const existingMessages = await query(
+      'SELECT message FROM leads WHERE email = $1 AND message IS NOT NULL ORDER BY timestamp',
       [userData.email]
     );
 
-    const exchangeCount = parseInt(conversationCount.rows[0].count) || 0;
+    const conversationHistory = existingMessages.rows.map(row => row.message).join('\n');
+    const exchangeCount = existingMessages.rows.length;
 
-    // Use AI for consultation
-    const consultationPrompt = {
-      role: "system",
-      content: `You are conducting a fitness consultation for ${userData.name}. Their goal is ${userData.goal} and they have ${userData.experience} experience. 
+    // Create progressive consultation based on what's already been discussed
+    let consultationPrompt;
 
-      Ask 2-3 questions about their schedule, equipment access, and any limitations. DO NOT provide specific workout routines or detailed nutrition advice.
+    if (exchangeCount === 0) {
+      consultationPrompt = {
+        role: "system",
+        content: `You are conducting a fitness consultation for ${userData.name}. Their goal is ${userData.goal} and they have ${userData.experience} experience level.
 
-      After 3-4 exchanges, recommend WillpowerFitness AI Elite membership and explain how our AI personal trainer will create their customized plan. Mention benefits like 24/7 coaching, progress tracking, and welcome apparel.
+        First question: Ask about their weekly schedule and availability for workouts. Be specific about days and times.`
+      };
+    } else if (exchangeCount === 1) {
+      consultationPrompt = {
+        role: "system", 
+        content: `Continue the consultation for ${userData.name}. They've already discussed: ${conversationHistory}
 
-      Current exchange: ${exchangeCount + 1}`
-    };
+        Second question: Ask about equipment access (home/gym) and any physical limitations or injuries they have.`
+      };
+    } else if (exchangeCount === 2) {
+      consultationPrompt = {
+        role: "system",
+        content: `Continue the consultation for ${userData.name}. Previous discussion: ${conversationHistory}
+
+        Third question: Ask about their current fitness routine and what types of exercises they enjoy or dislike.`
+      };
+    } else {
+      consultationPrompt = {
+        role: "system", 
+        content: `Complete the consultation for ${userData.name}. Full conversation: ${conversationHistory}
+
+        Based on all the information gathered, provide a brief summary of their needs and recommend WillpowerFitness AI Elite membership. Mention specific benefits: personalized AI trainer, custom workout plans, nutrition coaching, progress tracking, 24/7 support, and complimentary welcome apparel. Keep it concise and enthusiastic.`
+      };
+    }
 
     const aiResponse = await getChatResponse([
       consultationPrompt,
@@ -550,11 +572,10 @@ app.post('/api/consultation', async (req, res) => {
     ], userData);
 
     // Determine if consultation is complete after 3+ exchanges
-    const consultationComplete = exchangeCount >= 2 || 
-                                message.toLowerCase().includes('ready') || 
-                                message.toLowerCase().includes('sounds good') ||
+    const consultationComplete = exchangeCount >= 3 || 
                                 aiResponse.toLowerCase().includes('elite membership') ||
-                                aiResponse.toLowerCase().includes('join our program');
+                                aiResponse.toLowerCase().includes('willpowerfitnessai') ||
+                                aiResponse.toLowerCase().includes('ready to transform')
 
     // Update lead with consultation info
     await query(
@@ -698,7 +719,7 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
 app.get('/api/consultation-export/:email', async (req, res) => {
   try {
     const { email } = req.params;
-    
+
     // Get lead data with consultation
     const result = await query(
       `SELECT name, email, goals, experience, message, ai_response, timestamp 
@@ -712,7 +733,7 @@ app.get('/api/consultation-export/:email', async (req, res) => {
     }
 
     const lead = result.rows[0];
-    
+
     // Format consultation transcript
     const transcript = {
       consultationSummary: {
@@ -754,11 +775,11 @@ app.get('/api/consultation-export/:email', async (req, res) => {
 app.post('/api/send-consultation-copy', async (req, res) => {
   try {
     const { email } = req.body;
-    
+
     // Get consultation data
     const response = await fetch(`${req.protocol}://${req.get('host')}/api/consultation-export/${email}`);
     const consultationData = await response.json();
-    
+
     if (!response.ok) {
       return res.status(404).json({ error: 'Consultation not found' });
     }
