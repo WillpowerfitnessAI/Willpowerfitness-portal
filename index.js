@@ -7,7 +7,7 @@ import { getChatResponse, generateWorkoutPlan, analyzeNutrition, analyzeProgress
 import { storeConversation, getConversationHistory, getUserProfile, updateUserProfile, logWorkout, getWorkoutHistory, exportUserData } from './lib/memorySystem.js';
 
 // Import payment and fulfillment systems
-import { createSubscription, createPaymentIntent, createCustomer, constructEvent } from './lib/stripePayments.js';
+import { createSubscription, createPaymentIntent, createCustomer, constructEvent, createCheckoutSession } from './lib/stripePayments.js';
 import { createWelcomeShirtOrder, confirmOrder } from './lib/printfulIntegration.js';
 
 // Import database client
@@ -620,6 +620,23 @@ app.post('/api/create-subscription', async (req, res) => {
 
     console.log('Creating subscription for:', { email, name, userData });
 
+    // Validate required data
+    if (!email || !name || !userData) {
+      return res.status(400).json({ 
+        error: 'Missing required data',
+        details: 'Email, name, and user data are required'
+      });
+    }
+
+    // Check if Stripe is properly configured
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.error('Stripe secret key not configured');
+      return res.status(500).json({ 
+        error: 'Payment system not configured',
+        details: 'Please contact support'
+      });
+    }
+
     // Create Stripe customer first (this doesn't depend on our database)
     const customer = await createCustomer(email, name, {
       fitness_goal: userData.goal,
@@ -667,9 +684,23 @@ app.post('/api/create-subscription', async (req, res) => {
     });
   } catch (error) {
     console.error('Subscription creation error:', error);
+    
+    // Provide more specific error messages
+    let errorMessage = 'Failed to create subscription';
+    let errorDetails = error.message;
+    
+    if (error.message?.includes('Stripe')) {
+      errorMessage = 'Payment system error';
+      errorDetails = 'Unable to process payment. Please try again or contact support.';
+    } else if (error.message?.includes('network') || error.message?.includes('timeout')) {
+      errorMessage = 'Connection error';
+      errorDetails = 'Please check your connection and try again.';
+    }
+    
     res.status(500).json({ 
-      error: 'Failed to create subscription',
-      details: error.message 
+      error: errorMessage,
+      details: errorDetails,
+      timestamp: new Date().toISOString()
     });
   }
 });

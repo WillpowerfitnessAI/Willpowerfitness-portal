@@ -430,11 +430,24 @@ Questions? Contact our support team.
                 this.textContent = 'Activate Elite Membership';
 
                 // Show more detailed error message
-                const errorMessage = error.message.includes('Failed to fetch') ? 
-                    'Connection error. Please check your internet and try again.' : 
-                    `Error: ${error.message}`;
+                let errorMessage = 'Unable to process payment. ';
+                
+                if (error.message.includes('Failed to fetch')) {
+                    errorMessage += 'Connection error. Please check your internet and try again.';
+                } else if (result && result.error) {
+                    errorMessage += result.details || result.error;
+                } else {
+                    errorMessage += 'Please try again or contact support if the issue persists.';
+                }
 
                 alert(errorMessage);
+                
+                // Optionally reload the page after 3 seconds
+                setTimeout(() => {
+                    if (confirm('Would you like to refresh the page and try again?')) {
+                        window.location.reload();
+                    }
+                }, 2000);
             }
         });
 
