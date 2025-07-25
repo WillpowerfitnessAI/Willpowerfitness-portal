@@ -93,10 +93,28 @@
             cursor: pointer;
             transition: all 0.3s;
             width: 100%;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
         }
         .btn:hover {
             transform: translateY(-2px);
             box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #6b7280, #4b5563);
+            color: white;
+        }
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+        }
+        @media (max-width: 768px) {
+            .btn {
+                padding: 15px 25px;
+                font-size: 16px;
+            }
         }
         .pricing-card {
             background: linear-gradient(135deg, #f8fafc, #e1e7ef);
@@ -194,13 +212,13 @@
                     <div class="form-group">
                         <label>Our AI will now ask you personalized questions to create your optimal training plan:</label>
                         <div id="consultation-chat" style="background: #f8fafc; border-radius: 12px; padding: 20px; min-height: 200px; margin: 20px 0;"></div>
-                        <input type="text" id="consultation-input" placeholder="Type your answer here..." style="margin-bottom: 10px;">
+                        <input type="text" id="consultation-input" placeholder="Type your answer here..." style="margin-bottom: 15px;">
                         <button type="button" id="consultation-send" class="btn">Send Answer</button>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 20px;">
-                    <button type="button" id="proceed-to-payment" class="btn" style="display: none;">Proceed to Elite Membership</button>
-                    <button type="button" id="export-consultation" class="btn" style="display: none; background: #6b7280; margin-left: 10px;">Get Copy of Consultation</button>
+                <div style="text-align: center; margin-top: 30px;">
+                    <button type="button" id="proceed-to-payment" class="btn btn-primary" style="display: none; margin-bottom: 15px;">Proceed to Elite Membership</button>
+                    <button type="button" id="export-consultation" class="btn btn-secondary" style="display: none;">Get Copy of Consultation</button>
                 </div>
             </div>
 
