@@ -252,7 +252,7 @@ app.get('/', (req, res) => {
                             <div class="feature-card">
                                 <div class="feature-icon">👕</div>
                                 <h3>Welcome Gear</h3>
-                                <p>Complimentary WillpowerFitness apparel to kickstart your journey in style.</p>
+                                <p>Complimentary WillpowerFitnessAI apparel to kickstart your journey in style.</p>
                             </div>
                         </div>
 
