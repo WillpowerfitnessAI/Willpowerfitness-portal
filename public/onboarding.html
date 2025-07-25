@@ -434,17 +434,17 @@ Questions? Contact our support team.
                         <div style="text-align: center; margin: 20px 0; color: #10b981;">
                             <div style="font-size: 1.2rem; margin-bottom: 15px;">✅ Payment setup complete!</div>
                             <div style="font-size: 0.9rem; margin-bottom: 20px;">Click the button below to complete your membership:</div>
-                            <a href="${result.checkoutUrl}" class="btn" style="display: inline-block; padding: 15px 30px; text-decoration: none; font-size: 16px;">Complete Payment & Activate Elite Membership</a>
+                            <a href="${result.checkoutUrl}" target="_blank" class="btn" style="display: inline-block; padding: 15px 30px; text-decoration: none; font-size: 16px;">Complete Payment & Activate Elite Membership</a>
                             <div style="font-size: 0.8rem; margin-top: 15px; color: #6b7280;">This will open Stripe's secure payment page</div>
                         </div>
                     `;
 
                     console.log('Checkout URL ready:', result.checkoutUrl);
 
-                    // Try automatic redirect after showing the manual option
+                    // Open Stripe checkout in new tab instead of redirecting
                     setTimeout(() => {
-                        console.log('Attempting automatic redirect...');
-                        window.location.href = result.checkoutUrl;
+                        console.log('Opening checkout in new tab...');
+                        window.open(result.checkoutUrl, '_blank');
                     }, 1500);
                 } else {
                     throw new Error(result.error || result.details || 'Failed to create subscription');
