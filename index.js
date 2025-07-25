@@ -6,6 +6,10 @@ import { fileURLToPath } from 'url';
 import { getChatResponse, generateWorkoutPlan, analyzeNutrition, analyzeProgress } from './lib/aiProviders.js';
 import { storeConversation, getConversationHistory, getUserProfile, updateUserProfile, logWorkout, getWorkoutHistory, exportUserData } from './lib/memorySystem.js';
 
+// Import Enhanced AI Workout Intelligence and Progress Tracking
+import { workoutAI } from './lib/workoutIntelligence.js';
+import { progressTracker } from './lib/progressTracking.js';
+
 // Import payment and fulfillment systems
 import { createSubscription, createPaymentIntent, createCustomer, constructEvent, createCheckoutSession } from './lib/stripePayments.js';
 import { createWelcomeShirtOrder, confirmOrder } from './lib/printfulIntegration.js';
@@ -235,24 +239,24 @@ app.get('/', (req, res) => {
 
                         <div class="features-grid">
                             <div class="feature-card">
+                                <div class="feature-icon">🧠</div>
+                                <h3>Enhanced AI Workout Intelligence</h3>
+                                <p>Dynamic workout adjustments, real-time form analysis, RPE tracking, and injury prevention powered by advanced AI.</p>
+                            </div>
+                            <div class="feature-card">
+                                <div class="feature-icon">📈</div>
+                                <h3>Progress Tracking Dashboard</h3>
+                                <p>Comprehensive analytics with strength gains, body composition tracking, milestone achievements, and progress photo analysis.</p>
+                            </div>
+                            <div class="feature-card">
                                 <div class="feature-icon">🎯</div>
-                                <h3>Personalized Plans</h3>
-                                <p>Custom workout and nutrition plans designed for your specific goals and lifestyle.</p>
-                            </div>
-                            <div class="feature-card">
-                                <div class="feature-icon">🤖</div>
-                                <h3>24/7 AI Coach</h3>
-                                <p>Your dedicated AI personal trainer available whenever you need guidance or motivation.</p>
-                            </div>
-                            <div class="feature-card">
-                                <div class="feature-icon">📊</div>
-                                <h3>Progress Tracking</h3>
-                                <p>Advanced analytics to monitor your progress and optimize your training approach.</p>
+                                <h3>Personalized Elite Coaching</h3>
+                                <p>AI coach that learns from your performance, adjusts in real-time, and provides expert-level guidance worth $225/month.</p>
                             </div>
                             <div class="feature-card">
                                 <div class="feature-icon">👕</div>
-                                <h3>Welcome Gear</h3>
-                                <p>Complimentary WillpowerFitnessAI apparel to kickstart your journey in style.</p>
+                                <h3>Premium Member Benefits</h3>
+                                <p>Welcome WillpowerFitnessAI apparel, priority support, and access to cutting-edge fitness technology.</p>
                             </div>
                         </div>
 
@@ -397,6 +401,322 @@ app.get('/api/export/:userId', async (req, res) => {
     res.status(500).json({ error: 'Failed to export data' });
   }
 });
+
+// ========================================
+// ENHANCED AI WORKOUT INTELLIGENCE ENDPOINTS
+// ========================================
+
+// Dynamic workout adjustment based on performance
+app.post('/api/ai-workout/adjust', async (req, res) => {
+  try {
+    const { userId, currentWorkout, performanceData } = req.body;
+
+    if (!userId || !currentWorkout || !performanceData) {
+      return res.status(400).json({ error: 'Missing required data' });
+    }
+
+    // Check if user has active subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for AI workout adjustments' });
+    }
+
+    const adjustment = await workoutAI.adjustWorkoutDynamically(userId, currentWorkout, performanceData);
+    
+    res.json({
+      success: true,
+      ...adjustment,
+      message: 'AI has dynamically adjusted your workout based on your performance data'
+    });
+  } catch (error) {
+    console.error('AI workout adjustment error:', error);
+    res.status(500).json({ error: 'Failed to adjust workout' });
+  }
+});
+
+// AI Form Analysis
+app.post('/api/ai-workout/form-analysis', async (req, res) => {
+  try {
+    const { userId, exerciseName, formFeedback, videoDescription } = req.body;
+
+    if (!userId || !exerciseName || !formFeedback) {
+      return res.status(400).json({ error: 'Missing required form analysis data' });
+    }
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for AI form analysis' });
+    }
+
+    const analysis = await workoutAI.analyzeExerciseForm(userId, exerciseName, formFeedback, videoDescription);
+    
+    res.json({
+      success: true,
+      exercise: exerciseName,
+      ...analysis,
+      message: 'AI has analyzed your exercise form and provided detailed feedback'
+    });
+  } catch (error) {
+    console.error('Form analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze exercise form' });
+  }
+});
+
+// RPE-based auto-adjustments
+app.post('/api/ai-workout/rpe-feedback', async (req, res) => {
+  try {
+    const { userId, exerciseData, rpeRating, notes } = req.body;
+
+    if (!userId || !exerciseData || !rpeRating) {
+      return res.status(400).json({ error: 'Missing RPE feedback data' });
+    }
+
+    // Validate RPE rating
+    if (rpeRating < 1 || rpeRating > 10) {
+      return res.status(400).json({ error: 'RPE rating must be between 1 and 10' });
+    }
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for RPE tracking' });
+    }
+
+    const feedback = await workoutAI.processRPEFeedback(userId, exerciseData, rpeRating, notes);
+    
+    res.json({
+      success: true,
+      exercise: exerciseData.name,
+      ...feedback,
+      message: 'AI has processed your RPE feedback and adjusted future recommendations'
+    });
+  } catch (error) {
+    console.error('RPE feedback error:', error);
+    res.status(500).json({ error: 'Failed to process RPE feedback' });
+  }
+});
+
+// Injury prevention analysis
+app.post('/api/ai-workout/injury-analysis', async (req, res) => {
+  try {
+    const { userId, currentSymptoms } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for injury prevention analysis' });
+    }
+
+    const analysis = await workoutAI.analyzeInjuryRisk(userId, [], currentSymptoms || []);
+    
+    res.json({
+      success: true,
+      ...analysis,
+      message: 'AI has analyzed your injury risk and provided prevention recommendations'
+    });
+  } catch (error) {
+    console.error('Injury analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze injury risk' });
+  }
+});
+
+// ========================================
+// PROGRESS TRACKING DASHBOARD ENDPOINTS
+// ========================================
+
+// Record progress metrics
+app.post('/api/progress/record', async (req, res) => {
+  try {
+    const { userId, metrics } = req.body;
+
+    if (!userId || !metrics) {
+      return res.status(400).json({ error: 'User ID and metrics required' });
+    }
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for progress tracking' });
+    }
+
+    const result = await progressTracker.recordProgressMetrics(userId, metrics);
+    
+    res.json({
+      success: true,
+      ...result,
+      message: 'Progress metrics recorded successfully'
+    });
+  } catch (error) {
+    console.error('Progress recording error:', error);
+    res.status(500).json({ error: 'Failed to record progress metrics' });
+  }
+});
+
+// Generate comprehensive progress report
+app.post('/api/progress/report', async (req, res) => {
+  try {
+    const { userId, timeframe } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for progress reports' });
+    }
+
+    const report = await progressTracker.generateProgressReport(userId, timeframe || '30_days');
+    
+    res.json({
+      success: true,
+      report,
+      message: 'Comprehensive progress report generated'
+    });
+  } catch (error) {
+    console.error('Progress report error:', error);
+    res.status(500).json({ error: 'Failed to generate progress report' });
+  }
+});
+
+// Progress photo analysis
+app.post('/api/progress/photo-analysis', async (req, res) => {
+  try {
+    const { userId, photoData } = req.body;
+
+    if (!userId || !photoData) {
+      return res.status(400).json({ error: 'User ID and photo data required' });
+    }
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for photo analysis' });
+    }
+
+    const analysis = await progressTracker.analyzeProgressPhotos(userId, photoData);
+    
+    res.json({
+      success: true,
+      ...analysis,
+      message: 'Progress photo analysis completed'
+    });
+  } catch (error) {
+    console.error('Photo analysis error:', error);
+    res.status(500).json({ error: 'Failed to analyze progress photos' });
+  }
+});
+
+// Goal milestone tracking
+app.post('/api/progress/milestones', async (req, res) => {
+  try {
+    const { userId, currentMetrics } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ error: 'User ID required' });
+    }
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for milestone tracking' });
+    }
+
+    const milestones = await progressTracker.trackGoalMilestones(userId, currentMetrics || {});
+    
+    res.json({
+      success: true,
+      ...milestones,
+      message: 'Goal milestones updated'
+    });
+  } catch (error) {
+    console.error('Milestone tracking error:', error);
+    res.status(500).json({ error: 'Failed to track milestones' });
+  }
+});
+
+// Get user's progress dashboard data
+app.get('/api/progress/dashboard/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { timeframe } = req.query;
+
+    // Check subscription
+    const userProfile = await getUserProfile(userId);
+    if (!userProfile || userProfile.subscription_status !== 'active') {
+      return res.status(403).json({ error: 'Elite membership required for progress dashboard' });
+    }
+
+    // Get comprehensive dashboard data
+    const [progressReport, milestones, recentWorkouts] = await Promise.all([
+      progressTracker.generateProgressReport(userId, timeframe || '30_days'),
+      progressTracker.trackGoalMilestones(userId, {}),
+      getWorkoutHistory(userId, 10)
+    ]);
+
+    const dashboardData = {
+      user: {
+        name: userProfile.name,
+        email: userProfile.email,
+        goal: userProfile.goal,
+        memberSince: userProfile.subscription_start
+      },
+      progressReport,
+      milestones,
+      recentActivity: recentWorkouts,
+      summary: {
+        totalWorkouts: recentWorkouts.length,
+        currentStreak: await calculateWorkoutStreak(userId),
+        nextMilestone: milestones.upcomingMilestones?.[0] || null
+      }
+    };
+
+    res.json({
+      success: true,
+      dashboard: dashboardData,
+      message: 'Progress dashboard loaded successfully'
+    });
+  } catch (error) {
+    console.error('Dashboard error:', error);
+    res.status(500).json({ error: 'Failed to load progress dashboard' });
+  }
+});
+
+// Helper function for workout streak calculation
+async function calculateWorkoutStreak(userId) {
+  try {
+    const workouts = await getWorkoutHistory(userId, 30);
+    // Simple streak calculation - consecutive days with workouts
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(checkDate.getDate() - i);
+      
+      const hasWorkout = workouts.some(w => {
+        const workoutDate = new Date(w.completed_at);
+        return workoutDate.toDateString() === checkDate.toDateString();
+      });
+      
+      if (hasWorkout) {
+        streak++;
+      } else if (i > 0) { // Allow for today to not have a workout yet
+        break;
+      }
+    }
+    
+    return streak;
+  } catch (error) {
+    return 0;
+  }
+}
 
 // Export workout plans for members
 app.post('/api/export-workout', async (req, res) => {
