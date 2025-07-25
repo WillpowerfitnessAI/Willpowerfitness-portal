@@ -81,10 +81,28 @@
         // Get session ID from URL params and verify payment
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get('session_id');
+        const customerId = urlParams.get('customer_id');
         
         if (sessionId) {
-            // You can add verification logic here if needed
             console.log('Payment successful, session:', sessionId);
+            
+            // Optional: Show animated success message
+            setTimeout(() => {
+                const welcomeMsg = document.createElement('div');
+                welcomeMsg.innerHTML = `
+                    <div style="background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 15px; margin: 20px 0; color: #065f46; text-align: center;">
+                        <div style="font-size: 1.1rem; font-weight: 600;">🎉 Welcome to Elite Membership!</div>
+                        <div style="margin-top: 5px;">Your AI trainer is now active and ready to help you achieve your goals.</div>
+                    </div>
+                `;
+                document.querySelector('.success-container').appendChild(welcomeMsg);
+            }, 1000);
+        } else {
+            // Handle case where user lands here without proper payment
+            console.log('No session ID found - redirecting to onboarding');
+            setTimeout(() => {
+                window.location.href = '/onboarding';
+            }, 3000);
         }
     </script>
 </body>

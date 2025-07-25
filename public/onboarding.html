@@ -402,7 +402,18 @@ Questions? Contact our support team.
             try {
                 console.log('Starting subscription process...');
                 this.disabled = true;
-                this.textContent = 'Creating your membership...';
+                this.innerHTML = '⏳ Creating your membership...';
+
+                // Add loading indicator
+                const loadingDiv = document.createElement('div');
+                loadingDiv.id = 'loading-indicator';
+                loadingDiv.innerHTML = `
+                    <div style="text-align: center; margin: 20px 0; color: #667eea;">
+                        <div style="font-size: 1.2rem; margin-bottom: 10px;">🚀 Setting up your AI trainer...</div>
+                        <div style="font-size: 0.9rem;">You'll be redirected to our secure payment page</div>
+                    </div>
+                `;
+                this.parentNode.insertBefore(loadingDiv, this.nextSibling);
 
                 const response = await fetch('/api/create-subscription', {
                     method: 'POST',
@@ -418,36 +429,54 @@ Questions? Contact our support team.
                 console.log('Subscription response:', result);
 
                 if (response.ok && result.checkoutUrl) {
-                    // Redirect to Stripe checkout
+                    // Show success message before redirect
+                    loadingDiv.innerHTML = `
+                        <div style="text-align: center; margin: 20px 0; color: #10b981;">
+                            <div style="font-size: 1.2rem; margin-bottom: 10px;">✅ Redirecting to secure payment...</div>
+                            <div style="font-size: 0.9rem;">If you're not redirected automatically, <a href="${result.checkoutUrl}" style="color: #667eea;">click here</a></div>
+                        </div>
+                    `;
+                    
                     console.log('Redirecting to checkout:', result.checkoutUrl);
-                    window.location.href = result.checkoutUrl;
+                    
+                    // Add a delay to show the success message, then redirect
+                    setTimeout(() => {
+                        window.location.href = result.checkoutUrl;
+                    }, 1500);
                 } else {
                     throw new Error(result.error || result.details || 'Failed to create subscription');
                 }
             } catch (error) {
                 console.error('Subscription error:', error);
+                
+                // Remove loading indicator
+                const loadingDiv = document.getElementById('loading-indicator');
+                if (loadingDiv) loadingDiv.remove();
+                
                 this.disabled = false;
-                this.textContent = 'Activate Elite Membership';
+                this.innerHTML = 'Activate Elite Membership';
 
                 // Show more detailed error message
                 let errorMessage = 'Unable to process payment. ';
                 
                 if (error.message.includes('Failed to fetch')) {
                     errorMessage += 'Connection error. Please check your internet and try again.';
-                } else if (result && result.error) {
+                } else if (typeof result !== 'undefined' && result.error) {
                     errorMessage += result.details || result.error;
                 } else {
                     errorMessage += 'Please try again or contact support if the issue persists.';
                 }
 
-                alert(errorMessage);
-                
-                // Optionally reload the page after 3 seconds
-                setTimeout(() => {
-                    if (confirm('Would you like to refresh the page and try again?')) {
-                        window.location.reload();
-                    }
-                }, 2000);
+                // Create error display
+                const errorDiv = document.createElement('div');
+                errorDiv.innerHTML = `
+                    <div style="background: #fee2e2; border: 1px solid #fecaca; border-radius: 8px; padding: 15px; margin: 15px 0; color: #dc2626;">
+                        <div style="font-weight: 600; margin-bottom: 5px;">⚠️ Payment Setup Failed</div>
+                        <div style="font-size: 0.9rem;">${errorMessage}</div>
+                        <button onclick="this.parentElement.parentElement.remove()" style="margin-top: 10px; padding: 5px 10px; background: #dc2626; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.8rem;">Dismiss</button>
+                    </div>
+                `;
+                this.parentNode.insertBefore(errorDiv, this.nextSibling);
             }
         });
 
