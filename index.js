@@ -524,45 +524,53 @@ app.post('/api/consultation', async (req, res) => {
   try {
     const { message, userData } = req.body;
 
-    // Get existing conversation history for this user
-    const existingMessages = await query(
-      'SELECT message FROM leads WHERE email = $1 AND message IS NOT NULL ORDER BY timestamp',
+    // Get complete consultation history for this user
+    const existingConversation = await query(
+      'SELECT message, ai_response FROM leads WHERE email = $1 ORDER BY timestamp DESC LIMIT 1',
       [userData.email]
     );
 
-    const conversationHistory = existingMessages.rows.map(row => row.message).join('\n');
-    const exchangeCount = existingMessages.rows.length;
+    let conversationContext = '';
+    if (existingConversation.rows.length > 0) {
+      const lead = existingConversation.rows[0];
+      conversationContext = (lead.message || '') + '\n' + (lead.ai_response || '');
+    }
 
-    // Create progressive consultation based on what's already been discussed
+    // Count meaningful exchanges (not just database entries)
+    const exchangeMatches = conversationContext.match(/User:/g);
+    const exchangeCount = exchangeMatches ? exchangeMatches.length : 0;
+
+    // Create progressive consultation with better context awareness
     let consultationPrompt;
 
     if (exchangeCount === 0) {
       consultationPrompt = {
         role: "system",
-        content: `You are conducting a fitness consultation for ${userData.name}. Their goal is ${userData.goal} and they have ${userData.experience} experience level.
-
-        First question: Ask about their weekly schedule and availability for workouts. Be specific about days and times.`
+        content: `You are an elite fitness consultant conducting an assessment for ${userData.name}. 
+        Goal: ${userData.goal} | Experience: ${userData.experience}
+        
+        FIRST QUESTION: Ask about their weekly schedule - what days and times they can realistically commit to working out. Be conversational and encouraging.`
       };
     } else if (exchangeCount === 1) {
       consultationPrompt = {
         role: "system", 
-        content: `Continue the consultation for ${userData.name}. They've already discussed: ${conversationHistory}
-
-        Second question: Ask about equipment access (home/gym) and any physical limitations or injuries they have.`
+        content: `Continue the consultation for ${userData.name}. Previous context: ${conversationContext}
+        
+        SECOND QUESTION: Now ask about their equipment access (home gym, commercial gym, outdoor spaces) and any physical limitations, injuries, or health considerations that would affect their training program.`
       };
     } else if (exchangeCount === 2) {
       consultationPrompt = {
         role: "system",
-        content: `Continue the consultation for ${userData.name}. Previous discussion: ${conversationHistory}
-
-        Third question: Ask about their current fitness routine and what types of exercises they enjoy or dislike.`
+        content: `Continue consultation for ${userData.name}. Context so far: ${conversationContext}
+        
+        THIRD QUESTION: Ask about their current fitness routine, favorite exercises, and what they want to change or improve about their current approach.`
       };
     } else {
       consultationPrompt = {
         role: "system", 
-        content: `Complete the consultation for ${userData.name}. Full conversation: ${conversationHistory}
-
-        Based on all the information gathered, provide a brief summary of their needs and recommend WillpowerFitness AI Elite membership. Mention specific benefits: personalized AI trainer, custom workout plans, nutrition coaching, progress tracking, 24/7 support, and complimentary welcome apparel. Keep it concise and enthusiastic.`
+        content: `FINAL CONSULTATION STAGE for ${userData.name}. Full conversation: ${conversationContext}
+        
+        Based on all information gathered, provide a personalized summary of their fitness needs and enthusiastically recommend WillpowerFitness AI Elite membership. Highlight how the AI coach will address their specific goal (${userData.goal}) given their ${userData.experience} experience level. Mention: personalized AI trainer, custom workout/nutrition plans, 24/7 support, progress analytics, and complimentary WillpowerFitnessAI welcome apparel.`
       };
     }
 
@@ -571,21 +579,24 @@ app.post('/api/consultation', async (req, res) => {
       { role: "user", content: message }
     ], userData);
 
-    // Determine if consultation is complete after 3+ exchanges
+    // Determine consultation completion more accurately
     const consultationComplete = exchangeCount >= 3 || 
-                                aiResponse.toLowerCase().includes('elite membership') ||
                                 aiResponse.toLowerCase().includes('willpowerfitnessai') ||
-                                aiResponse.toLowerCase().includes('ready to transform')
+                                aiResponse.toLowerCase().includes('elite membership') ||
+                                aiResponse.toLowerCase().includes('ready to begin');
 
-    // Update lead with consultation info
+    // Update lead with new exchange
+    const currentMessage = existingConversation.rows.length > 0 ? 
+      existingConversation.rows[0].message || '' : '';
+    
     await query(
       `UPDATE leads SET 
-       message = COALESCE(message, '') || $1 || E'\n',
+       message = $1,
        ai_response = $2,
        status = $3
        WHERE email = $4`,
       [
-        `User: ${message}`, 
+        currentMessage + `User: ${message}\n`,
         aiResponse,
         consultationComplete ? 'consultation_complete' : 'in_consultation',
         userData.email
