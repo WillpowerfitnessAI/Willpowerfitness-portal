@@ -315,26 +315,35 @@ app.post('/api/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message and userId required' });
     }
 
+    // Import relationship builder
+    const { relationshipBuilder } = await import('./lib/relationshipBuilder.js');
+
     // Check if user has active subscription
     const userProfile = await getUserProfile(userId);
 
     if (!userProfile || userProfile.subscription_status !== 'active') {
       return res.json({ 
-        response: "🔒 **Premium Feature Access Required**\n\nTo access your personal AI fitness coach and receive detailed workout plans, nutrition guidance, and 24/7 support, please upgrade to WillpowerFitness AI Elite membership.\n\n**Elite Benefits:**\n• Personalized workout plans\n• Advanced nutrition coaching\n• Real-time form feedback\n• Progress analytics\n• Welcome fitness apparel\n• Priority support\n\n[Start your consultation](/onboarding) to begin your fitness journey!",
+        response: "🔒 **Hey there, future training partner!** 👋\n\nI'd love to be your dedicated AI fitness coach - someone who learns your goals, celebrates your wins, and supports you 24/7. But first, let's get you set up with WillpowerFitness AI Elite membership!\n\n**When you join, I become YOUR personal AI coach:**\n• 💪 I'll learn your preferences and adapt to your style\n• 🎯 Custom workout plans that evolve with your progress\n• 🍎 Nutrition guidance tailored to your lifestyle\n• 📈 I'll track every victory and help you through plateaus\n• 👕 Welcome gear to start your journey right\n• 🤝 24/7 support whenever you need motivation\n\n[Let's start your journey together!](/onboarding) I'm excited to become your training partner! 🚀",
         requiresUpgrade: true
       });
     }
 
-    // Get user context for personalized responses
-    const recentHistory = await getConversationHistory(userId, 5);
+    // Get personalized relationship context
+    const personalizedContext = await relationshipBuilder.getPersonalizedContext(userId);
+    const relationshipContext = relationshipBuilder.generateResponseContext(personalizedContext);
 
-    // Prepare context for AI
+    // Get conversation history
+    const recentHistory = await getConversationHistory(userId, 8);
+
+    // Enhanced context with relationship building
     const context = {
       profile: userProfile,
-      recentConversations: recentHistory.length
+      recentConversations: recentHistory.length,
+      relationship: personalizedContext,
+      relationshipContext: relationshipContext
     };
 
-    // Get fast response from Groq
+    // Get fast response from Groq with relationship awareness
     const messages = recentHistory.map(conv => [
       { role: 'user', content: conv.user_message },
       { role: 'assistant', content: conv.ai_response }
@@ -348,10 +357,20 @@ app.post('/api/chat', async (req, res) => {
       throw new Error('Empty response from AI');
     }
 
+    // Update relationship insights based on this interaction
+    await relationshipBuilder.updateClientPersonality(userId, {
+      message,
+      response: aiResponse,
+      timestamp: new Date().toISOString()
+    });
+
     // Store conversation in memory
     await storeConversation(userId, message, aiResponse, context);
 
-    res.json({ response: aiResponse });
+    res.json({ 
+      response: aiResponse,
+      relationshipStage: personalizedContext.relationshipStage
+    });
   } catch (error) {
     console.error('Chat error:', error);
     res.status(500).json({ error: 'Failed to process chat message' });
