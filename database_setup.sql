@@ -1,4 +1,3 @@
-
 -- Create conversations table
 CREATE TABLE conversations (
   id SERIAL PRIMARY KEY,
@@ -132,6 +131,65 @@ CREATE TABLE IF NOT EXISTS milestone_achievements (
     achieved_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Nutrition Intelligence tables
+CREATE TABLE IF NOT EXISTS nutrition_plans (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    plan_data JSONB NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS nutrition_logs (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    food_name TEXT NOT NULL,
+    calories DECIMAL(6,2),
+    protein DECIMAL(6,2),
+    carbs DECIMAL(6,2),
+    fat DECIMAL(6,2),
+    logged_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS supplement_recommendations (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    supplement_name TEXT NOT NULL,
+    dosage TEXT,
+    reason TEXT,
+    ai_notes TEXT,
+    recommended_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Recovery & Wellness tables
+CREATE TABLE IF NOT EXISTS recovery_tracking (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    recovery_metrics JSONB NOT NULL,
+    recorded_at TIMESTAMPTZ DEFAULT NOW(),
+    notes TEXT,
+    ai_recommendations TEXT,
+    timestamp TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS sleep_analysis (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    sleep_data JSONB NOT NULL,
+    analysis_results TEXT,
+    ai_suggestions TEXT,
+    recorded_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS stress_assessments (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    stress_level INTEGER CHECK (stress_level >= 1 AND stress_level <= 10),
+    assessment_data JSONB NOT NULL,
+    recommendations TEXT,
+    assessed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Add indexes for better performance
 CREATE INDEX idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX idx_conversations_timestamp ON conversations(timestamp);
@@ -155,3 +213,15 @@ CREATE INDEX IF NOT EXISTS idx_progress_reports_user_id ON progress_reports(user
 CREATE INDEX IF NOT EXISTS idx_progress_photos_user_id ON progress_photos(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_goals_user_id ON user_goals(user_id);
 CREATE INDEX IF NOT EXISTS idx_milestone_achievements_user_id ON milestone_achievements(user_id);
+
+-- Nutrition Intelligence indexes
+CREATE INDEX IF NOT EXISTS idx_nutrition_plans_user_id ON nutrition_plans(user_id);
+CREATE INDEX IF NOT EXISTS idx_nutrition_logs_user_id ON nutrition_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_nutrition_logs_logged_at ON nutrition_logs(logged_at);
+CREATE INDEX IF NOT EXISTS idx_supplement_recommendations_user_id ON supplement_recommendations(user_id);
+
+-- Recovery & Wellness indexes
+CREATE INDEX IF NOT EXISTS idx_recovery_tracking_user_id ON recovery_tracking(user_id);
+CREATE INDEX IF NOT EXISTS idx_recovery_tracking_recorded_at ON recovery_tracking(recorded_at);
+CREATE INDEX IF NOT EXISTS idx_sleep_analysis_user_id ON sleep_analysis(user_id);
+CREATE INDEX IF NOT EXISTS idx_stress_assessments_user_id ON stress_assessments(user_id);
