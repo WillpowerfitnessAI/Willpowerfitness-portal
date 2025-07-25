@@ -213,11 +213,54 @@ app.get('/', (req, res) => {
           }
 
           @media (max-width: 768px) {
-            .container { margin: 10px; height: 95vh; }
-            .header { padding: 25px 20px; }
-            .header h1 { font-size: 2.2rem; }
-            .chat-container { padding: 20px; }
-            .message { max-width: 95%; padding: 15px 20px; }
+            body { padding: 10px; }
+            .container { 
+              margin: 0; 
+              height: calc(100vh - 20px);
+              min-height: auto;
+              max-height: none;
+              border-radius: 16px;
+              width: calc(100vw - 20px);
+              max-width: none;
+            }
+            .header { 
+              padding: 20px 15px; 
+              border-radius: 16px 16px 0 0;
+            }
+            .header h1 { font-size: 1.8rem; line-height: 1.2; }
+            .header p { font-size: 1rem; }
+            .chat-container { padding: 15px; }
+            .chat-box { 
+              padding: 15px; 
+              margin-bottom: 15px;
+              border-radius: 12px;
+            }
+            .message { 
+              max-width: 90%; 
+              padding: 12px 16px;
+              font-size: 0.9rem;
+              border-radius: 16px;
+            }
+            .features-grid {
+              grid-template-columns: 1fr;
+              gap: 15px;
+              margin: 20px 0;
+            }
+            .feature-card {
+              padding: 20px;
+              border-radius: 12px;
+            }
+            .feature-icon {
+              font-size: 1.5rem;
+              margin-bottom: 10px;
+            }
+            .cta-button {
+              padding: 18px 30px;
+              font-size: 16px;
+              border-radius: 20px;
+              width: 100%;
+              max-width: 300px;
+            }
 
             button { width: 100%; }
           }

@@ -111,9 +111,47 @@
             box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
         }
         @media (max-width: 768px) {
+            body { padding: 10px; }
+            .onboarding-container {
+                max-width: none;
+                width: calc(100vw - 20px);
+                margin: 0;
+                border-radius: 16px;
+            }
+            .header {
+                padding: 25px 20px;
+                border-radius: 16px 16px 0 0;
+            }
+            .header h1 { 
+                font-size: 2rem; 
+                line-height: 1.2;
+            }
+            .header p { font-size: 1rem; }
+            .step-content {
+                padding: 25px 20px;
+            }
             .btn {
-                padding: 15px 25px;
+                padding: 16px 25px;
                 font-size: 16px;
+                width: 100%;
+                max-width: 280px;
+            }
+            .pricing-card {
+                padding: 20px;
+                margin: 15px 0;
+                border-radius: 12px;
+            }
+            .price {
+                font-size: 2.5rem;
+            }
+            .form-group {
+                margin-bottom: 20px;
+            }
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 16px; /* Prevents zoom on iOS */
+                padding: 12px 15px;
             }
         }
         .pricing-card {
