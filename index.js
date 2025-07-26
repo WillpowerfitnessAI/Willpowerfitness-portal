@@ -1433,6 +1433,11 @@ app.get('/success', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'success.html'));
 });
 
+// Serve member dashboard - the actual AI coach interface
+app.get('/dashboard', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
+});
+
 // Webhook handler (enhanced for your workflow)
 app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async (req, res) => {
   try {

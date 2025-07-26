@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Welcome to WillpowerFitness AI Elite!</title>
+    <title>Welcome to WillpowerFitness AI Elite</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -18,55 +18,38 @@
             padding: 20px;
         }
         .success-container {
-            background: white;
-            border-radius: 24px;
-            padding: 60px;
-            text-align: center;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
             max-width: 600px;
             width: 100%;
-        }
-        @media (max-width: 768px) {
-            body { padding: 10px; }
-            .success-container {
-                padding: 30px 20px;
-                border-radius: 16px;
-                width: calc(100vw - 20px);
-                max-width: none;
-            }
-            h1 {
-                font-size: 2rem;
-                margin-bottom: 15px;
-            }
-            p {
-                font-size: 1.1rem;
-                margin-bottom: 25px;
-            }
-            .btn {
-                padding: 16px 30px;
-                font-size: 16px;
-                width: 100%;
-                max-width: 280px;
-            }
-            .success-icon {
-                font-size: 3rem;
-                margin-bottom: 20px;
-            }
+            background: rgba(255, 255, 255, 0.98);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+            padding: 40px;
+            text-align: center;
         }
         .success-icon {
             font-size: 4rem;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
         }
         h1 {
-            color: #1e3c72;
             font-size: 2.5rem;
+            font-weight: 700;
             margin-bottom: 20px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         p {
+            font-size: 1.1rem;
             color: #4a5568;
-            font-size: 1.2rem;
+            margin-bottom: 20px;
             line-height: 1.6;
-            margin-bottom: 30px;
         }
         .btn {
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -76,14 +59,51 @@
             border-radius: 12px;
             font-size: 18px;
             font-weight: 600;
-            text-decoration: none;
-            display: inline-block;
             cursor: pointer;
             transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            margin: 10px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
         }
         .btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        .welcome-message {
+            background: #d1fae5;
+            border: 1px solid #a7f3d0;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            color: #065f46;
+        }
+        .features-preview {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .features-preview h3 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+        }
+        .features-preview ul {
+            list-style: none;
+            padding: 0;
+        }
+        .features-preview li {
+            margin: 8px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .features-preview li::before {
+            content: "✓";
+            color: #10b981;
+            font-weight: bold;
+            position: absolute;
+            left: 0;
         }
     </style>
 </head>
@@ -95,13 +115,34 @@
             Congratulations! Your WillpowerFitness AI Elite membership is now active. 
             Your AI personal trainer is ready to help you achieve your fitness goals.
         </p>
+        
+        <div class="welcome-message">
+            <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px;">🎉 Welcome to Elite Membership!</div>
+            <div>Your AI trainer is now active and ready to help you achieve your goals.</div>
+        </div>
+
+        <div class="features-preview">
+            <h3>Your Elite Features Are Now Active:</h3>
+            <ul>
+                <li>24/7 AI Personal Trainer Chat</li>
+                <li>Custom Workout Plans</li>
+                <li>Personalized Nutrition Coaching</li>
+                <li>Progress Analytics Dashboard</li>
+                <li>Real-time Form Analysis</li>
+                <li>Recovery & Wellness Monitoring</li>
+                <li>Welcome WillpowerFitnessAI Apparel (Shipping Soon)</li>
+            </ul>
+        </div>
+
         <p>
             <strong>What's Next:</strong><br>
             • Check your email for welcome instructions<br>
             • Your welcome fitness apparel is being prepared<br>
             • Start chatting with your AI trainer below
         </p>
-        <a href="/" class="btn">Start Training with AI Coach</a>
+        
+        <a href="/dashboard" class="btn">Start Training with AI Coach</a>
+        <a href="/onboarding" class="btn" style="background: linear-gradient(135deg, #6b7280, #4b5563);">View Consultation Summary</a>
     </div>
 
     <script>
@@ -110,22 +151,24 @@
         const sessionId = urlParams.get('session_id');
         const customerId = urlParams.get('customer_id');
         
-        if (sessionId) {
+        if (sessionId && customerId) {
             console.log('Payment successful, session:', sessionId);
+            console.log('Customer ID:', customerId);
             
-            // Optional: Show animated success message
+            // Store customer ID for dashboard access
+            localStorage.setItem('willpower_customer_id', customerId);
+            localStorage.setItem('willpower_member_status', 'active');
+            localStorage.setItem('willpower_trial_start', new Date().toISOString());
+            
+            // Show success animation
             setTimeout(() => {
-                const welcomeMsg = document.createElement('div');
-                welcomeMsg.innerHTML = `
-                    <div style="background: #d1fae5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 15px; margin: 20px 0; color: #065f46; text-align: center;">
-                        <div style="font-size: 1.1rem; font-weight: 600;">🎉 Welcome to Elite Membership!</div>
-                        <div style="margin-top: 5px;">Your AI trainer is now active and ready to help you achieve your goals.</div>
-                    </div>
-                `;
-                document.querySelector('.success-container').appendChild(welcomeMsg);
-            }, 1000);
+                const container = document.querySelector('.success-container');
+                container.style.transform = 'scale(1.02)';
+                setTimeout(() => {
+                    container.style.transform = 'scale(1)';
+                }, 200);
+            }, 500);
         } else {
-            // Handle case where user lands here without proper payment
             console.log('No session ID found - redirecting to onboarding');
             setTimeout(() => {
                 window.location.href = '/onboarding';
