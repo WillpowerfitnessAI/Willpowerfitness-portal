@@ -814,7 +814,8 @@ async function calculateWorkoutStreak(userId) {
         streak++;
       } else if (i > 0) { // Allow for today to not have a workout yet
         break;
-      }```python    }
+      }
+    }
 
     return streak;
   } catch (error) {
