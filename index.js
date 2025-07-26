@@ -425,7 +425,14 @@ app.post('/api/chat', async (req, res) => {
 
     messages.push({ role: 'user', content: message });
 
-    const aiResponse = await getChatResponse(messages, context);
+    // Add fitness coaching context
+    const fitnessContext = {
+      ...context,
+      mode: 'fitness_coaching',
+      userQuestion: message
+    };
+
+    const aiResponse = await getChatResponse(messages, fitnessContext);
 
     if (!aiResponse || aiResponse.trim() === '') {
       throw new Error('Empty response from AI');

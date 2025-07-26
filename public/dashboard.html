@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -250,13 +249,13 @@
                 <span id="member-name">Loading...</span>
             </div>
         </div>
-        
+
         <div class="chat-container">
             <div class="chat-box" id="chat-box">
                 <div class="welcome-message">
                     <h2>Welcome to Your Elite AI Training Experience!</h2>
                     <p>I'm your dedicated AI personal trainer, ready to help you achieve your fitness goals. Ask me anything about workouts, nutrition, progress tracking, or just say hello!</p>
-                    
+
                     <div class="quick-actions">
                         <div class="action-card" onclick="sendQuickMessage('Create a workout plan for today')">
                             <div class="action-icon">💪</div>
@@ -281,7 +280,7 @@
                     </div>
                 </div>
             </div>
-            
+
             <div class="typing-indicator" id="typing-indicator">
                 <span>Your AI trainer is thinking</span>
                 <div class="typing-dots">
@@ -290,7 +289,7 @@
                     <span></span>
                 </div>
             </div>
-            
+
             <div class="chat-input-area">
                 <textarea 
                     id="chat-input" 
@@ -311,7 +310,7 @@
             // Get customer info from localStorage or URL
             customerId = localStorage.getItem('willpower_customer_id') || 
                         new URLSearchParams(window.location.search).get('customer_id');
-            
+
             if (!customerId) {
                 // Redirect to onboarding if no customer ID
                 window.location.href = '/onboarding';
@@ -351,7 +350,7 @@
         async function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
-            
+
             if (!message) return;
 
             // Clear input and disable send button
@@ -373,7 +372,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         message: message, 
-                        userId: customerId 
+                        userId: customerId,
+                        context: 'fitness_coaching' // Ensure proper context
                     })
                 });
 
@@ -402,11 +402,11 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message user-message';
             messageDiv.textContent = message;
-            
+
             // Remove welcome message if it exists
             const welcomeMsg = chatBox.querySelector('.welcome-message');
             if (welcomeMsg) welcomeMsg.remove();
-            
+
             chatBox.appendChild(messageDiv);
             scrollToBottom();
         }
@@ -415,19 +415,19 @@
             const chatBox = document.getElementById('chat-box');
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ai-message';
-            
+
             // Simple markdown-like formatting
             const formattedMessage = message
                 .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/\n/g, '<br>');
-            
+
             messageDiv.innerHTML = formattedMessage;
-            
+
             // Remove welcome message if it exists
             const welcomeMsg = chatBox.querySelector('.welcome-message');
             if (welcomeMsg) welcomeMsg.remove();
-            
+
             chatBox.appendChild(messageDiv);
             scrollToBottom();
         }
