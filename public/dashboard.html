@@ -290,6 +290,59 @@
                 </div>
             </div>
 
+            <!-- Real-time Workout Tracking -->
+                        <div id="workout-tracker" style="display: none; margin-top: 20px; padding: 20px; background: #f0f9ff; border-radius: 15px; border: 2px solid #0ea5e9;">
+                            <h3 style="color: #0ea5e9; margin-bottom: 15px;">🏃‍♂️ Active Workout Session</h3>
+                            <div id="current-exercise" style="margin-bottom: 15px;">
+                                <strong>Current Exercise:</strong> <span id="exercise-name">-</span>
+                            </div>
+                            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+                                <div>
+                                    <label for="weight-input" style="display: block; margin-bottom: 5px;">Weight (lbs):</label>
+                                    <input type="number" id="weight-input" style="width: 80px; padding: 5px;">
+                                </div>
+                                <div>
+                                    <label for="reps-input" style="display: block; margin-bottom: 5px;">Reps:</label>
+                                    <input type="number" id="reps-input" style="width: 60px; padding: 5px;">
+                                </div>
+                                <div>
+                                    <label for="rpe-input" style="display: block; margin-bottom: 5px;">RPE (1-10):</label>
+                                    <select id="rpe-input" style="width: 80px; padding: 5px;">
+                                        <option value="">-</option>
+                                        <option value="1">1 - Very Easy</option>
+                                        <option value="2">2 - Easy</option>
+                                        <option value="3">3 - Light</option>
+                                        <option value="4">4 - Moderate</option>
+                                        <option value="5">5 - Moderate+</option>
+                                        <option value="6">6 - Hard</option>
+                                        <option value="7">7 - Very Hard</option>
+                                        <option value="8">8 - Extremely Hard</option>
+                                        <option value="9">9 - Near Max</option>
+                                        <option value="10">10 - Maximum</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Form Feedback Section -->
+                            <div style="margin-bottom: 15px;">
+                                <label for="form-feedback" style="display: block; margin-bottom: 5px;">How did that set feel? (Form, difficulty, etc.):</label>
+                                <textarea id="form-feedback" placeholder="e.g., 'Felt good form on first 8 reps, had to grind last 2'" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd; resize: vertical; height: 60px;"></textarea>
+                            </div>
+
+                            <div style="display: flex; gap: 10px;">
+                                <button id="log-set-btn" class="cta-button" style="flex: 1; font-size: 14px; padding: 10px 15px;">Log Set</button>
+                                <button id="end-workout-btn" class="cta-button" style="flex: 1; font-size: 14px; padding: 10px 15px; background: #dc2626;">End Workout</button>
+                            </div>
+
+                            <div id="workout-summary" style="margin-top: 15px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                <strong>Today's Sets:</strong>
+                                <div id="sets-logged"></div>
+                            </div>
+                        </div>
+
+                        <div class="member-features" style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 15px; border: 2px solid #e2e8f0;">
+                            <h3 style="color: #1e3c72; margin-bottom: 15px;">🏋️ Elite Member Features</h3>
+
             <div class="chat-input-area">
                 <textarea 
                     id="chat-input" 
@@ -302,6 +355,242 @@
     </div>
 
     <script>
+          // Initialize chat functionality and workout tracking
+          let currentUserId = localStorage.getItem('userId') || null;
+          let currentWorkout = null;
+          let workoutSets = [];
+
+          // Check authentication on page load
+          document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const email = urlParams.get('email') || localStorage.getItem('userEmail');
+
+            if (!email) {
+              // Redirect to login if no user info
+              window.location.href = '/onboarding';
+              return;
+            }
+
+            // Set user info
+            currentUserId = email;
+            localStorage.setItem('userEmail', email);
+            localStorage.setItem('userId', email);
+
+            // Load user's workout history
+            loadWorkoutHistory();
+          });
+
+          // Workout tracking functions  
+          function startWorkout(workoutType = 'strength') {
+            currentWorkout = {
+              type: workoutType,
+              startTime: new Date(),
+              exercises: []
+            };
+            workoutSets = [];
+
+            document.getElementById('workout-tracker').style.display = 'block';
+            document.getElementById('exercise-name').textContent = 'Ready to start';
+
+            // Add workout start button
+            const startBtn = document.createElement('div');
+            startBtn.innerHTML = `
+              <div style="text-align: center; margin: 15px 0;">
+                <input type="text" id="exercise-input" placeholder="Enter exercise name (e.g., Bench Press)" style="width: 200px; padding: 8px; margin-right: 10px;">
+                <button onclick="setCurrentExercise()" class="cta-button" style="padding: 8px 15px; font-size: 14px;">Start Exercise</button>
+              </div>
+            `;
+            document.getElementById('workout-tracker').insertBefore(startBtn, document.getElementById('current-exercise').nextSibling);
+          }
+
+          function setCurrentExercise() {
+            const exerciseName = document.getElementById('exercise-input').value.trim();
+            if (exerciseName) {
+              document.getElementById('exercise-name').textContent = exerciseName;
+              document.getElementById('exercise-input').style.display = 'none';
+            }
+          }
+
+          // Enhanced log set function with AI feedback
+          async function logSet() {
+            const weight = document.getElementById('weight-input').value;
+            const reps = document.getElementById('reps-input').value;
+            const rpe = document.getElementById('rpe-input').value;
+            const formFeedback = document.getElementById('form-feedback').value;
+            const exerciseName = document.getElementById('exercise-name').textContent;
+
+            if (!weight || !reps || !rpe || exerciseName === '-' || exerciseName === 'Ready to start') {
+              alert('Please fill in all fields and set an exercise name');
+              return;
+            }
+
+            const setData = {
+              exercise: exerciseName,
+              weight: parseFloat(weight),
+              reps: parseInt(reps),
+              rpe: parseInt(rpe),
+              formFeedback: formFeedback,
+              timestamp: new Date()
+            };
+
+            workoutSets.push(setData);
+
+            // Update UI
+            updateSetsDisplay();
+
+            // Get AI feedback if form feedback provided
+            if (formFeedback.trim()) {
+              await getAIFormFeedback(exerciseName, formFeedback, rpe, weight, reps);
+            }
+
+            // Get RPE-based recommendations
+            await getRPERecommendations(setData);
+
+            // Clear form for next set
+            document.getElementById('form-feedback').value = '';
+          }
+
+          async function getAIFormFeedback(exercise, feedback, rpe, weight, reps) {
+            try {
+              const response = await fetch('/api/ai-workout/form-analysis', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: currentUserId,
+                  exerciseName: exercise,
+                  formFeedback: `RPE: ${rpe}/10, Weight: ${weight}lbs, Reps: ${reps}. User feedback: ${feedback}`
+                })
+              });
+
+              if (response.ok) {
+                const result = await response.json();
+                showAIFeedback('Form Analysis', result.analysis);
+              }
+            } catch (error) {
+              console.error('Form analysis error:', error);
+            }
+          }
+
+          async function getRPERecommendations(setData) {
+            try {
+              const response = await fetch('/api/ai-workout/rpe-feedback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: currentUserId,
+                  exerciseData: {
+                    name: setData.exercise,
+                    weight: setData.weight,
+                    sets: 1,
+                    reps: setData.reps
+                  },
+                  rpeRating: setData.rpe,
+                  notes: setData.formFeedback
+                })
+              });
+
+              if (response.ok) {
+                const result = await response.json();
+                if (result.nextWeight !== setData.weight) {
+                  showAIFeedback('Weight Recommendation', 
+                    `Based on your RPE of ${setData.rpe}, I recommend ${result.nextWeight}lbs for your next set. ${result.message}`);
+
+                  // Auto-update weight suggestion
+                  document.getElementById('weight-input').value = result.nextWeight;
+                }
+              }
+            } catch (error) {
+              console.error('RPE feedback error:', error);
+            }
+          }
+
+          function showAIFeedback(title, message) {
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.className = 'ai-feedback';
+            feedbackDiv.style.cssText = `
+              margin: 10px 0;
+              padding: 15px;
+              background: linear-gradient(135deg, #667eea, #764ba2);
+              color: white;
+              border-radius: 10px;
+              animation: slideIn 0.3s ease;
+            `;
+            feedbackDiv.innerHTML = `
+              <strong>🤖 ${title}:</strong><br>
+              ${message}
+              <button onclick="this.parentElement.remove()" style="float: right; background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer;">×</button>
+            `;
+
+            document.getElementById('chat-box').appendChild(feedbackDiv);
+            document.getElementById('chat-box').scrollTop = document.getElementById('chat-box').scrollHeight;
+          }
+
+          function updateSetsDisplay() {
+            const setsDiv = document.getElementById('sets-logged');
+            setsDiv.innerHTML = workoutSets.map((set, index) => `
+              <div style="margin: 5px 0; padding: 8px; background: #f8fafc; border-radius: 5px; border-left: 3px solid #667eea;">
+                <strong>${set.exercise}</strong>: ${set.weight}lbs × ${set.reps} reps (RPE: ${set.rpe})
+                ${set.formFeedback ? `<br><em style="font-size: 0.9em; color: #666;">"${set.formFeedback}"</em>` : ''}
+              </div>
+            `).join('');
+          }
+
+          async function endWorkout() {
+            if (workoutSets.length === 0) {
+              alert('No sets logged yet!');
+              return;
+            }
+
+            const workoutData = {
+              type: currentWorkout.type,
+              startTime: currentWorkout.startTime,
+              endTime: new Date(),
+              sets: workoutSets,
+              totalSets: workoutSets.length,
+              exercises: [...new Set(workoutSets.map(s => s.exercise))],
+              avgRPE: workoutSets.reduce((sum, s) => sum + s.rpe, 0) / workoutSets.length
+            };
+
+            try {
+              // Log workout to database
+              const response = await fetch('/api/log-workout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: currentUserId,
+                  workoutData: workoutData
+                })
+              });
+
+              if (response.ok) {
+                showAIFeedback('Workout Complete!', 
+                  `Great job! You completed ${workoutData.totalSets} sets across ${workoutData.exercises.length} exercises with an average RPE of ${workoutData.avgRPE.toFixed(1)}. Your AI coach is analyzing your performance for next time.`);
+
+                // Reset workout tracker
+                document.getElementById('workout-tracker').style.display = 'none';
+                currentWorkout = null;
+                workoutSets = [];
+              }
+            } catch (error) {
+              console.error('Workout logging error:', error);
+            }
+          }
+
+          // Add event listeners
+          document.getElementById('log-set-btn').addEventListener('click', logSet);
+          document.getElementById('end-workout-btn').addEventListener('click', endWorkout);
+
+          // Add start workout button to member features
+          const memberFeatures = document.querySelector('.member-features');
+          if (memberFeatures) {
+            const startWorkoutBtn = document.createElement('button');
+            startWorkoutBtn.className = 'cta-button';
+            startWorkoutBtn.style.cssText = 'width: 100%; margin-bottom: 15px; background: #16a34a;';
+            startWorkoutBtn.textContent = '🏋️ Start Workout Session';
+            startWorkoutBtn.addEventListener('click', () => startWorkout());
+            memberFeatures.insertBefore(startWorkoutBtn, memberFeatures.firstElementChild.nextSibling);
+          }
+
         let customerId = null;
         let chatHistory = [];
 
@@ -443,6 +732,37 @@
         function scrollToBottom() {
             const chatBox = document.getElementById('chat-box');
             chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        async function loadWorkoutHistory() {
+          // Fetch workout history from API
+          try {
+            const response = await fetch(`/api/workouts?userId=${currentUserId}`);
+            if (response.ok) {
+              const workouts = await response.json();
+              displayWorkoutHistory(workouts);
+            }
+          } catch (error) {
+            console.error('Failed to load workout history', error);
+          }
+        }
+
+        function displayWorkoutHistory(workouts) {
+          // Display workout history in chat box
+          if (workouts.length > 0) {
+            workouts.forEach(workout => {
+              // Format workout details
+              const workoutDetails = `
+                <strong>${workout.type}</strong> - 
+                ${new Date(workout.startTime).toLocaleDateString()}
+              `;
+
+              // Add workout message to chat box
+              addAIMessage(workoutDetails);
+            });
+          } else {
+            addAIMessage('No workout history found.');
+          }
         }
     </script>
 </body>

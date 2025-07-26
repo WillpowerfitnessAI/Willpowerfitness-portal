@@ -380,7 +380,41 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Chat endpoint with enhanced AI
+// User authentication endpoint
+app.post('/api/authenticate', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    // Simple email-based authentication for demo
+    // In production, you'd hash passwords and use proper auth
+    const user = await query(
+      'SELECT * FROM user_profiles WHERE email = $1 AND subscription_status = $2',
+      [email, 'active']
+    );
+    
+    if (user.rows.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials or inactive subscription' });
+    }
+    
+    const userProfile = user.rows[0];
+    
+    res.json({
+      success: true,
+      user: {
+        id: userProfile.id,
+        email: userProfile.email,
+        name: userProfile.name,
+        goal: userProfile.goal,
+        subscriptionStatus: userProfile.subscription_status
+      }
+    });
+  } catch (error) {
+    console.error('Authentication error:', error);
+    res.status(500).json({ error: 'Authentication failed' });
+  }
+});
+
+// Chat endpoint with enhanced AI and conversation memory
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, userId } = req.body;
@@ -388,6 +422,9 @@ app.post('/api/chat', async (req, res) => {
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
+    
+    // Get conversation context for continuity
+    const conversationHistory = userId ? await getConversationContext(userId, 5) : [];
 
     // Get comprehensive user profile and training data for Enhanced AI Intelligence
     const userProfile = await getUserProfile(userId);
@@ -406,6 +443,19 @@ app.post('/api/chat', async (req, res) => {
       [userId]
     ).catch(() => ({ rows: [] }));
 
+    // Build conversation context for continuity
+    let contextualPrompt = message;
+    if (conversationHistory.length > 0) {
+      const recentContext = conversationHistory.slice(-3).map(conv => 
+        `User: ${conv.user_message}\nAI: ${conv.ai_response}`
+      ).join('\n\n');
+      
+      contextualPrompt = `CONVERSATION CONTEXT (keep this in mind for continuity):
+${recentContext}
+
+CURRENT MESSAGE: ${message}`;
+    }
+
     // Enhanced user context with training intelligence data
     const userContext = {
       profile: userProfile,
@@ -413,6 +463,7 @@ app.post('/api/chat', async (req, res) => {
       recentWorkouts: recentWorkouts.rows,
       progressData: progressData.rows,
       rpeHistory: rpeData.rows,
+      conversationHistory: conversationHistory,
       enhancedFeatures: {
         dynamicAdjustments: true,
         formAnalysis: true,
@@ -494,6 +545,53 @@ app.put('/api/profile/:userId', async (req, res) => {
     res.json({ success: true, data: profileData });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update profile' });
+  }
+});
+
+// Workout logging endpoint
+app.post('/api/log-workout', async (req, res) => {
+  try {
+    const { userId, workoutData } = req.body;
+    
+    if (!userId || !workoutData) {
+      return res.status(400).json({ error: 'User ID and workout data required' });
+    }
+    
+    // Store workout in database
+    const result = await query(
+      'INSERT INTO workouts (user_id, workout_data, completed_at) VALUES ($1, $2, NOW()) RETURNING *',
+      [userId, JSON.stringify(workoutData)]
+    );
+    
+    // Generate AI workout analysis
+    const analysisPrompt = {
+      role: "system", 
+      content: `You are the user's dedicated AI training partner providing post-workout analysis.
+
+      WORKOUT COMPLETED:
+      ${JSON.stringify(workoutData, null, 2)}
+
+      Provide encouraging analysis covering:
+      - Performance highlights from today's session
+      - RPE patterns and what they indicate
+      - Progression opportunities for next workout
+      - Recovery recommendations based on intensity
+      - Motivation for continued progress
+
+      Keep it personal, encouraging, and actionable.`
+    };
+    
+    const aiAnalysis = await getChatResponse([analysisPrompt]);
+    
+    res.json({
+      success: true,
+      workoutId: result.rows[0].id,
+      aiAnalysis,
+      message: 'Workout logged successfully'
+    });
+  } catch (error) {
+    console.error('Workout logging error:', error);
+    res.status(500).json({ error: 'Failed to log workout' });
   }
 });
 
@@ -1431,6 +1529,11 @@ app.post('/api/create-subscription', async (req, res) => {
       timestamp: new Date().toISOString()
     });
   }
+});
+
+// Serve login page
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
 // Serve onboarding page
