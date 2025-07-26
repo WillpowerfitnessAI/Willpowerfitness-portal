@@ -814,11 +814,10 @@ async function calculateWorkoutStreak(userId) {
         streak++;
       } else if (i > 0) { // Allow for today to not have a workout yet
         break;
-      }
+      }```python
     }
 
     return streak;
-```python
   } catch (error) {
     return 0;
   }
@@ -1188,7 +1187,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
             printful_order_id: order.id
           });
 
-          console.log(`Welcome t-shirt ordered for customer ${customerId}`);
+          console.log(`Welcome shirt ordered for customer ${customerId}`);
         } catch (shirtError) {
           console.error('Failed to send welcome shirt:', shirtError);
         }
@@ -1493,7 +1492,7 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
           await confirmOrder(order.id);
           await updateUserProfile(customerId, { welcome_shirt_sent: true });
 
-          console.log(`✓ Welcome shirt ordered for ${userProfile.name}`);
+          console.log(`Welcome shirt ordered for ${userProfile.name}`);
         } catch (shirtError) {
           console.error('Welcome shirt error:', shirtError);
         }
