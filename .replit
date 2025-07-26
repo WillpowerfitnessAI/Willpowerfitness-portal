@@ -19,7 +19,7 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "WillpowerFitness Complete Pipeline"
+runButton = "Run"
 
 [[workflows.workflow]]
 name = "Start Server"
@@ -115,6 +115,15 @@ args = "pkill -f \"node index.js\" || true"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "sleep 3"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "Run"
+author = 42978586
+mode = "sequential"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
