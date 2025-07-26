@@ -275,7 +275,7 @@ app.get('/', (req, res) => {
               padding: 16px 20px;
               font-size: 16px;
             }
-            
+
             input, select, textarea {
               font-size: 16px !important; /* Prevents zoom on iOS */
               padding: 12px;
@@ -380,81 +380,86 @@ app.get('/', (req, res) => {
   `);
 });
 
-// Chat endpoint - restricted to paying members only
+// Chat endpoint with enhanced AI
 app.post('/api/chat', async (req, res) => {
   try {
     const { message, userId } = req.body;
 
-    if (!message || !userId) {
-      return res.status(400).json({ error: 'Message and userId required' });
+    if (!message) {
+      return res.status(400).json({ error: 'Message is required' });
     }
 
-    // Import relationship builder
-    const { relationshipBuilder } = await import('./lib/relationshipBuilder.js');
-
-    // Check if user has active subscription
+    // Get comprehensive user profile and training data for Enhanced AI Intelligence
     const userProfile = await getUserProfile(userId);
+    const recentWorkouts = await query(
+      'SELECT workout_data, completed_at FROM workouts WHERE user_id = $1 ORDER BY completed_at DESC LIMIT 5',
+      [userId]
+    ).catch(() => ({ rows: [] }));
 
-    if (!userProfile || userProfile.subscription_status !== 'active') {
-      return res.json({ 
-        response: "🔒 **Hey there, future training partner!** 👋\n\nI'd love to be your dedicated AI fitness coach - someone who learns your goals, celebrates your wins, and supports you 24/7. But first, let's get you set up with WillpowerFitness AI Elite membership!\n\n**When you join, I become YOUR personal AI coach:**\n• 💪 I'll learn your preferences and adapt to your style\n• 🎯 Custom workout plans that evolve with your progress\n• 🍎 Nutrition guidance tailored to your lifestyle\n• 📈 I'll track every victory and help you through plateaus\n• 👕 Welcome gear to start your journey right\n• 🤝 24/7 support whenever you need motivation\n\n[Let's start your journey together!](/onboarding) I'm excited to become your training partner! 🚀",
-        requiresUpgrade: true
-      });
-    }
+    const progressData = await query(
+      'SELECT metrics, recorded_at FROM progress_tracking WHERE user_id = $1 ORDER BY recorded_at DESC LIMIT 3',
+      [userId]  
+    ).catch(() => ({ rows: [] }));
 
-    // Get personalized relationship context
-    const personalizedContext = await relationshipBuilder.getPersonalizedContext(userId);
-    const relationshipContext = relationshipBuilder.generateResponseContext(personalizedContext);
+    const rpeData = await query(
+      'SELECT exercise_name, rpe_rating, weight, timestamp FROM rpe_tracking WHERE user_id = $1 ORDER BY timestamp DESC LIMIT 10',
+      [userId]
+    ).catch(() => ({ rows: [] }));
 
-    // Get conversation history
-    const recentHistory = await getConversationHistory(userId, 8);
-
-    // Enhanced context with relationship building
-    const context = {
+    // Enhanced user context with training intelligence data
+    const userContext = {
       profile: userProfile,
-      recentConversations: recentHistory.length,
-      relationship: personalizedContext,
-      relationshipContext: relationshipContext
+      userId: userId,
+      recentWorkouts: recentWorkouts.rows,
+      progressData: progressData.rows,
+      rpeHistory: rpeData.rows,
+      enhancedFeatures: {
+        dynamicAdjustments: true,
+        formAnalysis: true,
+        rpeTracking: true,
+        injuryPrevention: true,
+        progressTracking: true
+      }
     };
 
-    // Get fast response from Groq with relationship awareness
-    const messages = recentHistory.map(conv => [
-      { role: 'user', content: conv.user_message },
-      { role: 'assistant', content: conv.ai_response }
-    ]).flat();
+    // Detect workout-related queries to showcase Enhanced AI Intelligence
+    const workoutKeywords = ['workout', 'exercise', 'training', 'form', 'weight', 'reps', 'sets', 'muscle', 'strength', 'cardio', 'rpe', 'injury', 'sore', 'pain', 'progress'];
+    const isWorkoutQuery = workoutKeywords.some(keyword => 
+      message.toLowerCase().includes(keyword)
+    );
 
-    messages.push({ role: 'user', content: message });
+    let enhancedPrompt = message;
+    if (isWorkoutQuery && userContext.recentWorkouts.length > 0) {
+      enhancedPrompt = `${message}
 
-    // Add fitness coaching context
-    const fitnessContext = {
-      ...context,
-      mode: 'fitness_coaching',
-      userQuestion: message
-    };
+CONTEXT: This user has Enhanced AI Workout Intelligence features available. Use their training data to provide advanced, personalized coaching:
+- Recent workout performance: ${JSON.stringify(userContext.recentWorkouts.slice(0, 2))}
+- RPE history: ${JSON.stringify(userContext.rpeHistory.slice(0, 5))}
+- Progress trends: ${JSON.stringify(userContext.progressData)}
 
-    const aiResponse = await getChatResponse(messages, fitnessContext);
-
-    if (!aiResponse || aiResponse.trim() === '') {
-      throw new Error('Empty response from AI');
+Demonstrate your Enhanced AI capabilities by referencing their specific data, suggesting dynamic adjustments, and providing expert-level insights that showcase why this is premium AI coaching.`;
     }
 
-    // Update relationship insights based on this interaction
-    await relationshipBuilder.updateClientPersonality(userId, {
-      message,
-      response: aiResponse,
-      timestamp: new Date().toISOString()
-    });
+    const response = await getChatResponse([
+      { role: "user", content: enhancedPrompt }
+    ], userContext);
 
-    // Store conversation in memory
-    await storeConversation(userId, message, aiResponse, context);
+    // Store conversation with enhanced context
+    if (userId) {
+      await query(
+        'INSERT INTO conversations (user_id, user_message, ai_response, context, timestamp) VALUES ($1, $2, $3, $4, NOW())',
+        [userId, message, response, JSON.stringify({ isWorkoutQuery, dataUsed: isWorkoutQuery })]
+      );
+    }
 
     res.json({ 
-      response: aiResponse,
-      relationshipStage: personalizedContext.relationshipStage
+      response,
+      enhancedFeatures: userContext.enhancedFeatures,
+      contextUsed: isWorkoutQuery ? 'Enhanced AI Workout Intelligence activated' : 'Standard AI response'
     });
   } catch (error) {
     console.error('Chat error:', error);
-    res.status(500).json({ error: 'Failed to process chat message' });
+    res.status(500).json({ error: 'Failed to process message' });
   }
 });
 
@@ -522,7 +527,7 @@ app.post('/api/ai-workout/adjust', async (req, res) => {
     }
 
     const adjustment = await workoutAI.adjustWorkoutDynamically(userId, currentWorkout, performanceData);
-    
+
     res.json({
       success: true,
       ...adjustment,
@@ -550,7 +555,7 @@ app.post('/api/ai-workout/form-analysis', async (req, res) => {
     }
 
     const analysis = await workoutAI.analyzeExerciseForm(userId, exerciseName, formFeedback, videoDescription);
-    
+
     res.json({
       success: true,
       exercise: exerciseName,
@@ -584,7 +589,7 @@ app.post('/api/ai-workout/rpe-feedback', async (req, res) => {
     }
 
     const feedback = await workoutAI.processRPEFeedback(userId, exerciseData, rpeRating, notes);
-    
+
     res.json({
       success: true,
       exercise: exerciseData.name,
@@ -613,7 +618,7 @@ app.post('/api/ai-workout/injury-analysis', async (req, res) => {
     }
 
     const analysis = await workoutAI.analyzeInjuryRisk(userId, [], currentSymptoms || []);
-    
+
     res.json({
       success: true,
       ...analysis,
@@ -645,7 +650,7 @@ app.post('/api/progress/record', async (req, res) => {
     }
 
     const result = await progressTracker.recordProgressMetrics(userId, metrics);
-    
+
     res.json({
       success: true,
       ...result,
@@ -673,7 +678,7 @@ app.post('/api/progress/report', async (req, res) => {
     }
 
     const report = await progressTracker.generateProgressReport(userId, timeframe || '30_days');
-    
+
     res.json({
       success: true,
       report,
@@ -701,7 +706,7 @@ app.post('/api/progress/photo-analysis', async (req, res) => {
     }
 
     const analysis = await progressTracker.analyzeProgressPhotos(userId, photoData);
-    
+
     res.json({
       success: true,
       ...analysis,
@@ -729,7 +734,7 @@ app.post('/api/progress/milestones', async (req, res) => {
     }
 
     const milestones = await progressTracker.trackGoalMilestones(userId, currentMetrics || {});
-    
+
     res.json({
       success: true,
       ...milestones,
@@ -795,24 +800,25 @@ async function calculateWorkoutStreak(userId) {
     // Simple streak calculation - consecutive days with workouts
     let streak = 0;
     const today = new Date();
-    
+
     for (let i = 0; i < 30; i++) {
       const checkDate = new Date(today);
       checkDate.setDate(checkDate.getDate() - i);
-      
+
       const hasWorkout = workouts.some(w => {
         const workoutDate = new Date(w.completed_at);
         return workoutDate.toDateString() === checkDate.toDateString();
       });
-      
+
       if (hasWorkout) {
         streak++;
       } else if (i > 0) { // Allow for today to not have a workout yet
         break;
       }
     }
-    
+
     return streak;
+```python
   } catch (error) {
     return 0;
   }
@@ -838,7 +844,7 @@ app.post('/api/nutrition/meal-plan', async (req, res) => {
     }
 
     const mealPlan = await nutritionAI.generateMealPlan(userId, preferences || {});
-    
+
     res.json({
       success: true,
       ...mealPlan,
@@ -866,7 +872,7 @@ app.post('/api/nutrition/analyze-food', async (req, res) => {
     }
 
     const analysis = await nutritionAI.analyzeFoodLog(userId, foodItems, photoDescription);
-    
+
     res.json({
       success: true,
       ...analysis,
@@ -894,7 +900,7 @@ app.post('/api/nutrition/supplements', async (req, res) => {
     }
 
     const advice = await nutritionAI.generateSupplementAdvice(userId, currentSupplements || []);
-    
+
     res.json({
       success: true,
       ...advice,
@@ -926,7 +932,7 @@ app.post('/api/recovery/assess', async (req, res) => {
     }
 
     const assessment = await recoveryWellness.assessDailyRecovery(userId, recoveryData);
-    
+
     res.json({
       success: true,
       ...assessment,
@@ -954,7 +960,7 @@ app.post('/api/recovery/sleep-analysis', async (req, res) => {
     }
 
     const analysis = await recoveryWellness.analyzeSleepPatterns(userId, sleepData);
-    
+
     res.json({
       success: true,
       ...analysis,
@@ -982,7 +988,7 @@ app.post('/api/recovery/stress-assessment', async (req, res) => {
     }
 
     const assessment = await recoveryWellness.assessStressWellness(userId, stressData);
-    
+
     res.json({
       success: true,
       ...assessment,
@@ -1273,28 +1279,28 @@ app.post('/api/consultation', async (req, res) => {
         role: "system",
         content: `You are an elite fitness consultant conducting an assessment for ${userData.name}. 
         Goal: ${userData.goal} | Experience: ${userData.experience}
-        
+
         FIRST QUESTION: Ask about their weekly schedule - what days and times they can realistically commit to working out. Be conversational and encouraging.`
       };
     } else if (exchangeCount === 1) {
       consultationPrompt = {
         role: "system", 
         content: `Continue the consultation for ${userData.name}. Previous context: ${conversationContext}
-        
+
         SECOND QUESTION: Now ask about their equipment access (home gym, commercial gym, outdoor spaces) and any physical limitations, injuries, or health considerations that would affect their training program.`
       };
     } else if (exchangeCount === 2) {
       consultationPrompt = {
         role: "system",
         content: `Continue consultation for ${userData.name}. Context so far: ${conversationContext}
-        
+
         THIRD QUESTION: Ask about their current fitness routine, favorite exercises, and what they want to change or improve about their current approach.`
       };
     } else {
       consultationPrompt = {
         role: "system", 
         content: `FINAL CONSULTATION STAGE for ${userData.name}. Full conversation: ${conversationContext}
-        
+
         Based on all information gathered, provide a personalized summary of their fitness needs and enthusiastically recommend WillpowerFitness AI Elite membership. Highlight how the AI coach will address their specific goal (${userData.goal}) given their ${userData.experience} experience level. Mention: personalized AI trainer, custom workout/nutrition plans, 24/7 support, progress analytics, and complimentary WillpowerFitnessAI welcome apparel.`
       };
     }
@@ -1313,7 +1319,7 @@ app.post('/api/consultation', async (req, res) => {
     // Update lead with new exchange
     const currentMessage = existingConversation.rows.length > 0 ? 
       existingConversation.rows[0].message || '' : '';
-    
+
     await query(
       `UPDATE leads SET 
        message = $1,
@@ -1409,11 +1415,11 @@ app.post('/api/create-subscription', async (req, res) => {
     });
   } catch (error) {
     console.error('Subscription creation error:', error);
-    
+
     // Provide more specific error messages
     let errorMessage = 'Failed to create subscription';
     let errorDetails = error.message;
-    
+
     if (error.message?.includes('Stripe')) {
       errorMessage = 'Payment system error';
       errorDetails = 'Unable to process payment. Please try again or contact support.';
@@ -1421,7 +1427,7 @@ app.post('/api/create-subscription', async (req, res) => {
       errorMessage = 'Connection error';
       errorDetails = 'Please check your connection and try again.';
     }
-    
+
     res.status(500).json({ 
       error: errorMessage,
       details: errorDetails,
@@ -1507,9 +1513,9 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
 app.post('/api/test-printful', async (req, res) => {
   try {
     const { customerName = 'Test Customer', size = 'M' } = req.body;
-    
+
     console.log('Testing Printful integration...');
-    
+
     // Test customer info
     const testCustomerInfo = {
       name: customerName,
@@ -1524,12 +1530,12 @@ app.post('/api/test-printful', async (req, res) => {
 
     // Create test order (this will create a real order but not confirm it)
     const order = await createWelcomeShirtOrder(testCustomerInfo, size);
-    
+
     console.log('Printful test order created:', order.id);
-    
+
     // Note: We're NOT calling confirmOrder() so this won't actually ship
     // The order will remain in draft status in Printful
-    
+
     res.json({
       success: true,
       message: 'Printful integration test successful!',
@@ -1542,7 +1548,7 @@ app.post('/api/test-printful', async (req, res) => {
         costs: order.costs
       }
     });
-    
+
   } catch (error) {
     console.error('Printful test error:', error);
     res.status(500).json({ 
