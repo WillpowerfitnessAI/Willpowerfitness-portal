@@ -217,15 +217,19 @@ app.get('/', (req, res) => {
           }
 
           @media (max-width: 768px) {
-            body { padding: 10px; }
+            body { 
+              padding: 5px; 
+              overflow-x: hidden;
+            }
             .container { 
               margin: 0; 
-              height: calc(100vh - 20px);
+              height: calc(100vh - 10px);
               min-height: auto;
               max-height: none;
-              border-radius: 16px;
-              width: calc(100vw - 20px);
+              border-radius: 12px;
+              width: calc(100vw - 10px);
               max-width: none;
+              overflow: hidden;
             }
             .header { 
               padding: 20px 15px; 
@@ -266,7 +270,20 @@ app.get('/', (req, res) => {
               max-width: 300px;
             }
 
-            button { width: 100%; }
+            button { 
+              width: 100%; 
+              padding: 16px 20px;
+              font-size: 16px;
+            }
+            
+            input, select, textarea {
+              font-size: 16px !important; /* Prevents zoom on iOS */
+              padding: 12px;
+              border-radius: 8px;
+              border: 1px solid #e2e8f0;
+              width: 100%;
+              box-sizing: border-box;
+            }
           }
         </style>
     </head>
