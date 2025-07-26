@@ -1029,7 +1029,7 @@ app.post('/api/export-workout', async (req, res) => {
 
     // Format workout for export
     const workoutExport = `
-🏋️ WILLPOWERFITNESSAI PERSONAL WORKOUT PLAN
+WILLPOWERFITNESSAI PERSONAL WORKOUT PLAN
 ═══════════════════════════════════════════════════════════════
 
 👤 MEMBER INFORMATION
