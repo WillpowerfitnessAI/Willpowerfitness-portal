@@ -601,6 +601,16 @@
             // Get customer info from localStorage or URL
             customerId = localStorage.getItem('willpower_customer_id') || 
                         new URLSearchParams(window.location.search).get('customer_id');
+            
+            const userEmail = localStorage.getItem('userEmail') || 
+                             new URLSearchParams(window.location.search).get('email');
+
+            // If no customer ID or email, redirect to login
+            if (!customerId && !userEmail) {
+                console.log('No authentication found - redirecting to login');
+                window.location.href = '/login';
+                return;
+            }
 
             if (!customerId) {
                 // Redirect to onboarding if no customer ID

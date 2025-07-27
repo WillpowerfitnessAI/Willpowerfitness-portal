@@ -114,9 +114,12 @@
             
             const email = document.getElementById('email').value;
             const errorDiv = document.getElementById('error-message');
+            const submitButton = document.querySelector('.login-btn');
             
             // Clear previous errors
             errorDiv.style.display = 'none';
+            submitButton.disabled = true;
+            submitButton.textContent = 'Authenticating...';
             
             try {
                 const response = await fetch('/api/authenticate', {
@@ -125,24 +128,42 @@
                     body: JSON.stringify({ email })
                 });
                 
-                if (response.ok) {
-                    const result = await response.json();
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    // Store user data
                     localStorage.setItem('userEmail', email);
                     localStorage.setItem('userId', result.user.id);
                     localStorage.setItem('willpower_customer_id', result.user.id);
                     localStorage.setItem('willpower_member_name', result.user.name);
                     localStorage.setItem('willpower_member_status', 'active');
                     
-                    // Redirect directly to dashboard
-                    window.location.href = `/dashboard?email=${encodeURIComponent(email)}`;
+                    // Use the redirect URL from the server response
+                    const redirectUrl = result.redirectTo || '/dashboard';
+                    window.location.href = `${redirectUrl}?email=${encodeURIComponent(email)}`;
                 } else {
-                    const error = await response.json();
-                    errorDiv.textContent = error.error || 'Login failed. Please check your email or complete onboarding first.';
-                    errorDiv.style.display = 'block';
+                    // Handle authentication failure
+                    const redirectTo = result.redirectTo || '/onboarding';
+                    
+                    if (redirectTo === '/onboarding') {
+                        errorDiv.textContent = result.error + ' Redirecting to complete setup...';
+                        errorDiv.style.display = 'block';
+                        
+                        setTimeout(() => {
+                            window.location.href = redirectTo;
+                        }, 2000);
+                    } else {
+                        errorDiv.textContent = result.error || 'Login failed. Please try again.';
+                        errorDiv.style.display = 'block';
+                    }
                 }
             } catch (error) {
+                console.error('Login error:', error);
                 errorDiv.textContent = 'Connection error. Please try again.';
                 errorDiv.style.display = 'block';
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Access My Dashboard';
             }
         });
     </script>
