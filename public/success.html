@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -118,7 +117,7 @@
             Congratulations! Your WillpowerFitness AI Elite membership is now active. 
             Your AI personal trainer is ready to help you achieve your fitness goals.
         </p>
-        
+
         <div class="welcome-message">
             <div style="font-size: 1.2rem; font-weight: 600; margin-bottom: 10px;">🎉 Welcome to Elite Membership!</div>
             <div>Your AI trainer is now active and ready to help you achieve your goals.</div>
@@ -143,7 +142,7 @@
             • Your welcome fitness apparel is being prepared<br>
             • Start chatting with your AI trainer below
         </p>
-        
+
         <a href="/dashboard" class="btn">Start Training with AI Coach</a>
         <a href="/onboarding" class="btn" style="background: linear-gradient(135deg, #6b7280, #4b5563);">View Consultation Summary</a>
     </div>
@@ -153,16 +152,16 @@
         const urlParams = new URLSearchParams(window.location.search);
         const sessionId = urlParams.get('session_id');
         const customerId = urlParams.get('customer_id');
-        
+
         if (sessionId && customerId) {
             console.log('Payment successful, session:', sessionId);
             console.log('Customer ID:', customerId);
-            
+
             // Store customer ID for dashboard access
             localStorage.setItem('willpower_customer_id', customerId);
             localStorage.setItem('willpower_member_status', 'active');
             localStorage.setItem('willpower_trial_start', new Date().toISOString());
-            
+
             // Show success animation
             setTimeout(() => {
                 const container = document.querySelector('.success-container');
