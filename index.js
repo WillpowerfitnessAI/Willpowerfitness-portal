@@ -29,7 +29,14 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files with proper headers
+app.use(express.static('public', {
+  setHeaders: (res, path) => {
+    if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
+      res.setHeader('Cache-Control', 'public, max-age=31536000');
+    }
+  }
+}));
 
 // Premium white-label route
 app.get('/', (req, res) => {
@@ -384,20 +391,20 @@ app.get('/', (req, res) => {
 app.post('/api/authenticate', async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     // Simple email-based authentication for demo
     // In production, you'd hash passwords and use proper auth
     const user = await query(
       'SELECT * FROM user_profiles WHERE email = $1 AND subscription_status = $2',
       [email, 'active']
     );
-    
+
     if (user.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials or inactive subscription' });
     }
-    
+
     const userProfile = user.rows[0];
-    
+
     res.json({
       success: true,
       user: {
@@ -422,7 +429,7 @@ app.post('/api/chat', async (req, res) => {
     if (!message) {
       return res.status(400).json({ error: 'Message is required' });
     }
-    
+
     // Get conversation context for continuity
     const conversationHistory = userId ? await getConversationContext(userId, 5) : [];
 
@@ -449,7 +456,7 @@ app.post('/api/chat', async (req, res) => {
       const recentContext = conversationHistory.slice(-3).map(conv => 
         `User: ${conv.user_message}\nAI: ${conv.ai_response}`
       ).join('\n\n');
-      
+
       contextualPrompt = `CONVERSATION CONTEXT (keep this in mind for continuity):
 ${recentContext}
 
@@ -552,17 +559,17 @@ app.put('/api/profile/:userId', async (req, res) => {
 app.post('/api/log-workout', async (req, res) => {
   try {
     const { userId, workoutData } = req.body;
-    
+
     if (!userId || !workoutData) {
       return res.status(400).json({ error: 'User ID and workout data required' });
     }
-    
+
     // Store workout in database
     const result = await query(
       'INSERT INTO workouts (user_id, workout_data, completed_at) VALUES ($1, $2, NOW()) RETURNING *',
       [userId, JSON.stringify(workoutData)]
     );
-    
+
     // Generate AI workout analysis
     const analysisPrompt = {
       role: "system", 
@@ -580,9 +587,9 @@ app.post('/api/log-workout', async (req, res) => {
 
       Keep it personal, encouraging, and actionable.`
     };
-    
+
     const aiAnalysis = await getChatResponse([analysisPrompt]);
-    
+
     res.json({
       success: true,
       workoutId: result.rows[0].id,
@@ -811,6 +818,7 @@ app.post('/api/progress/photo-analysis', async (req, res) => {
       message: 'Progress photo analysis completed'
     });
   } catch (error) {
+```tool_code
     console.error('Photo analysis error:', error);
     res.status(500).json({ error: 'Failed to analyze progress photos' });
   }
