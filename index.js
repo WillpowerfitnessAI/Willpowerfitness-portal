@@ -390,17 +390,44 @@ app.get('/', (req, res) => {
 // User authentication endpoint
 app.post('/api/authenticate', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email } = req.body;
 
-    // Simple email-based authentication for demo
-    // In production, you'd hash passwords and use proper auth
-    const user = await query(
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Check for active user profile first
+    let user = await query(
       'SELECT * FROM user_profiles WHERE email = $1 AND subscription_status = $2',
       [email, 'active']
     );
 
+    // If no active user profile, check if they're a lead who completed payment
     if (user.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials or inactive subscription' });
+      const lead = await query(
+        'SELECT * FROM leads WHERE email = $1 AND status = $2',
+        [email, 'active_subscriber']
+      );
+
+      if (lead.rows.length > 0) {
+        // Create user profile from lead data
+        const leadData = lead.rows[0];
+        const newUser = await query(
+          `INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) 
+           VALUES ($1, $2, $3, $4, NOW()) 
+           ON CONFLICT (email) DO UPDATE SET 
+           subscription_status = $4, name = $2, goal = $3
+           RETURNING *`,
+          [email, leadData.name, leadData.goals, 'active']
+        );
+        user = newUser;
+      }
+    }
+
+    if (user.rows.length === 0) {
+      return res.status(401).json({ 
+        error: 'Account not found or subscription inactive. Please complete onboarding first.' 
+      });
     }
 
     const userProfile = user.rows[0];
@@ -1480,7 +1507,7 @@ app.post('/api/create-subscription', async (req, res) => {
 
     console.log('Stripe customer created:', customer.id);
 
-    // Create Stripe checkout session
+    // Create Stripe checkout session with email parameter
     const checkoutSession = await createCheckoutSession(customer.id, email, userData);
 
     console.log('Checkout session created:', checkoutSession.id);

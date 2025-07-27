@@ -162,6 +162,13 @@
             localStorage.setItem('willpower_member_status', 'active');
             localStorage.setItem('willpower_trial_start', new Date().toISOString());
 
+            // Get customer email from URL params or try to fetch from API
+            const customerEmail = urlParams.get('email');
+            if (customerEmail) {
+                localStorage.setItem('userEmail', customerEmail);
+                localStorage.setItem('userId', customerId);
+            }
+
             // Show success animation
             setTimeout(() => {
                 const container = document.querySelector('.success-container');
@@ -170,6 +177,15 @@
                     container.style.transform = 'scale(1)';
                 }, 200);
             }, 500);
+
+            // Auto-redirect to dashboard after a few seconds
+            setTimeout(() => {
+                if (customerEmail) {
+                    window.location.href = `/dashboard?email=${encodeURIComponent(customerEmail)}`;
+                } else {
+                    window.location.href = '/dashboard';
+                }
+            }, 3000);
         } else {
             console.log('No session ID found - redirecting to onboarding');
             setTimeout(() => {

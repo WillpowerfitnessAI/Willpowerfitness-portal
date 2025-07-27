@@ -116,6 +116,9 @@
             const email = document.getElementById('email').value;
             const errorDiv = document.getElementById('error-message');
             
+            // Clear previous errors
+            errorDiv.style.display = 'none';
+            
             try {
                 const response = await fetch('/api/authenticate', {
                     method: 'POST',
@@ -127,10 +130,15 @@
                     const result = await response.json();
                     localStorage.setItem('userEmail', email);
                     localStorage.setItem('userId', result.user.id);
+                    localStorage.setItem('willpower_customer_id', result.user.id);
+                    localStorage.setItem('willpower_member_name', result.user.name);
+                    localStorage.setItem('willpower_member_status', 'active');
+                    
+                    // Redirect directly to dashboard
                     window.location.href = `/dashboard?email=${encodeURIComponent(email)}`;
                 } else {
                     const error = await response.json();
-                    errorDiv.textContent = error.error || 'Login failed';
+                    errorDiv.textContent = error.error || 'Login failed. Please check your email or complete onboarding first.';
                     errorDiv.style.display = 'block';
                 }
             } catch (error) {
