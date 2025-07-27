@@ -845,7 +845,6 @@ app.post('/api/progress/photo-analysis', async (req, res) => {
       message: 'Progress photo analysis completed'
     });
   } catch (error) {
-```tool_code
     console.error('Photo analysis error:', error);
     res.status(500).json({ error: 'Failed to analyze progress photos' });
   }
