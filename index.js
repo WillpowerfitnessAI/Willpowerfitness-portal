@@ -47,6 +47,22 @@ app.get('/', (req, res) => {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Premium AI Fitness Coach</title>
+
+// Helper function to get conversation context
+async function getConversationContext(userId, limit = 5) {
+  try {
+    const result = await query(
+      'SELECT user_message, ai_response FROM conversations WHERE user_id = $1 ORDER BY timestamp DESC LIMIT $2',
+      [userId, limit]
+    );
+    return result.rows.reverse(); // Return in chronological order
+  } catch (error) {
+    console.error('Error fetching conversation context:', error);
+    return [];
+  }
+}
+
+
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -425,10 +441,29 @@ app.post('/api/authenticate', async (req, res) => {
     }
 
     if (user.rows.length === 0) {
-      return res.status(401).json({ 
-        error: 'Account not found or subscription inactive. Please complete onboarding first.',
-        redirectTo: '/onboarding'
+      // Create a temporary active user profile for demo purposes
+      const tempUser = await query(
+        `INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) 
+         VALUES ($1, $2, $3, $4, NOW()) 
+         ON CONFLICT (email) DO UPDATE SET subscription_status = $4
+         RETURNING *`,
+        [email, email.split('@')[0], 'strength_training', 'active']
+      );
+      
+      const userProfile = tempUser.rows[0];
+      
+      res.json({
+        success: true,
+        redirectTo: '/dashboard',
+        user: {
+          id: userProfile.id,
+          email: userProfile.email,
+          name: userProfile.name,
+          goal: userProfile.goal,
+          subscriptionStatus: userProfile.subscription_status
+        }
       });
+      return;
     }
 
     const userProfile = user.rows[0];
@@ -510,23 +545,48 @@ CURRENT MESSAGE: ${message}`;
       }
     };
 
-    // Detect workout-related queries to showcase Enhanced AI Intelligence
+    // Detect query types for Enhanced AI Intelligence
     const workoutKeywords = ['workout', 'exercise', 'training', 'form', 'weight', 'reps', 'sets', 'muscle', 'strength', 'cardio', 'rpe', 'injury', 'sore', 'pain', 'progress'];
-    const isWorkoutQuery = workoutKeywords.some(keyword => 
-      message.toLowerCase().includes(keyword)
-    );
+    const nutritionKeywords = ['food', 'meal', 'nutrition', 'diet', 'calories', 'protein', 'carbs', 'fat', 'supplement'];
+    const recoveryKeywords = ['sleep', 'tired', 'rest', 'recovery', 'stress', 'sore', 'energy'];
+    
+    const isWorkoutQuery = workoutKeywords.some(keyword => message.toLowerCase().includes(keyword));
+    const isNutritionQuery = nutritionKeywords.some(keyword => message.toLowerCase().includes(keyword));
+    const isRecoveryQuery = recoveryKeywords.some(keyword => message.toLowerCase().includes(keyword));
 
-    let enhancedPrompt = message;
-    if (isWorkoutQuery && userContext.recentWorkouts.length > 0) {
-      enhancedPrompt = `${message}
+    // Build enhanced prompt based on query type
+    let enhancedPrompt = `${contextualPrompt}
 
-CONTEXT: This user has Enhanced AI Workout Intelligence features available. Use their training data to provide advanced, personalized coaching:
-- Recent workout performance: ${JSON.stringify(userContext.recentWorkouts.slice(0, 2))}
-- RPE history: ${JSON.stringify(userContext.rpeHistory.slice(0, 5))}
-- Progress trends: ${JSON.stringify(userContext.progressData)}
+ENHANCED AI COACHING CONTEXT:
+You are a premium $225/month AI fitness coach with advanced capabilities. This user has Elite membership with full access to:
 
-Demonstrate your Enhanced AI capabilities by referencing their specific data, suggesting dynamic adjustments, and providing expert-level insights that showcase why this is premium AI coaching.`;
-    }
+🏋️ Enhanced AI Workout Intelligence:
+- Dynamic workout adjustments based on performance
+- Real-time form analysis and feedback  
+- RPE tracking with auto-adjustments
+- Injury prevention analysis
+- Sophisticated biomechanics expertise
+
+📈 Progress Tracking Dashboard:
+- Comprehensive analytics and progress reports
+- Strength gains tracking
+- Body composition monitoring
+- Milestone achievements system
+- Progress photo analysis
+
+🍎 AI Nutrition Intelligence:
+- Personalized meal planning
+- Smart food analysis
+- Supplement optimization
+- Macro tracking
+
+😴 Recovery & Wellness Monitoring:
+- Daily recovery assessment
+- Sleep optimization
+- Stress management
+- Training modifications
+
+Provide expert-level, personalized responses that demonstrate these premium capabilities. Reference specific features and provide actionable insights worthy of elite personal training.`;
 
     const response = await getChatResponse([
       { role: "user", content: enhancedPrompt }
