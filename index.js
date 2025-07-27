@@ -38,16 +38,6 @@ app.use(express.static('public', {
   }
 }));
 
-// Premium white-label route
-app.get('/', (req, res) => {
-  res.send(`
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Premium AI Fitness Coach</title>
-
 // Helper function to get conversation context
 async function getConversationContext(userId, limit = 5) {
   try {
@@ -61,6 +51,16 @@ async function getConversationContext(userId, limit = 5) {
     return [];
   }
 }
+
+// Premium white-label route
+app.get('/', (req, res) => {
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Premium AI Fitness Coach</title>
 
 
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
