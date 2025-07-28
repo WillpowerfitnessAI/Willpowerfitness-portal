@@ -12,7 +12,10 @@ channel = "stable-24_11"
 run = ["sh", "-c", "npm start"]
 deploymentTarget = "autoscale"
 ignorePorts = false
-build = ["sh", "-c", "npm run build"]
+build = ["sh", "-c", "echo 'No build step required for Node.js app'"]
+
+[env]
+REPLIT_DISABLE_PACKAGE_LAYER = "1"
 
 [[ports]]
 localPort = 5000
