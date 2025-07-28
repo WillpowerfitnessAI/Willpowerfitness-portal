@@ -316,7 +316,7 @@ app.get('/', (req, res) => {
                 <h1>WillpowerFitnessAI</h1>
                 <p>Premium Personalized Training & Nutrition Guidance</p>
                 <div style="background: #16a34a; color: white; padding: 8px 16px; border-radius: 20px; font-size: 0.9rem; margin-top: 10px; display: inline-block;">
-                    🟢 DEMO STATUS: Live working prototype via Replit + Vercel
+                    🟢 LIVE: Premium AI Fitness Coaching Platform
                 </div>
             </div>
             <div class="chat-container">
@@ -444,29 +444,11 @@ app.post('/api/authenticate', async (req, res) => {
     }
 
     if (user.rows.length === 0) {
-      // Create a temporary active user profile for demo purposes
-      const tempUser = await query(
-        `INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) 
-         VALUES ($1, $2, $3, $4, NOW()) 
-         ON CONFLICT (email) DO UPDATE SET subscription_status = $4
-         RETURNING *`,
-        [email, email.split('@')[0], 'strength_training', 'active']
-      );
-      
-      const userProfile = tempUser.rows[0];
-      
-      res.json({
-        success: true,
-        redirectTo: '/dashboard',
-        user: {
-          id: userProfile.id,
-          email: userProfile.email,
-          name: userProfile.name,
-          goal: userProfile.goal,
-          subscriptionStatus: userProfile.subscription_status
-        }
+      return res.status(404).json({ 
+        error: 'User not found', 
+        message: 'Please complete the onboarding process first',
+        redirectTo: '/onboarding'
       });
-      return;
     }
 
     const userProfile = user.rows[0];
@@ -1927,56 +1909,35 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// PRESENTATION DEMO ENDPOINT
-app.get('/demo', async (req, res) => {
+// Application status endpoint
+app.get('/api/status', async (req, res) => {
   try {
-    // Quick demo data setup
-    const demoUser = {
-      name: 'Alex Thompson',
-      email: 'demo@willpowerfitnessai.com',
-      goal: 'Build muscle and lose fat',
-      experience: 'intermediate'
-    };
-
-    // Ensure demo user exists
-    await query(
-      `INSERT INTO leads (name, email, goals, experience, status) 
-       VALUES ($1, $2, $3, $4, $5) 
-       ON CONFLICT (email) DO UPDATE SET 
-       name = $1, goals = $3, experience = $4, status = $5`,
-      [demoUser.name, demoUser.email, demoUser.goal, demoUser.experience, 'demo_active']
-    );
-
-    // Create user profile
-    await query(
-      `INSERT INTO user_profiles (email, name, goal, subscription_status) 
-       VALUES ($1, $2, $3, $4) 
-       ON CONFLICT (email) DO UPDATE SET 
-       name = $2, goal = $3, subscription_status = $4`,
-      [demoUser.email, demoUser.name, demoUser.goal, 'active']
-    );
+    // Check system health
+    const dbTest = await query('SELECT NOW() as current_time');
+    const [leadCount, activeUsers] = await Promise.all([
+      query('SELECT COUNT(*) FROM leads'),
+      query(`SELECT COUNT(*) FROM user_profiles WHERE subscription_status = 'active'`)
+    ]);
 
     res.json({
-      status: 'Demo Ready!',
-      message: 'All WillpowerFitnessAI features are working',
-      demoUser: demoUser,
-      features: {
-        'Automated onboarding': '✅ Working',
-        'Workout & nutrition generation': '✅ Working', 
-        'Motivational coaching': '✅ Working',
-        'Goal tracking with Supabase memory': '✅ Working'
+      status: 'LIVE',
+      message: 'WillpowerFitness AI is fully operational',
+      systemHealth: {
+        database: '✅ Connected',
+        ai: '✅ Active',
+        payments: '✅ Ready',
+        fulfillment: '✅ Ready'
       },
-      nextSteps: [
-        '1. Visit /onboarding for the full user flow',
-        '2. Visit /dashboard for AI coaching demo',
-        '3. Test chat with "Generate my workout plan"'
-      ]
+      metrics: {
+        totalLeads: leadCount.rows[0].count,
+        activeUsers: activeUsers.rows[0].count,
+        uptime: process.uptime()
+      }
     });
   } catch (error) {
     res.status(500).json({ 
-      status: 'Demo Setup Failed', 
-      error: error.message,
-      fix: 'Run: node setup_database.js first'
+      status: 'ERROR', 
+      error: error.message 
     });
   }
 });

@@ -344,6 +344,10 @@
 
                         <div class="member-features" style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 15px; border: 2px solid #e2e8f0;">
                             <h3 style="color: #1e3c72; margin-bottom: 15px;">🏋️ Member Features</h3>
+            <div style="background: #f0fdf4; border: 2px solid #16a34a; border-radius: 15px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #15803d; margin: 0 0 10px 0;">🟢 Elite Membership Active</h3>
+                <p style="color: #15803d; margin: 0; font-size: 0.9rem;">Welcome to your premium AI fitness coaching experience. All features are fully operational.</p>
+            </div>
 
             <div class="chat-input-area">
                 <textarea 
@@ -377,14 +381,14 @@
             currentUserId = email;
             localStorage.setItem('userEmail', email);
             localStorage.setItem('userId', email);
-            
+
             // Update member name display
             const memberName = localStorage.getItem('willpower_member_name') || email.split('@')[0];
             document.getElementById('member-name').textContent = memberName;
 
             // Load user's workout history
             loadWorkoutHistory();
-            
+
             // Show enhanced features
             showEnhancedFeatures();
           });
@@ -608,7 +612,7 @@
             // Get customer info from localStorage or URL
             customerId = localStorage.getItem('willpower_customer_id') || 
                         new URLSearchParams(window.location.search).get('customer_id');
-            
+
             const userEmail = localStorage.getItem('userEmail') || 
                              new URLSearchParams(window.location.search).get('email');
 
@@ -790,7 +794,7 @@
           if (memberFeatures) {
             memberFeatures.innerHTML = `
               <h3 style="color: #1e3c72; margin-bottom: 15px;">🤖 Enhanced AI Features</h3>
-              
+
               <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
                 <div class="feature-card" onclick="activateFeature('workout-intelligence')">
                   <h4>🏋️ Workout Intelligence</h4>
@@ -809,11 +813,11 @@
                   <p>Sleep optimization & wellness coaching</p>
                 </div>
               </div>
-              
+
               <button onclick="startWorkout()" class="cta-button" style="width: 100%; margin-bottom: 15px; background: #16a34a;">
                 🏋️ Start Workout Session
               </button>
-              
+
               <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button id="export-workout-btn" class="cta-button" style="flex: 1; min-width: 150px; font-size: 14px; padding: 15px 25px;">Export Workout</button>
                 <button id="email-workout-btn" class="cta-button" style="flex: 1; min-width: 150px; font-size: 14px; padding: 15px 25px;">Email Plan</button>
