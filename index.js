@@ -1427,97 +1427,146 @@ app.post('/api/onboarding/step1', async (req, res) => {
   }
 });
 
-// AI Consultation endpoint
+// AI Consultation endpoint with improved context management
 app.post('/api/consultation', async (req, res) => {
   try {
     const { message, userData } = req.body;
 
-    // Get complete consultation history for this user
+    // Get complete consultation history for this user with proper conversation tracking
     const existingConversation = await query(
-      'SELECT message, ai_response FROM leads WHERE email = $1 ORDER BY timestamp DESC LIMIT 1',
+      'SELECT message, ai_response, timestamp FROM leads WHERE email = $1 ORDER BY timestamp DESC LIMIT 1',
       [userData.email]
     );
 
-    let conversationContext = '';
+    // Build full conversation context properly
+    let fullConversationHistory = [];
+    let exchangeCount = 0;
+    
     if (existingConversation.rows.length > 0) {
       const lead = existingConversation.rows[0];
-      conversationContext = (lead.message || '') + '\n' + (lead.ai_response || '');
+      const userMessages = (lead.message || '').split('\n').filter(msg => msg.startsWith('User:')).map(msg => msg.replace('User: ', ''));
+      const aiResponse = lead.ai_response || '';
+      
+      // Count actual exchanges
+      exchangeCount = userMessages.length;
+      
+      // Build conversation history for context
+      userMessages.forEach((userMsg, index) => {
+        fullConversationHistory.push({ role: "user", content: userMsg });
+        if (index === userMessages.length - 1 && aiResponse) {
+          fullConversationHistory.push({ role: "assistant", content: aiResponse });
+        }
+      });
     }
 
-    // Count meaningful exchanges (not just database entries)
-    const exchangeMatches = conversationContext.match(/User:/g);
-    const exchangeCount = exchangeMatches ? exchangeMatches.length : 0;
-
-    // Create progressive consultation with better context awareness
-    let consultationPrompt;
+    // Create progressive consultation with enhanced context
+    let systemPrompt;
+    let consultationComplete = false;
 
     if (exchangeCount === 0) {
-      consultationPrompt = {
-        role: "system",
-        content: `You are an elite fitness consultant conducting an assessment for ${userData.name}. 
-        Goal: ${userData.goal} | Experience: ${userData.experience}
+      systemPrompt = `You are Willie, an elite fitness consultant conducting a personalized assessment for ${userData.name}.
 
-        FIRST QUESTION: Ask about their weekly schedule - what days and times they can realistically commit to working out. Be conversational and encouraging.`
-      };
+BACKGROUND: ${userData.name} wants to achieve ${userData.goal} and has ${userData.experience} experience level.
+
+FIRST CONSULTATION QUESTION (1/4): Ask about their weekly schedule - what days and times they can realistically commit to working out. Keep it conversational, encouraging, and show genuine interest in helping them succeed.
+
+Important: Provide a complete response without cutting off. This is the beginning of building their personalized fitness journey.`;
+
     } else if (exchangeCount === 1) {
-      consultationPrompt = {
-        role: "system", 
-        content: `Continue the consultation for ${userData.name}. Previous context: ${conversationContext}
+      systemPrompt = `You are Willie continuing the consultation for ${userData.name}.
 
-        SECOND QUESTION: Now ask about their equipment access (home gym, commercial gym, outdoor spaces) and any physical limitations, injuries, or health considerations that would affect their training program.`
-      };
+SECOND CONSULTATION QUESTION (2/4): Now ask about their equipment access (home gym, commercial gym, outdoor spaces) and any physical limitations, injuries, or health considerations that would affect their training program.
+
+Reference their previous answer about schedule and build on that information. Keep the conversation flowing naturally.`;
+
     } else if (exchangeCount === 2) {
-      consultationPrompt = {
-        role: "system",
-        content: `Continue consultation for ${userData.name}. Context so far: ${conversationContext}
+      systemPrompt = `You are Willie continuing the consultation for ${userData.name}.
 
-        THIRD QUESTION: Ask about their current fitness routine, favorite exercises, and what they want to change or improve about their current approach.`
-      };
+THIRD CONSULTATION QUESTION (3/4): Ask about their current fitness routine, favorite exercises, and what they want to change or improve about their current approach.
+
+Build on the previous information about their schedule and equipment access. Show you're listening and creating a comprehensive picture.`;
+
+    } else if (exchangeCount === 3) {
+      systemPrompt = `You are Willie completing the consultation for ${userData.name}.
+
+FINAL CONSULTATION STAGE (4/4): Based on all the information gathered, provide a comprehensive personalized summary of their fitness needs and enthusiastically recommend WillpowerFitness AI Elite membership.
+
+Address their specific:
+- Goal: ${userData.goal}
+- Experience level: ${userData.experience}
+- Schedule and equipment preferences from conversation
+- Current routine and desired improvements
+
+Highlight how WillpowerFitness AI will address their unique needs with:
+• Personalized AI trainer that learns their preferences
+• Custom workout plans fitting their schedule and equipment
+• Smart nutrition guidance tailored to their goals
+• 24/7 AI support and progress analytics
+• Welcome WillpowerFitnessAI premium apparel
+• Real-time workout adjustments and form feedback
+
+Make this feel like a complete, thorough consultation they'd get from a $225/month personal trainer.`;
+
+      consultationComplete = true;
     } else {
-      consultationPrompt = {
-        role: "system", 
-        content: `FINAL CONSULTATION STAGE for ${userData.name}. Full conversation: ${conversationContext}
-
-        Based on all information gathered, provide a personalized summary of their fitness needs and enthusiastically recommend WillpowerFitness AI Elite membership. Highlight how the AI coach will address their specific goal (${userData.goal}) given their ${userData.experience} experience level. Mention: personalized AI trainer, custom workout/nutrition plans, 24/7 support, progress analytics, and complimentary WillpowerFitnessAI welcome apparel.`
-      };
+      // Fallback for additional questions
+      systemPrompt = `You are Willie, their dedicated AI fitness consultant. The consultation is complete. Answer any additional questions they have about WillpowerFitness AI Elite membership or their personalized fitness plan. Be encouraging and helpful.`;
+      consultationComplete = true;
     }
 
-    const aiResponse = await getChatResponse([
-      consultationPrompt,
+    // Create conversation with full context
+    const conversationMessages = [
+      { role: "system", content: systemPrompt },
+      ...fullConversationHistory,
       { role: "user", content: message }
-    ], userData);
+    ];
 
-    // Determine consultation completion more accurately
-    const consultationComplete = exchangeCount >= 3 || 
-                                aiResponse.toLowerCase().includes('willpowerfitnessai') ||
-                                aiResponse.toLowerCase().includes('elite membership') ||
-                                aiResponse.toLowerCase().includes('ready to begin');
+    // Get AI response with increased token limit to prevent cutoffs
+    const aiResponse = await getChatResponse(conversationMessages, {
+      ...userData,
+      maxTokens: 800, // Increased to prevent cutoffs
+      temperature: 0.7
+    });
 
-    // Update lead with new exchange
-    const currentMessage = existingConversation.rows.length > 0 ? 
-      existingConversation.rows[0].message || '' : '';
+    // Update database with proper conversation tracking
+    const currentMessageHistory = existingConversation.rows.length > 0 ? 
+      (existingConversation.rows[0].message || '') : '';
+
+    const updatedMessageHistory = currentMessageHistory + `User: ${message}\n`;
 
     await query(
       `UPDATE leads SET 
        message = $1,
        ai_response = $2,
-       status = $3
+       status = $3,
+       timestamp = NOW()
        WHERE email = $4`,
       [
-        currentMessage + `User: ${message}\n`,
+        updatedMessageHistory,
         aiResponse,
         consultationComplete ? 'consultation_complete' : 'in_consultation',
         userData.email
       ]
     );
 
+    console.log(`Consultation progress for ${userData.email}: ${exchangeCount + 1}/4 questions, Complete: ${consultationComplete}`);
+
     res.json({ 
       response: aiResponse,
-      consultationComplete 
+      consultationComplete,
+      progressInfo: {
+        currentStep: exchangeCount + 1,
+        totalSteps: 4,
+        nextStep: consultationComplete ? 'Ready for membership' : 'Continue consultation'
+      }
     });
+
   } catch (error) {
     console.error('Consultation error:', error);
-    res.status(500).json({ error: 'Consultation failed' });
+    res.status(500).json({ 
+      error: 'Consultation temporarily unavailable',
+      fallback: `Hi ${req.body.userData?.name || 'there'}! I'm Willie, your AI fitness consultant. I'm here to create your personalized fitness plan. Let's start with your goals and current situation - what would you like to achieve with your fitness journey?`
+    });
   }
 });
 
