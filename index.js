@@ -2016,7 +2016,24 @@ app.get('/api/status', async (req, res) => {
   }
 });
 
-// Listen on 0.0.0.0 for deployment
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
+// Enhanced server startup for deployment
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 WillpowerFitness AI server running on http://0.0.0.0:${PORT}`);
+  console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`⚡ Ready to serve requests`);
+});
+
+// Graceful shutdown handling
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  server.close(() => {
+    console.log('Process terminated');
+  });
 });
