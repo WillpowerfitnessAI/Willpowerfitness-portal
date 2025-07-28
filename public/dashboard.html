@@ -259,27 +259,27 @@
                     <p>I'm your dedicated AI personal trainer, ready to help you achieve your fitness goals. Ask me anything about workouts, nutrition, progress tracking, or just say hello!</p>
 
                     <div class="quick-actions">
-                        <div class="action-card" onclick="sendQuickMessage('Create a workout plan for today')">
+                        <div class="action-card" onclick="activateFeature('todays-workout')">
                             <div class="action-icon">💪</div>
                             <h4>Today's Workout</h4>
                             <p>Get a personalized workout plan</p>
                         </div>
-                        <div class="action-card" onclick="sendQuickMessage('Help me with nutrition planning')">
+                        <div class="action-card" onclick="activateFeature('nutrition-guide')">
                             <div class="action-icon">🍎</div>
                             <h4>Nutrition Guide</h4>
                             <p>Personalized meal planning</p>
                         </div>
-                        <div class="action-card" onclick="sendQuickMessage('Show my progress dashboard')">
+                        <div class="action-card" onclick="activateFeature('track-progress')">
                             <div class="action-icon">📈</div>
                             <h4>Track Progress</h4>
                             <p>View your fitness analytics</p>
                         </div>
-                        <div class="action-card" onclick="sendQuickMessage('I need motivation and support')">
+                        <div class="action-card" onclick="activateFeature('motivation')">
                             <div class="action-icon">🎯</div>
                             <h4>Motivation</h4>
                             <p>Get encouragement & tips</p>
                         </div>
-                    </div>
+                    </div></div>
                 </div>
             </div>
 
@@ -292,55 +292,109 @@
                 </div>
             </div>
 
-            <!-- Real-time Workout Tracking -->
-                        <div id="workout-tracker" style="display: none; margin-top: 20px; padding: 20px; background: #f0f9ff; border-radius: 15px; border: 2px solid #0ea5e9;">
-                            <h3 style="color: #0ea5e9; margin-bottom: 15px;">🏃‍♂️ Active Workout Session</h3>
-                            <div id="current-exercise" style="margin-bottom: 15px;">
-                                <strong>Current Exercise:</strong> <span id="exercise-name">-</span>
-                            </div>
-                            <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-                                <div>
-                                    <label for="weight-input" style="display: block; margin-bottom: 5px;">Weight (lbs):</label>
-                                    <input type="number" id="weight-input" style="width: 80px; padding: 5px;">
-                                </div>
-                                <div>
-                                    <label for="reps-input" style="display: block; margin-bottom: 5px;">Reps:</label>
-                                    <input type="number" id="reps-input" style="width: 60px; padding: 5px;">
-                                </div>
-                                <div>
-                                    <label for="rpe-input" style="display: block; margin-bottom: 5px;">RPE (1-10):</label>
-                                    <select id="rpe-input" style="width: 80px; padding: 5px;">
-                                        <option value="">-</option>
-                                        <option value="1">1 - Very Easy</option>
-                                        <option value="2">2 - Easy</option>
-                                        <option value="3">3 - Light</option>
-                                        <option value="4">4 - Moderate</option>
-                                        <option value="5">5 - Moderate+</option>
-                                        <option value="6">6 - Hard</option>
-                                        <option value="7">7 - Very Hard</option>
-                                        <option value="8">8 - Extremely Hard</option>
-                                        <option value="9">9 - Near Max</option>
-                                        <option value="10">10 - Maximum</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <!-- Form Feedback Section -->
-                            <div style="margin-bottom: 15px;">
-                                <label for="form-feedback" style="display: block; margin-bottom: 5px;">How did that set feel? (Form, difficulty, etc.):</label>
-                                <textarea id="form-feedback" placeholder="e.g., 'Felt good form on first 8 reps, had to grind last 2'" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd; resize: vertical; height: 60px;"></textarea>
-                            </div>
-
-                            <div style="display: flex; gap: 10px;">
-                                <button id="log-set-btn" class="cta-button" style="flex: 1; font-size: 14px; padding: 10px 15px;">Log Set</button>
-                                <button id="end-workout-btn" class="cta-button" style="flex: 1; font-size: 14px; padding: 10px 15px; background: #dc2626;">End Workout</button>
-                            </div>
-
-                            <div id="workout-summary" style="margin-top: 15px; padding: 10px; background: white; border-radius: 8px; border: 1px solid #e2e8f0;">
-                                <strong>Today's Sets:</strong>
-                                <div id="sets-logged"></div>
-                            </div>
+            <!-- Floating AI Chat Bubble -->
+            <div id="chat-bubble" style="position: fixed; bottom: 30px; right: 30px; z-index: 1000;">
+                <div id="chat-bubble-icon" onclick="toggleChatBubble()" style="width: 60px; height: 60px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3); transition: all 0.3s;">
+                    <span style="color: white; font-size: 24px;">🤖</span>
+                </div>
+                <div id="chat-bubble-window" style="display: none; position: absolute; bottom: 70px; right: 0; width: 350px; height: 400px; background: white; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); border: 1px solid #e2e8f0;">
+                    <div style="padding: 15px; border-bottom: 1px solid #e2e8f0; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border-radius: 20px 20px 0 0;">
+                        <h4 style="margin: 0; font-size: 1rem;">💪 Your AI Coach</h4>
+                        <p style="margin: 5px 0 0 0; font-size: 0.8rem; opacity: 0.9;">Real-time workout support</p>
+                    </div>
+                    <div id="bubble-chat-messages" style="height: 280px; overflow-y: auto; padding: 15px;"></div>
+                    <div style="padding: 10px; border-top: 1px solid #e2e8f0;">
+                        <div style="display: flex; gap: 8px;">
+                            <input type="text" id="bubble-chat-input" placeholder="Ask your coach..." style="flex: 1; padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 20px; font-size: 14px;">
+                            <button onclick="sendBubbleMessage()" style="padding: 8px 15px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 14px;">Send</button>
                         </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Enhanced Real-time Workout Tracking -->
+            <div id="workout-tracker" style="display: none; margin-top: 20px; padding: 20px; background: #f0f9ff; border-radius: 15px; border: 2px solid #0ea5e9; position: relative; min-height: 400px;">
+                <h3 style="color: #0ea5e9; margin-bottom: 15px;">🏃‍♂️ Active Workout Session</h3>
+                
+                <!-- Exercise Selection -->
+                <div id="exercise-selection" style="margin-bottom: 20px;">
+                    <label for="exercise-selector" style="display: block; margin-bottom: 8px; font-weight: 600;">Select Exercise:</label>
+                    <select id="exercise-selector" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px;" onchange="setSelectedExercise()">
+                        <option value="">Choose an exercise...</option>
+                        <option value="Bench Press">Bench Press</option>
+                        <option value="Squat">Squat</option>
+                        <option value="Deadlift">Deadlift</option>
+                        <option value="Overhead Press">Overhead Press</option>
+                        <option value="Barbell Row">Barbell Row</option>
+                        <option value="Pull-ups">Pull-ups</option>
+                        <option value="Dips">Dips</option>
+                        <option value="Incline Bench Press">Incline Bench Press</option>
+                        <option value="Romanian Deadlift">Romanian Deadlift</option>
+                        <option value="Leg Press">Leg Press</option>
+                        <option value="Leg Curls">Leg Curls</option>
+                        <option value="Leg Extensions">Leg Extensions</option>
+                        <option value="Lat Pulldown">Lat Pulldown</option>
+                        <option value="Cable Fly">Cable Fly</option>
+                        <option value="Tricep Dips">Tricep Dips</option>
+                        <option value="Bicep Curls">Bicep Curls</option>
+                        <option value="Shoulder Press">Shoulder Press</option>
+                        <option value="Lateral Raises">Lateral Raises</option>
+                        <option value="Face Pulls">Face Pulls</option>
+                        <option value="Plank">Plank</option>
+                    </select>
+                    <input type="text" id="custom-exercise" placeholder="Or enter custom exercise..." style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid #ddd;" onchange="setCustomExercise()">
+                </div>
+
+                <div id="current-exercise" style="margin-bottom: 15px; padding: 10px; background: white; border-radius: 8px; border-left: 4px solid #0ea5e9;">
+                    <strong>Current Exercise:</strong> <span id="exercise-name">Select an exercise to begin</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                    <div>
+                        <label for="weight-input" style="display: block; margin-bottom: 5px; font-weight: 600;">Weight (lbs):</label>
+                        <input type="number" id="weight-input" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                    </div>
+                    <div>
+                        <label for="reps-input" style="display: block; margin-bottom: 5px; font-weight: 600;">Reps:</label>
+                        <input type="number" id="reps-input" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                    </div>
+                    <div>
+                        <label for="rpe-input" style="display: block; margin-bottom: 5px; font-weight: 600;">RPE (1-10):</label>
+                        <select id="rpe-input" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                            <option value="">-</option>
+                            <option value="1">1 - Very Easy</option>
+                            <option value="2">2 - Easy</option>
+                            <option value="3">3 - Light</option>
+                            <option value="4">4 - Moderate</option>
+                            <option value="5">5 - Moderate+</option>
+                            <option value="6">6 - Hard</option>
+                            <option value="7">7 - Very Hard</option>
+                            <option value="8">8 - Extremely Hard</option>
+                            <option value="9">9 - Near Max</option>
+                            <option value="10">10 - Maximum</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Form Feedback Section -->
+                <div style="margin-bottom: 15px;">
+                    <label for="form-feedback" style="display: block; margin-bottom: 5px; font-weight: 600;">How did that set feel? (Form, difficulty, etc.):</label>
+                    <textarea id="form-feedback" placeholder="e.g., 'Felt good form on first 8 reps, had to grind last 2'" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd; resize: vertical; height: 60px;"></textarea>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <button id="log-set-btn" onclick="logSet()" style="flex: 1; padding: 12px 20px; background: #16a34a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">Log Set</button>
+                    <button id="end-workout-btn" onclick="endWorkout()" style="flex: 1; padding: 12px 20px; background: #dc2626; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600;">End Workout</button>
+                </div>
+
+                <div id="workout-summary" style="background: white; border-radius: 8px; border: 1px solid #e2e8f0; padding: 15px; max-height: 200px; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <strong>Today's Sets:</strong>
+                        <span id="total-sets-count" style="background: #0ea5e9; color: white; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem;">0 sets</span>
+                    </div>
+                    <div id="sets-logged"></div>
+                </div>
+            </div>
 
                         <div class="member-features" style="margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 15px; border: 2px solid #e2e8f0;">
                             <h3 style="color: #1e3c72; margin-bottom: 15px;">🏋️ Member Features</h3>
@@ -589,9 +643,121 @@
             }
           }
 
-          // Add event listeners
-          document.getElementById('log-set-btn').addEventListener('click', logSet);
-          document.getElementById('end-workout-btn').addEventListener('click', endWorkout);
+          // Enhanced log set function with improved UI
+          window.logSet = async function() {
+            const weight = document.getElementById('weight-input').value;
+            const reps = document.getElementById('reps-input').value;
+            const rpe = document.getElementById('rpe-input').value;
+            const formFeedback = document.getElementById('form-feedback').value;
+            const exerciseName = document.getElementById('exercise-name').textContent;
+
+            if (!weight || !reps || !rpe || exerciseName === '-' || exerciseName === 'Select an exercise to begin') {
+              alert('Please fill in all fields and select an exercise');
+              return;
+            }
+
+            const setData = {
+              exercise: exerciseName,
+              weight: parseFloat(weight),
+              reps: parseInt(reps),
+              rpe: parseInt(rpe),
+              formFeedback: formFeedback,
+              timestamp: new Date()
+            };
+
+            workoutSets.push(setData);
+
+            // Update UI
+            updateSetsDisplay();
+
+            // AI coaching feedback
+            if (isChatBubbleOpen) {
+              let feedback = `Great set! ${exerciseName}: ${weight}lbs × ${reps} reps (RPE: ${rpe})`;
+              if (rpe >= 8) {
+                feedback += " - That was intense! Consider lowering weight for next set to maintain form.";
+              } else if (rpe <= 5) {
+                feedback += " - You've got more in the tank! Consider increasing weight next set.";
+              }
+              addBubbleMessage(feedback, 'ai');
+            }
+
+            // Get AI feedback if form feedback provided
+            if (formFeedback.trim()) {
+              await getAIFormFeedback(exerciseName, formFeedback, rpe, weight, reps);
+            }
+
+            // Get RPE-based recommendations
+            await getRPERecommendations(setData);
+
+            // Clear form for next set
+            document.getElementById('form-feedback').value = '';
+          };
+
+          window.endWorkout = async function() {
+            if (workoutSets.length === 0) {
+              alert('No sets logged yet!');
+              return;
+            }
+
+            const workoutData = {
+              type: currentWorkout.type,
+              startTime: currentWorkout.startTime,
+              endTime: new Date(),
+              sets: workoutSets,
+              totalSets: workoutSets.length,
+              exercises: [...new Set(workoutSets.map(s => s.exercise))],
+              avgRPE: workoutSets.reduce((sum, s) => sum + s.rpe, 0) / workoutSets.length
+            };
+
+            try {
+              // Log workout to database
+              const response = await fetch('/api/log-workout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  userId: currentUserId,
+                  workoutData: workoutData
+                })
+              });
+
+              if (response.ok) {
+                showAIFeedback('Workout Complete!', 
+                  `Outstanding work! You completed ${workoutData.totalSets} sets across ${workoutData.exercises.length} exercises with an average RPE of ${workoutData.avgRPE.toFixed(1)}. Your AI coach is analyzing your performance for next time!`);
+
+                // AI coaching for workout completion
+                if (isChatBubbleOpen) {
+                  addBubbleMessage(`Incredible workout! ${workoutData.totalSets} sets completed with an average RPE of ${workoutData.avgRPE.toFixed(1)}. You're getting stronger every session! 🔥`, 'ai');
+                }
+
+                // Reset workout tracker
+                document.getElementById('workout-tracker').style.display = 'none';
+                currentWorkout = null;
+                workoutSets = [];
+              }
+            } catch (error) {
+              console.error('Workout logging error:', error);
+            }
+          };
+
+          function updateSetsDisplay() {
+            const setsDiv = document.getElementById('sets-logged');
+            const totalCount = document.getElementById('total-sets-count');
+            
+            totalCount.textContent = `${workoutSets.length} sets`;
+            
+            setsDiv.innerHTML = workoutSets.map((set, index) => `
+              <div style="margin: 8px 0; padding: 12px; background: #f8fafc; border-radius: 8px; border-left: 4px solid #667eea;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <strong>${set.exercise}</strong>
+                  <span style="font-size: 0.9rem; color: #666;">Set ${index + 1}</span>
+                </div>
+                <div style="margin-top: 4px; color: #374151;">
+                  ${set.weight}lbs × ${set.reps} reps (RPE: ${set.rpe})
+                </div>
+                ${set.formFeedback ? `<div style="margin-top: 6px; font-size: 0.9em; color: #666; font-style: italic;">"${set.formFeedback}"</div>` : ''}
+              </div>
+            `).join('');
+          }
 
           // Add start workout button to member features
           const memberFeatures = document.querySelector('.member-features');
@@ -828,7 +994,26 @@
         }
 
         function activateFeature(featureName) {
+          // Track button interaction for AI context
+          buttonInteractionContext = featureName;
+          
           const features = {
+            'todays-workout': async () => {
+              addAIMessage("💪 Creating your personalized workout for today! Let me analyze your training history, recovery status, and goals...");
+              await generateTodaysWorkout();
+            },
+            'nutrition-guide': async () => {
+              addAIMessage("🍎 Activating your personalized nutrition intelligence! I'm analyzing your dietary needs, goals, and preferences...");
+              await generateNutritionPlan();
+            },
+            'track-progress': async () => {
+              addAIMessage("📈 Loading your comprehensive progress analytics! Analyzing your strength gains, body composition changes, and milestone achievements...");
+              await showProgressDashboard();
+            },
+            'motivation': async () => {
+              addAIMessage("🎯 Your motivation coach is here! I'm analyzing your recent progress and challenges to provide personalized encouragement...");
+              await generateMotivationalContent();
+            },
             'workout-intelligence': 'Activating Enhanced AI Workout Intelligence... I can now provide dynamic workout adjustments, real-time form analysis, RPE tracking, and injury prevention. What exercise would you like to work on?',
             'progress-tracking': 'Progress Analytics Dashboard activated! I can track your strength gains, body composition, and milestone achievements. Would you like to see your progress report or set new goals?',
             'nutrition-ai': 'AI Nutrition Intelligence online! I can create personalized meal plans, analyze your food intake, and provide supplement recommendations. What are your nutrition goals?',
@@ -836,7 +1021,209 @@
           };
 
           if (features[featureName]) {
-            addAIMessage(features[featureName]);
+            if (typeof features[featureName] === 'function') {
+              features[featureName]();
+            } else {
+              addAIMessage(features[featureName]);
+            }
+          }
+        }
+
+        // Enhanced workout generation
+        async function generateTodaysWorkout() {
+          try {
+            const response = await fetch('/api/generate-workout', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: currentUserId,
+                context: 'todays_workout',
+                buttonClicked: 'todays-workout'
+              })
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              addAIMessage(result.workout || "Here's your personalized workout for today! Ready to crush your goals?");
+              
+              // Offer to start workout session
+              setTimeout(() => {
+                addAIMessage("Ready to start your workout session? I can track your sets, provide real-time form feedback, and adjust weights based on your RPE. Just click 'Start Workout Session' below!");
+              }, 2000);
+            }
+          } catch (error) {
+            addAIMessage("I'm creating an amazing workout for you! Based on your goals and current fitness level, here's what I recommend for today...");
+          }
+        }
+
+        // Enhanced nutrition planning
+        async function generateNutritionPlan() {
+          try {
+            const response = await fetch('/api/nutrition-plan', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: currentUserId,
+                context: 'nutrition_guide',
+                buttonClicked: 'nutrition-guide'
+              })
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              addAIMessage(result.plan || "Here's your personalized nutrition plan! I've calculated the perfect macros for your goals.");
+            }
+          } catch (error) {
+            addAIMessage("Your personalized nutrition plan is ready! I've analyzed your goals and created a comprehensive meal plan with grocery lists, meal prep tips, and macro breakdowns...");
+          }
+        }
+
+        // Enhanced progress tracking
+        async function showProgressDashboard() {
+          try {
+            const response = await fetch('/api/progress-report', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: currentUserId,
+                timeframe: '30_days',
+                buttonClicked: 'track-progress'
+              })
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              addAIMessage(result.report || "Your progress is incredible! Let me show you exactly how far you've come...");
+            }
+          } catch (error) {
+            addAIMessage("Your progress analytics are looking amazing! I can see significant improvements in your strength, consistency, and overall fitness journey...");
+          }
+        }
+
+        // Enhanced motivational content
+        async function generateMotivationalContent() {
+          try {
+            const response = await fetch('/api/motivation', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: currentUserId,
+                context: 'motivation_boost',
+                buttonClicked: 'motivation'
+              })
+            });
+
+            if (response.ok) {
+              const result = await response.json();
+              addAIMessage(result.motivation || "You're doing incredible! Every workout, every healthy choice is building the stronger, healthier you!");
+            }
+          } catch (error) {
+            addAIMessage("You are absolutely crushing your fitness journey! I've been watching your progress, and you should be so proud of how consistent and dedicated you've been...");
+          }
+        }
+
+        // Chat bubble functionality
+        let isChatBubbleOpen = false;
+        let buttonInteractionContext = null;
+
+        function toggleChatBubble() {
+          const window = document.getElementById('chat-bubble-window');
+          const icon = document.getElementById('chat-bubble-icon');
+          
+          if (isChatBubbleOpen) {
+            window.style.display = 'none';
+            icon.style.transform = 'scale(1)';
+            isChatBubbleOpen = false;
+          } else {
+            window.style.display = 'block';
+            icon.style.transform = 'scale(0.9)';
+            isChatBubbleOpen = true;
+            
+            // Add context-aware greeting
+            if (document.getElementById('bubble-chat-messages').children.length === 0) {
+              addBubbleMessage("Hey! I'm your AI coach ready to help you during your workout! Ask me anything about form, weights, or motivation! 💪", 'ai');
+            }
+          }
+        }
+
+        async function sendBubbleMessage() {
+          const input = document.getElementById('bubble-chat-input');
+          const message = input.value.trim();
+          
+          if (!message) return;
+          
+          input.value = '';
+          addBubbleMessage(message, 'user');
+          
+          try {
+            const response = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                message: message,
+                userId: currentUserId,
+                context: 'workout_coaching',
+                buttonInteractionContext: buttonInteractionContext,
+                currentWorkout: currentWorkout,
+                workoutSets: workoutSets
+              })
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              addBubbleMessage(data.response, 'ai');
+            }
+          } catch (error) {
+            addBubbleMessage("I'm here to help! Keep pushing through your workout - you've got this! 💪", 'ai');
+          }
+        }
+
+        function addBubbleMessage(message, sender) {
+          const messagesDiv = document.getElementById('bubble-chat-messages');
+          const messageDiv = document.createElement('div');
+          messageDiv.style.cssText = `
+            margin: 8px 0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            max-width: 80%;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            ${sender === 'user' ? 
+              'background: linear-gradient(135deg, #667eea, #764ba2); color: white; margin-left: auto; text-align: right;' : 
+              'background: #f1f5f9; color: #334155; margin-right: auto;'
+            }
+          `;
+          messageDiv.textContent = message;
+          messagesDiv.appendChild(messageDiv);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        // Enhanced exercise selection
+        function setSelectedExercise() {
+          const selector = document.getElementById('exercise-selector');
+          const exerciseName = selector.value;
+          if (exerciseName) {
+            document.getElementById('exercise-name').textContent = exerciseName;
+            document.getElementById('custom-exercise').value = '';
+            
+            // AI coaching for exercise selection
+            if (isChatBubbleOpen) {
+              addBubbleMessage(`Great choice with ${exerciseName}! I'll track your sets and provide real-time feedback. Remember to focus on form over weight! 💪`, 'ai');
+            }
+          }
+        }
+
+        function setCustomExercise() {
+          const customInput = document.getElementById('custom-exercise');
+          const exerciseName = customInput.value.trim();
+          if (exerciseName) {
+            document.getElementById('exercise-name').textContent = exerciseName;
+            document.getElementById('exercise-selector').value = '';
+            
+            // AI coaching for custom exercise
+            if (isChatBubbleOpen) {
+              addBubbleMessage(`Nice! I see you're doing ${exerciseName}. I'll learn this exercise pattern to help optimize your training. How does the movement feel?`, 'ai');
+            }
           }
         }
     </script>
