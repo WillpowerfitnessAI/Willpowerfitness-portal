@@ -62,11 +62,24 @@
             right: 15px;
         }
         .chat-container { 
-            padding: 15px; 
-            display: flex; 
-            flex-direction: column; 
             flex: 1;
-            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            border-radius: 20px;
+            margin: 20px;
+            padding: 0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            max-height: calc(100vh - 100px);
+            overflow: hidden;
+        }
+
+        @media (max-width: 768px) {
+            .chat-container {
+                margin: 10px;
+                max-height: calc(100vh - 60px);
+                border-radius: 15px;
+            }
         }
         .chat-box { 
             flex: 1;
@@ -309,6 +322,88 @@
             grid-template-columns: 1fr 1fr;
             gap: 8px;
             margin: 10px 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 5px;
+                overflow-x: hidden;
+            }
+
+            .container {
+                margin: 0;
+                height: calc(100vh - 10px);
+                border-radius: 15px;
+                width: calc(100vw - 10px);
+                max-width: none;
+            }
+
+            .header {
+                padding: 15px;
+                border-radius: 15px 15px 0 0;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .header h1 {
+                font-size: 1.5rem;
+                text-align: center;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .back-button {
+                font-size: 14px !important;
+                padding: 6px 12px !important;
+            }
+
+            .btn-elite {
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+
+            .feature-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 15px;
+            }
+
+            .feature-btn {
+                padding: 15px;
+                font-size: 14px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+
+            .chat-input-container {
+                padding: 15px;
+            }
+
+            .chat-input {
+                font-size: 16px;
+                min-height: 44px;
+            }
+
+            .send-btn {
+                min-width: 44px;
+                min-height: 44px;
+            }
+
+            .workout-creator,
+            .ai-workout-creator,
+            .manual-workout-creator {
+                padding: 15px !important;
+            }
+
+            .workout-creator textarea,
+            .ai-workout-creator textarea,
+            .manual-workout-creator textarea {
+                font-size: 16px !important;
+                min-height: 44px;
+            }
         }
     </style>
 </head>
@@ -557,9 +652,74 @@
 
         // Show workout creation options
         function showWorkoutCreation() {
-            document.getElementById('chat-box').innerHTML = '';
-            document.getElementById('workout-creation').style.display = 'block';
-            document.getElementById('workout-tracker').style.display = 'none';
+            const workoutHtml = `
+                <div class="workout-creator" style="padding: 20px; max-width: 100%;">
+                    <h3 style="margin-bottom: 20px; color: #333;">Create Your Workout</h3>
+
+                    <div class="workout-options" style="margin-bottom: 20px;">
+                        <button onclick="showAIWorkoutCreator()" class="ai-option-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 20px; border-radius: 12px; margin: 5px; width: calc(100% - 10px); font-size: 16px; cursor: pointer;">
+                            🤖 Ask AI to Create My Workout
+                        </button>
+                        <button onclick="showManualWorkoutCreator()" class="manual-option-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 20px; border-radius: 12px; margin: 5px; width: calc(100% - 10px); font-size: 16px; cursor: pointer;">
+                            📝 Tell AI What I Want to Do
+                        </button>
+                    </div>
+
+                    <button onclick="showChat()" class="back-btn" style="background: #f0f0f0; color: #333; border: 1px solid #ddd; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%;">
+                        ← Back to Chat
+                    </button>
+                </div>
+            `;
+
+            document.getElementById('chat-box').innerHTML = workoutHtml;
+        }
+
+        function showAIWorkoutCreator() {
+            const aiHtml = `
+                <div class="ai-workout-creator" style="padding: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">AI Workout Creator</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Let our AI create the perfect workout for you based on your goals and preferences.</p>
+                    <textarea id="ai-workout-prompt" placeholder="Tell me about your fitness goals, available time, equipment, and any preferences (e.g., 'I want to build muscle, have 45 minutes, and access to a full gym')" rows="4" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                    <div style="margin-top: 15px;">
+                        <button onclick="generateAIWorkout()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 25px; border-radius: 8px; margin-right: 10px; cursor: pointer; font-size: 14px;">Generate AI Workout</button>
+                        <button onclick="showCreateWorkout()" style="background: #f0f0f0; color: #333; border: 1px solid #ddd; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px;">Back</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chat-box').innerHTML = aiHtml;
+        }
+
+        function showManualWorkoutCreator() {
+            const manualHtml = `
+                <div class="manual-workout-creator" style="padding: 20px;">
+                    <h3 style="color: #333; margin-bottom: 15px;">Tell AI Your Workout Plan</h3>
+                    <p style="color: #666; margin-bottom: 20px;">Describe exactly what you want to do and our AI will optimize it for you.</p>
+                    <textarea id="manual-workout-description" placeholder="Describe your workout plan (e.g., 'I want to do squats, bench press, and deadlifts with specific sets and reps')" rows="4" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
+                    <div style="margin-top: 15px;">
+                        <button onclick="optimizeManualWorkout()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 25px; border-radius: 8px; margin-right: 10px; cursor: pointer; font-size: 14px;">Optimize with AI</button>
+                        <button onclick="showCreateWorkout()" style="background: #f0f0f0; color: #333; border: 1px solid #ddd; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px;">Back</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('chat-box').innerHTML = manualHtml;
+        }
+
+        function generateAIWorkout() {
+            const prompt = document.getElementById('ai-workout-prompt').value;
+            if (!prompt.trim()) {
+                alert('Please describe your workout preferences first.');
+                return;
+            }
+            sendMessage(`Create a personalized workout for me: ${prompt}`);
+        }
+
+        function optimizeManualWorkout() {
+            const description = document.getElementById('manual-workout-description').value;
+            if (!description.trim()) {
+                alert('Please describe your workout plan first.');
+                return;
+            }
+            sendMessage(`Help me optimize this workout plan: ${description}`);
         }
 
         // AI creates workout automatically
