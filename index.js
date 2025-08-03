@@ -1729,7 +1729,7 @@ app.post('/api/create-subscription', async (req, res) => {
 
     console.log('Checkout session created:', checkoutSession.id);
 
-    // Try to update database, but don't fail if it's down
+    // Try to update database, but don'tfail if it's down
     try {
       await query(
         `UPDATE leads SET 
@@ -2109,6 +2109,48 @@ app.get('/api/status', async (req, res) => {
       status: 'ERROR', 
       error: error.message 
     });
+  }
+});
+
+// Export user data route
+app.get('/api/export-data/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const userData = await exportUserData(userId);
+    res.json({ success: true, data: userData });
+  } catch (error) {
+    console.error('Error exporting user data:', error);
+    res.status(500).json({ success: false, error: 'Failed to export user data' });
+  }
+});
+
+// Delete all user data route (for membership cancellation)
+app.delete('/api/delete-user-data/:userId', async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Delete all user data across all tables
+    await query('DELETE FROM conversations WHERE user_id = $1', [userId]);
+    await query('DELETE FROM workouts WHERE user_id = $1', [userId]);
+    await query('DELETE FROM progress_tracking WHERE user_id = $1', [userId]);
+    await query('DELETE FROM progress_reports WHERE user_id = $1', [userId]);
+    await query('DELETE FROM nutrition_plans WHERE user_id = $1', [userId]);
+    await query('DELETE FROM nutrition_logs WHERE user_id = $1', [userId]);
+    await query('DELETE FROM user_profiles WHERE email = $1 OR id::text = $1', [userId]);
+    await query('DELETE FROM leads WHERE email = $1', [userId]);
+    await query('DELETE FROM messages WHERE user_id = $1', [userId]);
+    await query('DELETE FROM workout_adjustments WHERE user_id = $1', [userId]);
+    await query('DELETE FROM form_analyses WHERE user_id = $1', [userId]);
+    await query('DELETE FROM rpe_tracking WHERE user_id = $1', [userId]);
+    await query('DELETE FROM recovery_tracking WHERE user_id = $1', [userId]);
+    await query('DELETE FROM sleep_analysis WHERE user_id = $1', [userId]);
+    await query('DELETE FROM stress_assessments WHERE user_id = $1', [userId]);
+
+    console.log(`All data deleted for user: ${userId}`);
+    res.json({ success: true, message: 'All user data deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting user data:', error);
+    res.status(500).json({ success: false, error: 'Failed to delete user data' });
   }
 });
 

@@ -11,8 +11,10 @@
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
-            padding: 10px;
+            padding: 8px;
+            overflow-x: hidden;
         }
+
         .dashboard-container { 
             max-width: 400px; 
             width: 100%;
@@ -24,386 +26,330 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            min-height: calc(100vh - 20px);
+            min-height: calc(100vh - 16px);
         }
+
         .header {
             background: linear-gradient(135deg, #1e3c72, #2a5298);
             color: white;
-            padding: 15px 20px;
+            padding: 12px 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             position: relative;
         }
+
         .header h1 { 
-            font-size: 1.3rem; 
+            font-size: 1.1rem; 
             font-weight: 700; 
             text-align: center;
             flex: 1;
+            margin: 0 50px;
         }
+
         .back-button {
             background: rgba(255, 255, 255, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.3);
             color: white;
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 4px 8px;
+            border-radius: 4px;
             cursor: pointer;
-            font-size: 12px;
+            font-size: 11px;
             position: absolute;
-            left: 15px;
+            left: 12px;
         }
+
         .status-badge {
             background: #10b981;
-            padding: 4px 8px;
-            border-radius: 12px;
-            font-size: 0.7rem;
+            padding: 3px 6px;
+            border-radius: 8px;
+            font-size: 10px;
             font-weight: 600;
             position: absolute;
-            right: 15px;
+            right: 12px;
         }
-        .chat-container { 
+
+        .main-content { 
             flex: 1;
             display: flex;
             flex-direction: column;
             background: white;
-            border-radius: 20px;
-            margin: 20px;
-            padding: 0;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            max-height: calc(100vh - 100px);
+            margin: 15px;
+            border-radius: 12px;
             overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
         }
 
-        @media (max-width: 768px) {
-            .chat-container {
-                margin: 10px;
-                max-height: calc(100vh - 60px);
-                border-radius: 15px;
-            }
-        }
         .chat-box { 
             flex: 1;
             background: #f8fafc;
-            border-radius: 12px;
             padding: 15px;
-            margin-bottom: 15px;
             overflow-y: auto;
-            min-height: 200px;
-            max-height: 60vh;
+            min-height: 300px;
+            max-height: calc(100vh - 200px);
         }
-        .welcome-message {
+
+        .welcome-screen {
             text-align: center;
             padding: 20px 10px;
-            color: #6b7280;
         }
-        .welcome-message h2 {
+
+        .welcome-screen h2 {
             color: #1e3c72;
             margin-bottom: 10px;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
+
+        .welcome-screen p {
+            color: #6b7280;
+            font-size: 0.9rem;
+            margin-bottom: 20px;
+        }
+
         .quick-actions {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin: 15px 0;
         }
+
         .action-card {
             background: white;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 12px;
+            border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             cursor: pointer;
             transition: all 0.3s;
             text-align: center;
+            border: 1px solid #e2e8f0;
         }
+
         .action-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
+
         .action-icon {
-            font-size: 1.5rem;
-            margin-bottom: 8px;
+            font-size: 1.3rem;
+            margin-bottom: 6px;
         }
+
         .action-card h4 {
-            font-size: 0.9rem;
-            margin-bottom: 5px;
+            font-size: 0.8rem;
+            margin-bottom: 4px;
             color: #1e3c72;
         }
+
         .action-card p {
             font-size: 0.7rem;
             color: #6b7280;
+            margin: 0;
         }
-        .chat-input-area {
-            display: flex;
-            gap: 10px;
-            align-items: flex-end;
-        }
-        .chat-input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 2px solid #e2e8f0;
-            border-radius: 20px;
-            font-size: 14px;
-            resize: none;
-            min-height: 40px;
-            max-height: 80px;
-            font-family: inherit;
-        }
-        .send-btn {
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border: none;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 14px;
-        }
+
         .message { 
-            margin: 15px 0; 
-            padding: 12px 15px; 
-            border-radius: 15px;
+            margin: 10px 0; 
+            padding: 10px 12px; 
+            border-radius: 12px;
             max-width: 85%;
-            line-height: 1.5;
+            line-height: 1.4;
             font-size: 0.9rem;
             animation: fadeInUp 0.3s ease;
         }
+
         @keyframes fadeInUp {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+
         .user-message { 
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white; 
             margin-left: auto;
-            border-bottom-right-radius: 6px;
+            border-bottom-right-radius: 4px;
         }
+
         .ai-message { 
             background: white;
             border: 1px solid #e2e8f0;
-            border-bottom-left-radius: 6px;
+            border-bottom-left-radius: 4px;
             color: #374151;
         }
+
         .typing-indicator {
             display: none;
             align-items: center;
-            gap: 8px;
+            gap: 6px;
             color: #6b7280;
             font-style: italic;
-            margin: 10px 0;
-            padding: 10px 15px;
+            margin: 8px 0;
+            padding: 8px 12px;
             font-size: 0.8rem;
         }
+
         .typing-dots {
             display: flex;
-            gap: 4px;
+            gap: 3px;
         }
+
         .typing-dots span {
-            width: 4px;
-            height: 4px;
+            width: 3px;
+            height: 3px;
             background: #9ca3af;
             border-radius: 50%;
             animation: typing 1.4s infinite;
         }
+
         .typing-dots span:nth-child(2) { animation-delay: 0.2s; }
         .typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+
         @keyframes typing {
             0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-            30% { transform: translateY(-6px); opacity: 1; }
+            30% { transform: translateY(-4px); opacity: 1; }
         }
-        .cta-button {
+
+        .chat-input-area {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+            padding: 12px;
+            background: white;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 14px;
+            resize: none;
+            min-height: 36px;
+            max-height: 60px;
+            font-family: inherit;
+        }
+
+        .send-btn {
+            padding: 10px 16px;
             background: linear-gradient(135deg, #667eea, #764ba2);
             color: white;
             border: none;
-            border-radius: 10px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            min-height: 36px;
+        }
+
+        .member-features {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border-top: 1px solid #e2e8f0;
+        }
+
+        .member-features h3 {
+            color: #1e3c72;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .feature-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 6px;
+        }
+
+        .feature-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.3s;
             font-family: inherit;
-            padding: 12px 20px;
-            font-size: 14px;
-        }
-        .member-features {
-            margin-top: 15px;
-            padding: 15px;
-            background: #f8fafc;
-            border-radius: 12px;
-        }
-        .member-features h3 {
-            color: #1e3c72;
-            margin-bottom: 10px;
-            font-size: 1rem;
-        }
-        .feature-buttons {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-        }
-        .feature-btn {
-            padding: 10px 15px;
+            padding: 8px 12px;
             font-size: 12px;
-            border-radius: 8px;
         }
 
-        /* Workout Creation Screen */
         .workout-creation {
             display: none;
+            padding: 15px;
         }
+
         .workout-options {
             display: grid;
             grid-template-columns: 1fr;
-            gap: 10px;
-            margin: 15px 0;
+            gap: 8px;
+            margin: 12px 0;
         }
+
         .workout-option {
             background: white;
-            padding: 15px;
-            border-radius: 10px;
+            padding: 12px;
+            border-radius: 8px;
             border: 2px solid #e2e8f0;
             cursor: pointer;
             text-align: center;
             transition: all 0.3s;
         }
+
         .workout-option:hover {
             border-color: #667eea;
             background: #f8fafc;
         }
+
         .workout-option h4 {
             color: #1e3c72;
-            margin-bottom: 5px;
-            font-size: 1rem;
+            margin-bottom: 4px;
+            font-size: 0.9rem;
         }
+
         .workout-option p {
             color: #6b7280;
             font-size: 0.8rem;
+            margin: 0;
         }
 
-        /* Workout Tracker */
-        .workout-tracker {
-            display: none;
-            background: #e0f2fe;
-            border-radius: 12px;
-            padding: 15px;
-            margin: 10px 0;
-        }
-        .workout-header {
+        .screen-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
         }
-        .workout-header h3 {
-            color: #0c4a6e;
+
+        .screen-header h3 {
+            color: #1e3c72;
             font-size: 1rem;
-        }
-        .form-group {
-            margin-bottom: 10px;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 3px;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 8px;
-            border-radius: 6px;
-            border: 1px solid #ddd;
-            font-size: 14px;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 8px;
-        }
-        .workout-buttons {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px;
-            margin: 10px 0;
+            margin: 0;
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 5px;
-                overflow-x: hidden;
-            }
+        .back-btn {
+            padding: 4px 8px;
+            background: #6b7280;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 11px;
+            cursor: pointer;
+        }
 
-            .container {
-                margin: 0;
-                height: calc(100vh - 10px);
-                border-radius: 15px;
-                width: calc(100vw - 10px);
-                max-width: none;
+        @media (max-width: 480px) {
+            body { padding: 4px; }
+            .dashboard-container { 
+                min-height: calc(100vh - 8px);
+                border-radius: 12px;
             }
-
-            .header {
-                padding: 15px;
-                border-radius: 15px 15px 0 0;
-                flex-direction: column;
-                gap: 10px;
-            }
-
-            .header h1 {
-                font-size: 1.5rem;
-                text-align: center;
-            }
-
-            .header-actions {
-                width: 100%;
-                justify-content: center;
-            }
-
-            .back-button {
-                font-size: 14px !important;
-                padding: 6px 12px !important;
-            }
-
-            .btn-elite {
-                font-size: 14px;
-                padding: 8px 16px;
-            }
-
-            .feature-grid {
-                grid-template-columns: 1fr;
-                gap: 10px;
-                padding: 15px;
-            }
-
-            .feature-btn {
-                padding: 15px;
-                font-size: 14px;
-                width: 100%;
-                box-sizing: border-box;
-            }
-
-            .chat-input-container {
-                padding: 15px;
-            }
-
-            .chat-input {
-                font-size: 16px;
-                min-height: 44px;
-            }
-
-            .send-btn {
-                min-width: 44px;
-                min-height: 44px;
-            }
-
-            .workout-creator,
-            .ai-workout-creator,
-            .manual-workout-creator {
-                padding: 15px !important;
-            }
-
-            .workout-creator textarea,
-            .ai-workout-creator textarea,
-            .manual-workout-creator textarea {
-                font-size: 16px !important;
-                min-height: 44px;
-            }
+            .header { padding: 10px 12px; }
+            .header h1 { font-size: 1rem; margin: 0 40px; }
+            .main-content { margin: 10px; }
+            .chat-box { padding: 12px; }
+            .quick-actions { gap: 8px; }
+            .action-card { padding: 10px; }
+            .chat-input-area { padding: 10px; }
         }
     </style>
 </head>
@@ -412,12 +358,12 @@
         <div class="header">
             <button class="back-button" onclick="goBack()">← Back</button>
             <h1>Your AI Personal Trainer</h1>
-            <span class="status-badge">Elite Member</span>
+            <span class="status-badge">Elite</span>
         </div>
 
-        <div class="chat-container">
+        <div class="main-content">
             <div class="chat-box" id="chat-box">
-                <div class="welcome-message">
+                <div class="welcome-screen" id="welcome-screen">
                     <h2>Welcome to Your Elite AI Training!</h2>
                     <p>I'm your dedicated AI personal trainer, ready to help you achieve your fitness goals.</p>
 
@@ -444,90 +390,23 @@
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Workout Creation Options -->
-            <div class="workout-creation" id="workout-creation">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                    <h3 style="color: #1e3c72;">Create Your Workout</h3>
-                    <button onclick="returnToMainPage()" style="padding: 6px 12px; background: #6b7280; color: white; border: none; border-radius: 6px; font-size: 12px;">← Back</button>
-                </div>
-
-                <div class="workout-options">
-                    <div class="workout-option" onclick="aiCreateWorkout()">
-                        <h4>🤖 AI Creates For Me</h4>
-                        <p>Let AI design the perfect workout based on your goals</p>
+                <!-- Workout Creation Screen -->
+                <div class="workout-creation" id="workout-creation">
+                    <div class="screen-header">
+                        <h3>Create Your Workout</h3>
+                        <button class="back-btn" onclick="returnToWelcome()">← Back</button>
                     </div>
-                    <div class="workout-option" onclick="customWorkout()">
-                        <h4>✏️ I'll Tell AI What I Want</h4>
-                        <p>Describe your workout ideas and AI will optimize it</p>
-                    </div>
-                    <div class="workout-option" onclick="startWorkoutTracker()">
-                        <h4>🏋️ Start Workout Session</h4>
-                        <p>Begin tracking sets and reps with AI coaching</p>
-                    </div>
-                </div>
-            </div>
 
-            <!-- Workout Tracker -->
-            <div class="workout-tracker" id="workout-tracker">
-                <div class="workout-header">
-                    <h3>Active Workout Session</h3>
-                    <button onclick="returnToMainPage()" style="padding: 6px 12px; background: #6b7280; color: white; border: none; border-radius: 6px; font-size: 12px;">← Back</button>
-                </div>
-
-                <div class="form-group">
-                    <label for="exercise-select">Exercise:</label>
-                    <select id="exercise-select" onchange="setSelectedExercise()">
-                        <option value="">Choose exercise...</option>
-                        <option value="Bench Press">Bench Press</option>
-                        <option value="Squat">Squat</option>
-                        <option value="Deadlift">Deadlift</option>
-                        <option value="Pull-ups">Pull-ups</option>
-                        <option value="Push-ups">Push-ups</option>
-                        <option value="custom">Custom Exercise...</option>
-                    </select>
-                    <input type="text" id="custom-exercise" placeholder="Enter custom exercise" style="display: none; margin-top: 5px;">
-                </div>
-
-                <div style="background: white; border-radius: 8px; padding: 12px; margin: 10px 0;">
-                    <h4 style="margin: 0 0 10px; color: #1e40af;">Current: <span id="exercise-name">Select exercise</span></h4>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="weight-input">Weight (lbs):</label>
-                            <input type="number" id="weight-input" placeholder="0">
+                    <div class="workout-options">
+                        <div class="workout-option" onclick="aiCreateWorkout()">
+                            <h4>🤖 AI Creates For Me</h4>
+                            <p>Let AI design the perfect workout based on your goals</p>
                         </div>
-                        <div class="form-group">
-                            <label for="reps-input">Reps:</label>
-                            <input type="number" id="reps-input" placeholder="0">
+                        <div class="workout-option" onclick="customWorkout()">
+                            <h4>✏️ I'll Tell AI What I Want</h4>
+                            <p>Describe your workout ideas and AI will optimize it</p>
                         </div>
-                        <div class="form-group">
-                            <label for="rpe-input">RPE:</label>
-                            <select id="rpe-input">
-                                <option value="">RPE</option>
-                                <option value="6">6 - Hard</option>
-                                <option value="7">7 - Very Hard</option>
-                                <option value="8">8 - Extremely Hard</option>
-                                <option value="9">9 - Near Max</option>
-                                <option value="10">10 - Maximum</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="form-feedback">How did that set feel?</label>
-                        <textarea id="form-feedback" placeholder="e.g., 'Good form, felt strong'" rows="2"></textarea>
-                    </div>
-
-                    <div class="workout-buttons">
-                        <button onclick="logSet()" style="background: #16a34a; color: white; border: none; border-radius: 6px; padding: 10px; font-weight: 600;">Log Set</button>
-                        <button onclick="endWorkout()" style="background: #dc2626; color: white; border: none; border-radius: 6px; padding: 10px; font-weight: 600;">End Workout</button>
-                    </div>
-
-                    <div id="workout-summary" style="background: #f8fafc; border-radius: 6px; padding: 10px; margin-top: 10px; max-height: 150px; overflow-y: auto;">
-                        <h4 style="margin: 0 0 8px; color: #1e40af; font-size: 0.9rem;">Workout Summary</h4>
-                        <div id="sets-logged" style="font-size: 0.8rem; color: #374151;">No sets logged yet</div>
                     </div>
                 </div>
             </div>
@@ -542,11 +421,11 @@
             </div>
 
             <div class="member-features">
-                <h3>🏋️ Member Features</h3>
+                <h3>📋 Member Features</h3>
                 <div class="feature-buttons">
-                    <button onclick="exportWorkout()" class="cta-button feature-btn">📄 Export Workout</button>
-                    <button onclick="emailWorkout()" class="cta-button feature-btn">📧 Email Plan</button>
-                    <button onclick="generateProgressReport()" class="cta-button feature-btn">📊 Progress Report</button>
+                    <button onclick="exportWorkout()" class="feature-btn">📄 Export Workout</button>
+                    <button onclick="emailWorkout()" class="feature-btn">📧 Email Plan</button>
+                    <button onclick="generateProgressReport()" class="feature-btn">📊 Progress Report</button>
                 </div>
             </div>
 
@@ -563,8 +442,7 @@
 
     <script>
         let currentUserId = localStorage.getItem('userId') || null;
-        let currentWorkout = null;
-        let workoutSets = [];
+        let currentScreen = 'welcome';
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', function() {
@@ -584,7 +462,7 @@
             const textarea = document.getElementById('chat-input');
             textarea.addEventListener('input', function() {
                 this.style.height = 'auto';
-                this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+                this.style.height = Math.min(this.scrollHeight, 60) + 'px';
             });
 
             // Enter key handling
@@ -601,133 +479,29 @@
             }, 1000);
         });
 
-        // Fixed back button functionality
         function goBack() {
-            if (document.getElementById('workout-creation').style.display === 'block' || 
-                document.getElementById('workout-tracker').style.display === 'block') {
-                returnToMainPage();
+            if (currentScreen === 'workout-creation') {
+                returnToWelcome();
             } else {
                 window.history.back();
             }
         }
 
-        function returnToMainPage() {
-            // Hide all screens
+        function returnToWelcome() {
             document.getElementById('workout-creation').style.display = 'none';
-            document.getElementById('workout-tracker').style.display = 'none';
-
-            // Show welcome message
-            const chatBox = document.getElementById('chat-box');
-            if (!chatBox.querySelector('.welcome-message')) {
-                chatBox.innerHTML = `
-                    <div class="welcome-message">
-                        <h2>Welcome to Your Elite AI Training!</h2>
-                        <p>I'm your dedicated AI personal trainer, ready to help you achieve your fitness goals.</p>
-                        <div class="quick-actions">
-                            <div class="action-card" onclick="showWorkoutCreation()">
-                                <div class="action-icon">💪</div>
-                                <h4>Create Workout</h4>
-                                <p>AI-powered plans</p>
-                            </div>
-                            <div class="action-card" onclick="activateFeature('nutrition-guide')">
-                                <div class="action-icon">🍎</div>
-                                <h4>Nutrition</h4>
-                                <p>Meal planning</p>
-                            </div>
-                            <div class="action-card" onclick="activateFeature('track-progress')">
-                                <div class="action-icon">📈</div>
-                                <h4>Progress</h4>
-                                <p>Track results</p>
-                            </div>
-                            <div class="action-card" onclick="activateFeature('motivation')">
-                                <div class="action-icon">🎯</div>
-                                <h4>Motivation</h4>
-                                <p>Stay inspired</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
+            document.getElementById('welcome-screen').style.display = 'block';
+            currentScreen = 'welcome';
         }
 
-        // Show workout creation options
         function showWorkoutCreation() {
-            const workoutHtml = `
-                <div class="workout-creator" style="padding: 20px; max-width: 100%;">
-                    <h3 style="margin-bottom: 20px; color: #333;">Create Your Workout</h3>
-
-                    <div class="workout-options" style="margin-bottom: 20px;">
-                        <button onclick="showAIWorkoutCreator()" class="ai-option-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 20px; border-radius: 12px; margin: 5px; width: calc(100% - 10px); font-size: 16px; cursor: pointer;">
-                            🤖 Ask AI to Create My Workout
-                        </button>
-                        <button onclick="showManualWorkoutCreator()" class="manual-option-btn" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 20px; border-radius: 12px; margin: 5px; width: calc(100% - 10px); font-size: 16px; cursor: pointer;">
-                            📝 Tell AI What I Want to Do
-                        </button>
-                    </div>
-
-                    <button onclick="showChat()" class="back-btn" style="background: #f0f0f0; color: #333; border: 1px solid #ddd; padding: 10px 20px; border-radius: 8px; cursor: pointer; width: 100%;">
-                        ← Back to Chat
-                    </button>
-                </div>
-            `;
-
-            document.getElementById('chat-box').innerHTML = workoutHtml;
+            document.getElementById('welcome-screen').style.display = 'none';
+            document.getElementById('workout-creation').style.display = 'block';
+            currentScreen = 'workout-creation';
         }
 
-        function showAIWorkoutCreator() {
-            const aiHtml = `
-                <div class="ai-workout-creator" style="padding: 20px;">
-                    <h3 style="color: #333; margin-bottom: 15px;">AI Workout Creator</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Let our AI create the perfect workout for you based on your goals and preferences.</p>
-                    <textarea id="ai-workout-prompt" placeholder="Tell me about your fitness goals, available time, equipment, and any preferences (e.g., 'I want to build muscle, have 45 minutes, and access to a full gym')" rows="4" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
-                    <div style="margin-top: 15px;">
-                        <button onclick="generateAIWorkout()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 25px; border-radius: 8px; margin-right: 10px; cursor: pointer; font-size: 14px;">Generate AI Workout</button>
-                        <button onclick="showCreateWorkout()" style="background: #f0f0f0; color: #333; border: 1px solid #ddd; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px;">Back</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('chat-box').innerHTML = aiHtml;
-        }
-
-        function showManualWorkoutCreator() {
-            const manualHtml = `
-                <div class="manual-workout-creator" style="padding: 20px;">
-                    <h3 style="color: #333; margin-bottom: 15px;">Tell AI Your Workout Plan</h3>
-                    <p style="color: #666; margin-bottom: 20px;">Describe exactly what you want to do and our AI will optimize it for you.</p>
-                    <textarea id="manual-workout-description" placeholder="Describe your workout plan (e.g., 'I want to do squats, bench press, and deadlifts with specific sets and reps')" rows="4" style="width: 100%; padding: 15px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 14px; resize: vertical; box-sizing: border-box;"></textarea>
-                    <div style="margin-top: 15px;">
-                        <button onclick="optimizeManualWorkout()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 12px 25px; border-radius: 8px; margin-right: 10px; cursor: pointer; font-size: 14px;">Optimize with AI</button>
-                        <button onclick="showCreateWorkout()" style="background: #f0f0f0; color: #333; border: 1px solid #ddd; padding: 12px 25px; border-radius: 8px; cursor: pointer; font-size: 14px;">Back</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('chat-box').innerHTML = manualHtml;
-        }
-
-        function generateAIWorkout() {
-            const prompt = document.getElementById('ai-workout-prompt').value;
-            if (!prompt.trim()) {
-                alert('Please describe your workout preferences first.');
-                return;
-            }
-            sendMessage(`Create a personalized workout for me: ${prompt}`);
-        }
-
-        function optimizeManualWorkout() {
-            const description = document.getElementById('manual-workout-description').value;
-            if (!description.trim()) {
-                alert('Please describe your workout plan first.');
-                return;
-            }
-            sendMessage(`Help me optimize this workout plan: ${description}`);
-        }
-
-        // AI creates workout automatically
         async function aiCreateWorkout() {
-            document.getElementById('workout-creation').style.display = 'none';
-
+            returnToWelcome();
             addAIMessage("🤖 Perfect! I'm analyzing your fitness profile and creating the ideal workout for you today...");
-
             showTypingIndicator();
 
             try {
@@ -745,9 +519,6 @@
 
                 if (result.success) {
                     addAIMessage(result.workout);
-                    setTimeout(() => {
-                        addAIMessage("Ready to start this workout? I can track your sets and provide real-time coaching!");
-                    }, 2000);
                 } else {
                     addAIMessage("Here's your personalized AI-generated workout! I've designed this specifically for your goals and current fitness level...");
                 }
@@ -757,166 +528,15 @@
             }
         }
 
-        // User describes what they want
         function customWorkout() {
-            document.getElementById('workout-creation').style.display = 'none';
+            returnToWelcome();
             addAIMessage("✏️ Great! Tell me what kind of workout you have in mind. For example:");
             addAIMessage("• 'I want to focus on upper body strength today'\n• 'Can we do a 30-minute HIIT session?'\n• 'I want to work on my legs and glutes'\n• 'Something for building muscle mass'");
             addAIMessage("Just describe what you're thinking and I'll create the perfect workout plan for you! 💪");
         }
 
-        // Start workout tracker
-        function startWorkoutTracker() {
-            document.getElementById('workout-creation').style.display = 'none';
-            document.getElementById('workout-tracker').style.display = 'block';
-            document.getElementById('chat-box').innerHTML = '';
-
-            currentWorkout = {
-                type: 'tracked_session',
-                startTime: new Date(),
-                exercises: []
-            };
-            workoutSets = [];
-        }
-
-        // Exercise selection
-        function setSelectedExercise() {
-            const selector = document.getElementById('exercise-select');
-            const customInput = document.getElementById('custom-exercise');
-            const exerciseName = selector.value;
-
-            if (exerciseName === 'custom') {
-                customInput.style.display = 'block';
-                customInput.focus();
-            } else if (exerciseName) {
-                customInput.style.display = 'none';
-                document.getElementById('exercise-name').textContent = exerciseName;
-            }
-        }
-
-        // Handle custom exercise input
-        document.addEventListener('DOMContentLoaded', function() {
-            const customInput = document.getElementById('custom-exercise');
-            if (customInput) {
-                customInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        const exerciseName = this.value.trim();
-                        if (exerciseName) {
-                            document.getElementById('exercise-name').textContent = exerciseName;
-                            this.style.display = 'none';
-                            document.getElementById('exercise-select').value = '';
-                        }
-                    }
-                });
-            }
-        });
-
-        // Log workout set
-        function logSet() {
-            const weight = document.getElementById('weight-input').value;
-            const reps = document.getElementById('reps-input').value;
-            const rpe = document.getElementById('rpe-input').value;
-            const formFeedback = document.getElementById('form-feedback').value;
-            const exerciseName = document.getElementById('exercise-name').textContent;
-
-            if (!weight || !reps || !rpe || exerciseName === 'Select exercise') {
-                alert('Please fill in all fields and select an exercise');
-                return;
-            }
-
-            const setData = {
-                exercise: exerciseName,
-                weight: parseFloat(weight),
-                reps: parseInt(reps),
-                rpe: parseInt(rpe),
-                formFeedback: formFeedback,
-                timestamp: new Date()
-            };
-
-            workoutSets.push(setData);
-            updateSetsDisplay();
-
-            // Clear form for next set
-            document.getElementById('weight-input').value = '';
-            document.getElementById('reps-input').value = '';
-            document.getElementById('rpe-input').value = '';
-            document.getElementById('form-feedback').value = '';
-
-            // Add encouraging message
-            addAIMessage(`Great set! ${exerciseName}: ${weight}lbs × ${reps} reps (RPE: ${rpe}). ${rpe >= 8 ? 'That was intense! Consider reducing weight for next set.' : rpe <= 5 ? 'You\'ve got more in the tank! Try increasing weight next set.' : 'Perfect intensity level!'}`);
-        }
-
-        function updateSetsDisplay() {
-            const setsDiv = document.getElementById('sets-logged');
-
-            if (workoutSets.length === 0) {
-                setsDiv.innerHTML = 'No sets logged yet';
-                return;
-            }
-
-            const groupedSets = {};
-            workoutSets.forEach(set => {
-                if (!groupedSets[set.exercise]) {
-                    groupedSets[set.exercise] = [];
-                }
-                groupedSets[set.exercise].push(set);
-            });
-
-            setsDiv.innerHTML = Object.entries(groupedSets).map(([exercise, sets]) => `
-                <div style="margin: 8px 0; padding: 8px; background: white; border-radius: 6px;">
-                    <strong style="color: #1e40af; font-size: 0.8rem;">${exercise} (${sets.length} sets)</strong>
-                    ${sets.map(set => `
-                        <div style="margin: 4px 0; font-size: 0.7rem; color: #6b7280;">
-                            ${set.weight}lbs × ${set.reps} reps (RPE: ${set.rpe})
-                        </div>
-                    `).join('')}
-                </div>
-            `).join('');
-        }
-
-        async function endWorkout() {
-            if (workoutSets.length === 0) {
-                alert('No sets logged yet!');
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/log-workout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        userId: currentUserId,
-                        workoutData: {
-                            sets: workoutSets,
-                            totalSets: workoutSets.length,
-                            exercises: [...new Set(workoutSets.map(s => s.exercise))]
-                        }
-                    })
-                });
-
-                addAIMessage(`🎉 Workout completed! You crushed ${workoutSets.length} sets across ${[...new Set(workoutSets.map(s => s.exercise))].length} exercises. Amazing work!`);
-
-                // Reset and return to main page
-                setTimeout(() => {
-                    returnToMainPage();
-                    currentWorkout = null;
-                    workoutSets = [];
-                }, 2000);
-            } catch (error) {
-                addAIMessage('🎉 Workout completed! You should be proud of the work you put in today!');
-                setTimeout(() => returnToMainPage(), 2000);
-            }
-        }
-
-        // Feature activation
         function activateFeature(featureName) {
-            const chatBox = document.getElementById('chat-box');
-            chatBox.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding: 10px; background: #f1f5f9; border-radius: 8px;">
-                    <h3 style="margin: 0; color: #1e3c72; font-size: 1rem;">${getFeatureTitle(featureName)}</h3>
-                    <button onclick="returnToMainPage()" style="padding: 6px 12px; background: #6b7280; color: white; border: none; border-radius: 6px; font-size: 12px;">← Back</button>
-                </div>
-            `;
+            document.getElementById('welcome-screen').style.display = 'none';
 
             const features = {
                 'nutrition-guide': () => addAIMessage("🍎 Let me create your personalized nutrition plan! I'm analyzing your goals and dietary needs..."),
@@ -929,16 +549,6 @@
             }
         }
 
-        function getFeatureTitle(featureName) {
-            const titles = {
-                'nutrition-guide': "Nutrition Guide",
-                'track-progress': "Track Progress", 
-                'motivation': "Motivation"
-            };
-            return titles[featureName] || "Feature";
-        }
-
-        // Fixed chat functionality
         async function sendMessage() {
             const input = document.getElementById('chat-input');
             const message = input.value.trim();
@@ -989,9 +599,7 @@
             messageDiv.className = 'message user-message';
             messageDiv.textContent = message;
 
-            const welcomeMsg = chatBox.querySelector('.welcome-message');
-            if (welcomeMsg) welcomeMsg.remove();
-
+            document.getElementById('welcome-screen').style.display = 'none';
             chatBox.appendChild(messageDiv);
             scrollToBottom();
         }
@@ -1008,9 +616,7 @@
 
             messageDiv.innerHTML = formattedMessage;
 
-            const welcomeMsg = chatBox.querySelector('.welcome-message');
-            if (welcomeMsg) welcomeMsg.remove();
-
+            document.getElementById('welcome-screen').style.display = 'none';
             chatBox.appendChild(messageDiv);
             scrollToBottom();
         }
@@ -1028,7 +634,6 @@
             chatBox.scrollTop = chatBox.scrollHeight;
         }
 
-        // Member features
         async function exportWorkout() {
             addAIMessage("📄 Generating your personalized workout export...");
         }
