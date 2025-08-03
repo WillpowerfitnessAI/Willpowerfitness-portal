@@ -619,13 +619,23 @@ app.post('/api/chat', async (req, res) => {
 
     console.log(`Chat request from ${userId}: ${message}`);
 
-    // Build conversation context with button interactions
-    const conversationMessages = [
-      {
-        role: "user",
-        content: message
-      }
-    ];
+    // Get recent conversation history for context
+    const recentMessages = await getConversationContext(userId, 5);
+
+    // Build conversation messages with history
+    const conversationMessages = [];
+    
+    // Add recent conversation history
+    recentMessages.forEach(conv => {
+      conversationMessages.push({ role: "user", content: conv.user_message });
+      conversationMessages.push({ role: "assistant", content: conv.ai_response });
+    });
+
+    // Add current message
+    conversationMessages.push({
+      role: "user",
+      content: message
+    });
 
     // Enhanced user context for AI including button interactions
     const userContext = {
@@ -636,33 +646,36 @@ app.post('/api/chat', async (req, res) => {
       workoutSets: workoutSets,
       timestamp: new Date().toISOString(),
       isWorkoutCoaching: context === 'workout_coaching',
+      chatMode: 'responsive_trainer', // Explicitly set chat mode
       // Add any stored user preferences or history here
     };
 
-    // Modify system prompt based on context
-    let systemPrompt;
-    if (context === 'workout_coaching') {
-      systemPrompt = {
-        role: "system",
-        content: `You are ${userId}'s dedicated AI workout coach providing real-time support during their training session. 
+    // Always use responsive trainer prompt - no consultation mode in chat
+    const systemPrompt = {
+      role: "system",
+      content: `You are ${userId}'s personal AI fitness trainer providing responsive, helpful guidance. You are like ChatGPT but specialized for fitness.
 
-        CURRENT WORKOUT STATUS:
-        ${currentWorkout ? `Active workout: ${JSON.stringify(currentWorkout)}` : 'No active workout'}
-        ${workoutSets?.length ? `Sets completed: ${workoutSets.length}` : 'No sets logged yet'}
-        ${buttonInteractionContext ? `Last button clicked: ${buttonInteractionContext}` : ''}
+      CHAT BEHAVIOR:
+      🗣️ Be conversational and responsive like ChatGPT
+      💬 Respond directly to what they're saying
+      🎯 Stay focused on their current request
+      💪 Provide specific, actionable fitness advice
+      🔥 Be encouraging and supportive
+      ⚡ Keep responses focused and helpful
 
-        AS THEIR WORKOUT COACH:
-        💪 Provide real-time form feedback and encouragement
-        🎯 Help with weight/rep/RPE decisions
-        ⚡ Keep them motivated and focused
-        🧠 Give exercise-specific coaching cues
-        📊 Analyze their performance data
-        🔥 Celebrate their effort and progress
+      ${context === 'workout_coaching' ? `
+      CURRENT WORKOUT CONTEXT:
+      ${currentWorkout ? `Active workout: ${JSON.stringify(currentWorkout)}` : 'No active workout'}
+      ${workoutSets?.length ? `Sets completed: ${workoutSets.length}` : 'No sets logged yet'}
+      ${buttonInteractionContext ? `Last action: ${buttonInteractionContext}` : ''}
+      
+      Give real-time workout support and coaching.` : ''}
 
-        Keep responses concise but encouraging. You're their training partner in the gym!`
-      };
-      conversationMessages.unshift(systemPrompt);
-    }
+      Never switch to consultation mode - just be their responsive AI trainer!`
+    };
+
+    // Add system prompt at the beginning
+    conversationMessages.unshift(systemPrompt);
 
     const response = await getChatResponse(conversationMessages, userContext);
 
