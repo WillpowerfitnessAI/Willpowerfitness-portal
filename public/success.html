@@ -160,6 +160,12 @@
             localStorage.setItem('willpower_customer_id', customerId);
             localStorage.setItem('willpower_member_status', 'active');
             localStorage.setItem('willpower_trial_start', new Date().toISOString());
+            
+            // Try to get member name from URL params
+            const memberName = urlParams.get('member_name');
+            if (memberName) {
+                localStorage.setItem('willpower_member_name', decodeURIComponent(memberName));
+            }
 
             // Get customer email from URL params or try to fetch from API
             const customerEmail = urlParams.get('email');

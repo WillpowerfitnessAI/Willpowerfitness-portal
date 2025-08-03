@@ -60,7 +60,7 @@ app.get('/', (req, res) => {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>WillpowerFitnessAI - Live Demo</title>
+        <title>WillpowerFitnessAI - AI Personal Training</title>
 
 
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -360,11 +360,21 @@ app.get('/', (req, res) => {
                             </div>
                         </div>
 
-                        <a href="/onboarding" class="cta-button">Start Your Free Consultation</a>
+                        <!-- Dynamic CTA based on member status -->
+                        <div id="non-member-cta">
+                            <a href="/onboarding" class="cta-button">Start Your Free Consultation</a>
+                            <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
+                                Begin with a personalized consultation to unlock your elite fitness coaching experience.
+                            </p>
+                        </div>
 
-                        <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
-                            Begin with a personalized consultation to unlock your elite fitness coaching experience.
-                        </p>
+                        <div id="member-cta" style="display: none;">
+                            <a href="/dashboard" class="cta-button">Access Your AI Trainer</a>
+                            <a href="/login" class="cta-button" style="background: linear-gradient(135deg, #10b981, #059669); margin-top: 10px;">Member Login</a>
+                            <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
+                                Welcome back! Continue your fitness journey with your AI personal trainer.
+                            </p>
+                        </div>
 
                         <!-- Member Workout Export (hidden by default, shown for active members) -->
                         <div id="member-features" style="display: none; margin-top: 30px; padding: 20px; background: #f8fafc; border-radius: 15px; border: 2px solid #e2e8f0;">
@@ -385,8 +395,22 @@ app.get('/', (req, res) => {
         </div>
 
         <script>
-          // Simple page interactions
+          // Simple page interactions and member detection
           document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already a member
+            const memberStatus = localStorage.getItem('willpower_member_status');
+            const userEmail = localStorage.getItem('userEmail');
+            
+            if (memberStatus === 'active' && userEmail) {
+              // Show member-specific CTA
+              document.getElementById('non-member-cta').style.display = 'none';
+              document.getElementById('member-cta').style.display = 'block';
+              
+              // Update page title for members
+              document.querySelector('.header h1').textContent = 'Welcome Back to WillpowerFitnessAI';
+              document.querySelector('.header p').textContent = `Continue your elite fitness journey, ${localStorage.getItem('willpower_member_name') || 'Member'}!`;
+            }
+
             // Add smooth hover effects
             const cards = document.querySelectorAll('.feature-card');
             cards.forEach(card => {
@@ -2085,6 +2109,33 @@ app.get('/api/admin/stats', async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch stats' });
+  }
+});
+
+// Member status check endpoint
+app.get('/api/member-status/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    
+    // Check if user has active subscription
+    const userProfile = await query(
+      'SELECT subscription_status, name FROM user_profiles WHERE email = $1',
+      [email]
+    );
+    
+    if (userProfile.rows.length > 0) {
+      const profile = userProfile.rows[0];
+      res.json({
+        isMember: profile.subscription_status === 'active',
+        memberName: profile.name,
+        status: profile.subscription_status
+      });
+    } else {
+      res.json({ isMember: false, memberName: null, status: 'inactive' });
+    }
+  } catch (error) {
+    console.error('Member status check error:', error);
+    res.json({ isMember: false, memberName: null, status: 'unknown' });
   }
 });
 

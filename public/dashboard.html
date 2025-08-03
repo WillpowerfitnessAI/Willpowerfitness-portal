@@ -356,7 +356,7 @@
 <body>
     <div class="dashboard-container">
         <div class="header">
-            <button class="back-button" onclick="goBack()">← Back</button>
+            <button class="back-button" onclick="logout()">Logout</button>
             <h1>Your AI Personal Trainer</h1>
             <span class="status-badge">Elite</span>
         </div>
@@ -479,11 +479,24 @@
             }, 1000);
         });
 
+        function logout() {
+            // Clear all stored user data
+            localStorage.removeItem('userEmail');
+            localStorage.removeItem('userId');
+            localStorage.removeItem('willpower_customer_id');
+            localStorage.removeItem('willpower_member_name');
+            localStorage.removeItem('willpower_member_status');
+            localStorage.removeItem('willpower_trial_start');
+            
+            // Redirect to main landing page
+            window.location.href = '/';
+        }
+
         function goBack() {
             if (currentScreen === 'workout-creation') {
                 returnToWelcome();
             } else {
-                window.history.back();
+                logout();
             }
         }
 
