@@ -731,7 +731,7 @@
             const formFeedback = document.getElementById('form-feedback').value;
             const exerciseName = document.getElementById('exercise-name').textContent;
 
-            if (!weight || !reps || !rpe || exerciseName === '-' || exerciseName === 'Select an exercise to begin') {
+            if (!weight || !reps || !rpe || exerciseName === '-' || exerciseName === 'Ready to start') {
               alert('Please fill in all fields and select an exercise');
               return;
             }
@@ -1526,33 +1526,41 @@
         }
 
         // Enhanced exercise selection
-        function setSelectedExercise() {
-          const selector = document.getElementById('exercise-select');
-          const exerciseName = selector.value;
-          if (exerciseName) {
-            document.getElementById('exercise-name').textContent = exerciseName;
-            document.getElementById('custom-exercise').value = '';
+          function setSelectedExercise() {
+            const selector = document.getElementById('exercise-select');
+            const customInput = document.getElementById('custom-exercise');
+            const exerciseName = selector.value;
 
-            // AI coaching for exercise selection
-            if (isChatBubbleOpen) {
-              addBubbleMessage(`Great choice with ${exerciseName}! I'll track your sets and provide real-time feedback. Remember to focus on form over weight! 💪`, 'ai');
+            if (exerciseName === 'custom') {
+              customInput.style.display = 'block';
+              customInput.focus();
+            } else if (exerciseName) {
+              customInput.style.display = 'none';
+              document.getElementById('exercise-name').textContent = exerciseName;
+
+              // AI coaching for exercise selection
+              if (typeof isChatBubbleOpen !== 'undefined' && isChatBubbleOpen) {
+                addBubbleMessage(`Great choice with ${exerciseName}! I'll track your sets and provide real-time feedback. Remember to focus on form over weight! 💪`, 'ai');
+              }
             }
           }
-        }
 
-        function setCustomExercise() {
-          const customInput = document.getElementById('custom-exercise');
-          const exerciseName = customInput.value.trim();
-          if (exerciseName) {
-            document.getElementById('exercise-name').textContent = exerciseName;
-            document.getElementById('exercise-selector').value = '';
-
-            // AI coaching for custom exercise
-            if (isChatBubbleOpen) {
-              addBubbleMessage(`Nice! I see you're doing ${exerciseName}. I'll learn this exercise pattern to help optimize your training. How does the movement feel?`, 'ai');
+          // Handle custom exercise input
+          document.addEventListener('DOMContentLoaded', function() {
+            const customInput = document.getElementById('custom-exercise');
+            if (customInput) {
+              customInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                  const exerciseName = this.value.trim();
+                  if (exerciseName) {
+                    document.getElementById('exercise-name').textContent = exerciseName;
+                    this.style.display = 'none';
+                    document.getElementById('exercise-select').value = '';
+                  }
+                }
+              });
             }
-          }
-        }
+          });
     </script>
 </body>
 </html>
