@@ -647,6 +647,7 @@ app.post('/api/chat', async (req, res) => {
       timestamp: new Date().toISOString(),
       isWorkoutCoaching: context === 'workout_coaching',
       chatMode: 'responsive_trainer', // Explicitly set chat mode
+      consultationMode: false, // Explicitly disable consultation mode
       // Add any stored user preferences or history here
     };
 
