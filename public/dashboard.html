@@ -293,8 +293,9 @@
                             <h4>Motivation</h4>
                             <p>Get encouragement & tips</p>
                         </div>
-                    </div></div>
+                    </div>
                 </div>
+            </div>
             </div>
 
             <div class="typing-indicator" id="typing-indicator">
@@ -328,11 +329,14 @@
 
             <!-- Workout Tracking Interface -->
             <div id="workout-tracker" style="display: none; background: #e0f2fe; border-radius: 12px; padding: 20px; margin: 20px 0; border: 2px solid #0ea5e9;">
-              <h3 style="color: #0c4a6e; margin: 0 0 15px;">🏋️ Active Workout Session</h3>
+              <div style="display: flex; justify-content: space-between; align-items: center; margin: 0 0 15px;">
+                <h3 style="color: #0c4a6e; margin: 0;">Active Workout Session</h3>
+                <button onclick="returnToMainPage()" style="padding: 8px 15px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">← Back</button>
+              </div>
 
               <div style="margin-bottom: 15px;">
                 <label for="exercise-select" style="display: block; margin-bottom: 5px; font-weight: 600;">Select Exercise:</label>
-                <select id="exercise-select" onchange="selectExercise()" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
+                <select id="exercise-select" onchange="setSelectedExercise()" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #ddd;">
                   <option value="">Choose an exercise...</option>
                   <option value="Bench Press">Bench Press</option>
                   <option value="Squat">Squat</option>
@@ -1024,34 +1028,15 @@
         }
 
         function showEnhancedFeatures() {
-          // Add enhanced AI features to the member features section
+          // Add member features without enhanced AI section
           const memberFeatures = document.querySelector('.member-features');
           if (memberFeatures) {
             memberFeatures.innerHTML = `
-              <h3 style="color: #1e3c72; margin-bottom: 15px;">🤖 Enhanced AI Features</h3>
-
-              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-bottom: 20px;">
-                <div class="feature-card" onclick="activateFeature('workout-intelligence')">
-                  <h4>🏋️ Workout Intelligence</h4>
-                  <p>Dynamic adjustments, form analysis, RPE tracking</p>
-                </div>
-                <div class="feature-card" onclick="activateFeature('progress-tracking')">
-                  <h4>📈 Progress Analytics</h4>
-                  <p>Comprehensive tracking & milestone system</p>
-                </div>
-                <div class="feature-card" onclick="activateFeature('nutrition-ai')">
-                  <h4>🍎 Nutrition Intelligence</h4>
-                  <p>Meal planning & smart food analysis</p>
-                </div>
-                <div class="feature-card" onclick="activateFeature('recovery-wellness')">
-                  <h4>😴 Recovery Monitoring</h4>
-                  <p>Sleep optimization & wellness coaching</p>
-                </div>
+              <h3 style="color: #1e3c72; margin-bottom: 15px;">🏋️ Member Features</h3>
+              
+              <div style="text-align: center; margin: 20px 0;">
+                <button onclick="startWorkout()" class="cta-button" style="background: #16a34a; padding: 15px 30px; font-size: 16px; font-weight: 600;">🏋️ Start Workout Session</button>
               </div>
-
-              <button onclick="startWorkout()" class="cta-button" style="width: 100%; margin-bottom: 15px; background: #16a34a;">
-                🏋️ Start Workout Session
-              </button>
 
               <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                 <button id="export-workout-btn" onclick="exportWorkout()" class="cta-button" style="flex: 1; min-width: 150px; font-size: 14px; padding: 15px 25px; background: #3b82f6;">📄 Export Workout</button>
@@ -1062,9 +1047,57 @@
           }
         }
 
+        function returnToMainPage() {
+          // Hide workout tracker
+          document.getElementById('workout-tracker').style.display = 'none';
+          
+          // Show welcome message if chat is empty
+          const chatBox = document.getElementById('chat-box');
+          if (chatBox.children.length === 0 || !chatBox.querySelector('.message')) {
+            chatBox.innerHTML = `
+              <div class="welcome-message">
+                <h2>Welcome to Your Elite AI Training Experience!</h2>
+                <p>I'm your dedicated AI personal trainer, ready to help you achieve your fitness goals. Ask me anything about workouts, nutrition, progress tracking, or just say hello!</p>
+
+                <div class="quick-actions">
+                  <div class="action-card" onclick="activateFeature('todays-workout')">
+                    <div class="action-icon">💪</div>
+                    <h4>Today's Workout</h4>
+                    <p>Get a personalized workout plan</p>
+                  </div>
+                  <div class="action-card" onclick="activateFeature('nutrition-guide')">
+                    <div class="action-icon">🍎</div>
+                    <h4>Nutrition Guide</h4>
+                    <p>Personalized meal planning</p>
+                  </div>
+                  <div class="action-card" onclick="activateFeature('track-progress')">
+                    <div class="action-icon">📈</div>
+                    <h4>Track Progress</h4>
+                    <p>View your fitness analytics</p>
+                  </div>
+                  <div class="action-card" onclick="activateFeature('motivation')">
+                    <div class="action-icon">🎯</div>
+                    <h4>Motivation</h4>
+                    <p>Get encouragement & tips</p>
+                  </div>
+                </div>
+              </div>
+            `;
+          }
+        }
+
         function activateFeature(featureName) {
           // Track button interaction for AI context
           buttonInteractionContext = featureName;
+
+          // Clear chat and show back button for navigation
+          const chatBox = document.getElementById('chat-box');
+          chatBox.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 15px; background: #f1f5f9; border-radius: 10px;">
+              <h3 style="margin: 0; color: #1e3c72;">${getFeatureTitle(featureName)}</h3>
+              <button onclick="returnToMainPage()" style="padding: 8px 15px; background: #6b7280; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 14px;">← Back</button>
+            </div>
+          `;
 
           const features = {
             'todays-workout': async () => {
@@ -1082,20 +1115,22 @@
             'motivation': async () => {
               addAIMessage("🎯 Your motivation coach is here! I'm analyzing your recent progress and challenges to provide personalized encouragement...");
               await generateMotivationalContent();
-            },
-            'workout-intelligence': 'Activating Enhanced AI Workout Intelligence... I can now provide dynamic workout adjustments, real-time form analysis, RPE tracking, and injury prevention. What exercise would you like to work on?',
-            'progress-tracking': 'Progress Analytics Dashboard activated! I can track your strength gains, body composition, and milestone achievements. Would you like to see your progress report or set new goals?',
-            'nutrition-ai': 'AI Nutrition Intelligence online! I can create personalized meal plans, analyze your food intake, and provide supplement recommendations. What are your nutrition goals?',
-            'recovery-wellness': 'Recovery & Wellness Monitoring activated! I can assess your sleep, stress levels, and daily recovery status to optimize your training. How are you feeling today?'
+            }
           };
 
           if (features[featureName]) {
-            if (typeof features[featureName] === 'function') {
-              features[featureName]();
-            } else {
-              addAIMessage(features[featureName]);
-            }
+            features[featureName]();
           }
+        }
+
+        function getFeatureTitle(featureName) {
+          const titles = {
+            'todays-workout': "Today's Workout",
+            'nutrition-guide': "Nutrition Guide", 
+            'track-progress': "Track Progress",
+            'motivation': "Motivation"
+          };
+          return titles[featureName] || "Feature";
         }
 
         // Enhanced workout generation

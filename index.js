@@ -1318,6 +1318,65 @@ app.post('/api/email-workout', async (req, res) => {
   }
 });
 
+// Delete all user data when subscription is cancelled
+app.post('/api/delete-user-data', async (req, res) => {
+  try {
+    const { userId, email, reason = 'subscription_cancelled' } = req.body;
+
+    if (!userId && !email) {
+      return res.status(400).json({ error: 'User ID or email required' });
+    }
+
+    const userIdentifier = email || userId;
+
+    // Delete all user data across all tables
+    const deletionTasks = [
+      query('DELETE FROM conversations WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM messages WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM workouts WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM workout_adjustments WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM form_analyses WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM rpe_tracking WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM progress_tracking WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM progress_reports WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM progress_photos WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM user_goals WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM milestone_achievements WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM nutrition_plans WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM nutrition_logs WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM supplement_recommendations WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM recovery_tracking WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM sleep_analysis WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM stress_assessments WHERE user_id = $1', [userIdentifier]),
+      query('DELETE FROM user_profiles WHERE email = $1 OR id::text = $1', [userIdentifier])
+    ];
+
+    // Execute all deletions
+    await Promise.all(deletionTasks);
+
+    // Log the deletion
+    console.log(`🗑️ Complete data deletion for user: ${userIdentifier}, reason: ${reason}`);
+
+    res.json({
+      success: true,
+      message: 'All user data has been permanently deleted from our systems',
+      deletedFor: userIdentifier,
+      reason: reason,
+      deletedAt: new Date().toISOString(),
+      tablesCleared: [
+        'conversations', 'messages', 'workouts', 'workout_adjustments',
+        'form_analyses', 'rpe_tracking', 'progress_tracking', 'progress_reports',
+        'progress_photos', 'user_goals', 'milestone_achievements', 'nutrition_plans',
+        'nutrition_logs', 'supplement_recommendations', 'recovery_tracking',
+        'sleep_analysis', 'stress_assessments', 'user_profiles'
+      ]
+    });
+  } catch (error) {
+    console.error('Data deletion error:', error);
+    res.status(500).json({ error: 'Failed to delete user data' });
+  }
+});
+
 // Create subscription endpoint
 app.post('/api/subscribe', async (req, res) => {
   try {
