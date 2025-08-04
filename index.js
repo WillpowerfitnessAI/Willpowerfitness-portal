@@ -430,9 +430,6 @@ app.get('/', (req, res) => {
     </html>
   `);
 });
-  `);
-});
-
 // User authentication endpoint
 app.post('/api/authenticate', async (req, res) => {
   try {
@@ -459,11 +456,7 @@ app.post('/api/authenticate', async (req, res) => {
         // Create user profile from lead data
         const leadData = lead.rows[0];
         const newUser = await query(
-          `INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) 
-           VALUES ($1, $2, $3, $4, NOW()) 
-           ON CONFLICT (email) DO UPDATE SET 
-           subscription_status = $4, name = COALESCE(name, $2), goal = COALESCE(goal, $3)
-           RETURNING *`,
+          'INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (email) DO UPDATE SET subscription_status = $4, name = COALESCE(name, $2), goal = COALESCE(goal, $3) RETURNING *',
           [email, leadData.name, leadData.goals, 'active']
         );
         user = newUser;
@@ -471,8 +464,8 @@ app.post('/api/authenticate', async (req, res) => {
     }
 
     if (user.rows.length === 0) {
-      return res.status(404).json({ 
-        error: 'User not found', 
+      return res.status(404).json({
+        error: 'User not found',
         message: 'Please complete the onboarding process first',
         redirectTo: '/onboarding'
       });
@@ -509,7 +502,7 @@ app.post('/api/generate-workout', async (req, res) => {
 
       CREATE TODAY'S WORKOUT like their personal trainer who:
       🎯 Knows their goals, fitness level, and preferences
-      💪 Designs workouts that challenge but don't overwhelm  
+      💪 Designs workouts that challenge but don't overwhelm
       🔬 Uses scientific principles for optimal results
       🤝 Provides encouraging, motivational guidance
       ⚡ Adapts to their current energy and recovery status
@@ -530,9 +523,9 @@ app.post('/api/generate-workout', async (req, res) => {
     res.json({ success: true, workout });
   } catch (error) {
     console.error('Workout generation error:', error);
-    res.json({ 
-      success: true, 
-      workout: "Here's your personalized workout plan for today! I've designed this specifically for your goals and current fitness level..." 
+    res.json({
+      success: true,
+      workout: "Here's your personalized workout plan for today! I've designed this specifically for your goals and current fitness level..."
     });
   }
 });
@@ -543,7 +536,7 @@ app.post('/api/nutrition-plan', async (req, res) => {
     const { userId, context, buttonClicked } = req.body;
 
     const nutritionPrompt = {
-      role: "system", 
+      role: "system",
       content: `You are ${userId}'s personal nutrition coach who understands their lifestyle, goals, and dietary preferences. They clicked "${buttonClicked}" wanting comprehensive nutrition guidance.
 
       CREATE THEIR PERSONALIZED NUTRITION PLAN:
@@ -562,9 +555,9 @@ app.post('/api/nutrition-plan', async (req, res) => {
     res.json({ success: true, plan });
   } catch (error) {
     console.error('Nutrition plan error:', error);
-    res.json({ 
-      success: true, 
-      plan: "Your personalized nutrition plan is ready! I've calculated your optimal macros and created meal suggestions..." 
+    res.json({
+      success: true,
+      plan: "Your personalized nutrition plan is ready! I've calculated your optimal macros and created meal suggestions..."
     });
   }
 });
@@ -580,7 +573,7 @@ app.post('/api/progress-report', async (req, res) => {
 
       GENERATE THEIR PROGRESS REPORT like their biggest supporter:
       📈 Strength gains and performance improvements
-      🎯 Goal achievement and milestone progress  
+      🎯 Goal achievement and milestone progress
       💪 Consistency analysis and workout frequency
       🏆 Celebrating their wins and breakthrough moments
       🔥 Areas showing the most improvement
@@ -595,9 +588,9 @@ app.post('/api/progress-report', async (req, res) => {
     res.json({ success: true, report });
   } catch (error) {
     console.error('Progress report error:', error);
-    res.json({ 
-      success: true, 
-      report: "Your progress has been absolutely incredible! Let me show you exactly how much you've improved..." 
+    res.json({
+      success: true,
+      report: "Your progress has been absolutely incredible! Let me show you exactly how much you've improved..."
     });
   }
 });
@@ -628,9 +621,9 @@ app.post('/api/motivation', async (req, res) => {
     res.json({ success: true, motivation });
   } catch (error) {
     console.error('Motivation error:', error);
-    res.json({ 
-      success: true, 
-      motivation: "You are absolutely crushing this fitness journey! Every single workout is building the stronger, healthier version of yourself..." 
+    res.json({
+      success: true,
+      motivation: "You are absolutely crushing this fitness journey! Every single workout is building the stronger, healthier version of yourself..."
     });
   }
 });
@@ -719,7 +712,7 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
-    res.json({ 
+    res.json({
       response: response,
       context: userContext
     });
@@ -730,7 +723,7 @@ app.post('/api/chat', async (req, res) => {
     // Context-aware fallback responses
     let fallbackResponse;
     if (req.body.context === 'workout_coaching') {
-      fallbackResponse = `I'm right here with you! Keep pushing through your workout - you're doing amazing! 
+      fallbackResponse = `I'm right here with you! Keep pushing through your workout - you're doing amazing!
 
 Need help with:
 • Form feedback on your current exercise?
@@ -739,20 +732,20 @@ Need help with:
 
 Just let me know and I'll help you crush this workout! 💪`;
     } else {
-      fallbackResponse = `I'm experiencing a quick connection issue, but I'm still here for you! 
+      fallbackResponse = `I'm experiencing a quick connection issue, but I'm still here for you!
 
 I'm your dedicated AI personal trainer, and I want to help you succeed. Whether you need:
 • A workout plan for today
-• Nutrition guidance 
+• Nutrition guidance
 • Form coaching during your workout
 • Progress tracking and motivation
 
 Just let me know what you'd like to focus on, and I'll give you my full attention! Your fitness journey is important to me.`;
     }
 
-    res.json({ 
+    res.json({
       response: fallbackResponse,
-      fallback: true 
+      fallback: true
     });
   }
 });
@@ -1292,12 +1285,12 @@ app.post('/api/export-workout', async (req, res) => {
     }
 
     // Check if user has active subscription
-    const userProfile = userId ? 
-      await getUserProfile(userId) : 
+    const userProfile = userId ?
+      await getUserProfile(userId) :
       await query('SELECT * FROM user_profiles WHERE email = $1', [email]).then(r => r.rows[0]);
 
     if (!userProfile || userProfile.subscription_status !== 'active') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         error: 'Active membership required',
         message: 'Workout exports are available for Elite members only'
       });
@@ -1319,12 +1312,12 @@ app.post('/api/export-workout', async (req, res) => {
 Name: ${userProfile.name}
 Email: ${userProfile.email}
 Primary Goal: ${userProfile.goal}
-Generated: ${new Date().toLocaleDateString('en-US', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})}
+Generated: ${new Date().toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })}
 
 🎯 PERSONALIZED WORKOUT PLAN
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -1461,8 +1454,8 @@ app.post('/api/subscribe', async (req, res) => {
     const { email, name, priceId, shippingAddress } = req.body;
 
     // Create Stripe customer
-    const customer = await createCustomer(email, name, { 
-      fitness_subscriber: 'true' 
+    const customer = await createCustomer(email, name, {
+      fitness_subscriber: 'true'
     });
 
     // Create subscription
@@ -1545,7 +1538,7 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
 app.get('/api/subscription/:userId', async (req, res) => {
   try {
     const profile = await getUserProfile(req.params.userId);
-    res.json({ 
+    res.json({
       status: profile.subscription_status || 'inactive',
       welcomeShirtSent: profile.welcome_shirt_sent || false
     });
@@ -1569,9 +1562,9 @@ app.post('/api/onboarding/step1', async (req, res) => {
 
     // Save lead to database (query function now has built-in retries)
     const result = await query(
-      `INSERT INTO leads (name, email, phone, goals, experience, status, source) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7) 
-       ON CONFLICT (email) DO UPDATE SET 
+      `INSERT INTO leads (name, email, phone, goals, experience, status, source)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (email) DO UPDATE SET
        name = $1, phone = $3, goals = $4, experience = $5, status = $6
        RETURNING *`,
       [name, email, phone || null, goal, experience, 'onboarding', 'website']
@@ -1581,8 +1574,8 @@ app.post('/api/onboarding/step1', async (req, res) => {
     res.json({ success: true, leadId: result.rows[0].id });
   } catch (error) {
     console.error('Onboarding Step 1 error:', error);
-    res.status(500).json({ 
-      error: 'Failed to save information', 
+    res.status(500).json({
+      error: 'Failed to save information',
       details: error.message,
       suggestion: 'Please try again in a moment'
     });
@@ -1691,13 +1684,13 @@ Make this feel like a complete, thorough consultation they'd get from a $225/mon
     });
 
     // Update database with proper conversation tracking
-    const currentMessageHistory = existingConversation.rows.length > 0 ? 
+    const currentMessageHistory = existingConversation.rows.length > 0 ?
       (existingConversation.rows[0].message || '') : '';
 
     const updatedMessageHistory = currentMessageHistory + `User: ${message}\n`;
 
     await query(
-      `UPDATE leads SET 
+      `UPDATE leads SET
        message = $1,
        ai_response = $2,
        status = $3,
@@ -1713,8 +1706,9 @@ Make this feel like a complete, thorough consultation they'd get from a $225/mon
 
     console.log(`Consultation progress for ${userData.email}: ${exchangeCount + 1}/4 questions, Complete: ${consultationComplete}`);
 
-    res.json({ 
-      response: aiResponse,      consultationComplete,
+    res.json({
+      response: aiResponse,
+      consultationComplete,
       progressInfo: {
         currentStep: exchangeCount + 1,
         totalSteps: 4,
@@ -1724,7 +1718,7 @@ Make this feel like a complete, thorough consultation they'd get from a $225/mon
 
   } catch (error) {
     console.error('Consultation error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Consultation temporarily unavailable',
       fallback: `Hi ${req.body.userData?.name || 'there'}! I'm Willie, your AI fitness consultant. I'm here to create your personalized fitness plan. Let's start with your goals and current situation - what would you like to achieve with your fitness journey?`
     });
@@ -1740,7 +1734,7 @@ app.post('/api/create-subscription', async (req, res) => {
 
     // Validate required data
     if (!email || !name || !userData) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Missing required data',
         details: 'Email, name, and user data are required'
       });
@@ -1749,7 +1743,7 @@ app.post('/api/create-subscription', async (req, res) => {
     // Check if Stripe is properly configured
     if (!process.env.STRIPE_SECRET_KEY) {
       console.error('Stripe secret key not configured');
-      return res.status(500).json({ 
+      return res.status(500).json({
         error: 'Payment system not configured',
         details: 'Please contact support'
       });
@@ -1772,14 +1766,14 @@ app.post('/api/create-subscription', async (req, res) => {
     // Try to update database, but don'tfail if it's down
     try {
       await query(
-        `UPDATE leads SET 
+        `UPDATE leads SET
          status = 'payment_pending',
          payment_link = $1
          WHERE email = $2`,
         [checkoutSession.url, email]
       );
 
-      // Create user profile 
+      // Create user profile
       await updateUserProfile(customer.id, {
         name,
         email,
@@ -1815,7 +1809,7 @@ app.post('/api/create-subscription', async (req, res) => {
       errorDetails = 'Please check your connection and try again.';
     }
 
-    res.status(500).json({ 
+    res.status(500).json({
       error: errorMessage,
       details: errorDetails,
       timestamp: new Date().toISOString()
@@ -1939,8 +1933,8 @@ app.post('/api/test-printful', async (req, res) => {
 
   } catch (error) {
     console.error('Printful test error:', error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       error: error.message,
       note: 'Check that PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANTS are set correctly'
     });
@@ -1954,8 +1948,8 @@ app.get('/api/consultation-export/:email', async (req, res) => {
 
     // Get lead data with consultation
     const result = await query(
-      `SELECT name, email, goals, experience, message, ai_response, timestamp 
-       FROM leads 
+      `SELECT name, email, goals, experience, message, ai_response, timestamp
+       FROM leads
        WHERE email = $1 AND message IS NOT NULL`,
       [email]
     );
@@ -1985,7 +1979,7 @@ app.get('/api/consultation-export/:email', async (req, res) => {
         title: "WillpowerFitness AI Elite Membership",
         features: [
           "Personalized AI workout plans",
-          "Custom nutrition guidance", 
+          "Custom nutrition guidance",
           "24/7 AI coach access",
           "Progress tracking & analytics",
           "Welcome fitness apparel",
@@ -2010,8 +2004,8 @@ app.post('/api/send-consultation-email', async (req, res) => {
 
     // Get consultation data
     const result = await query(
-      `SELECT name, email, goals, experience, message, ai_response, timestamp 
-       FROM leads 
+      `SELECT name, email, goals, experience, message, ai_response, timestamp
+       FROM leads
        WHERE email = $1 AND message IS NOT NULL`,
       [email]
     );
@@ -2024,12 +2018,12 @@ app.post('/api/send-consultation-email', async (req, res) => {
 
     // Format email content
     const emailContent = `
-📧 YOUR WILLPOWERFITNESSAI CONSULTATION SUMMARY
+Email YOUR WILLPOWERFITNESSAI CONSULTATION SUMMARY
 ═══════════════════════════════════════════════════════════════
 
 Dear ${lead.name},
 
-Thank you for completing your personalized fitness consultation! 
+Thank you for completing your personalized fitness consultation!
 
 📋 YOUR CONSULTATION DETAILS:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -2075,8 +2069,8 @@ Consultation ID: WF-${Date.now()}
       [email]
     );
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: 'Consultation summary emailed successfully!',
       recipient: email
     });
@@ -2168,9 +2162,9 @@ app.get('/api/status', async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({ 
-      status: 'ERROR', 
-      error: error.message 
+    res.status(500).json({
+      status: 'ERROR',
+      error: error.message
     });
   }
 });
