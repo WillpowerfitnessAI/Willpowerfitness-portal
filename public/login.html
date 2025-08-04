@@ -137,24 +137,31 @@
                     localStorage.setItem('userId', result.user.id);
                     localStorage.setItem('willpower_customer_id', result.user.id);
                     localStorage.setItem('willpower_member_name', result.user.name);
-                    localStorage.setItem('willpower_member_status', 'active');
+                    localStorage.setItem('willpower_member_status', result.user.subscriptionStatus || 'active');
+                    
+                    // Show success message
+                    errorDiv.style.color = '#10b981';
+                    errorDiv.textContent = `Welcome back, ${result.user.name}! Redirecting to your dashboard...`;
+                    errorDiv.style.display = 'block';
                     
                     // Use the redirect URL from the server response
                     const redirectUrl = result.redirectTo || '/dashboard';
-                    window.location.href = `${redirectUrl}?email=${encodeURIComponent(email)}`;
+                    setTimeout(() => {
+                        window.location.href = `${redirectUrl}?email=${encodeURIComponent(email)}`;
+                    }, 1000);
                 } else {
                     // Handle authentication failure
                     const redirectTo = result.redirectTo || '/onboarding';
                     
                     if (redirectTo === '/onboarding') {
-                        errorDiv.textContent = result.error + ' Redirecting to complete setup...';
+                        errorDiv.textContent = (result.message || result.error) + ' Redirecting to complete setup...';
                         errorDiv.style.display = 'block';
                         
                         setTimeout(() => {
                             window.location.href = redirectTo;
-                        }, 2000);
+                        }, 2500);
                     } else {
-                        errorDiv.textContent = result.error || 'Login failed. Please try again.';
+                        errorDiv.textContent = result.message || result.error || 'Login failed. Please try again.';
                         errorDiv.style.display = 'block';
                     }
                 }

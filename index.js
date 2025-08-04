@@ -438,31 +438,43 @@ app.post('/api/authenticate', async (req, res) => {
       return res.status(400).json({ error: 'Email is required' });
     }
 
-    // Check for active user profile first
+    console.log(`Authentication attempt for: ${email}`);
+
+    // First check for any user profile with this email (regardless of status)
     let user = await query(
-      'SELECT * FROM user_profiles WHERE email = $1 AND subscription_status = $2',
-      [email, 'active']
+      'SELECT * FROM user_profiles WHERE email = $1',
+      [email]
     );
 
-    // If no active user profile, check if they're a lead who completed payment
+    console.log(`Found ${user.rows.length} user profiles for ${email}`);
+
+    // If no user profile, check if they're a lead who completed payment
     if (user.rows.length === 0) {
+      console.log(`No user profile found, checking leads for ${email}`);
+      
       const lead = await query(
-        'SELECT * FROM leads WHERE email = $1 AND status IN ($2, $3)',
-        [email, 'active_subscriber', 'consultation_complete']
+        'SELECT * FROM leads WHERE email = $1 AND status IN ($2, $3, $4)',
+        [email, 'active_subscriber', 'consultation_complete', 'payment_pending']
       );
+
+      console.log(`Found ${lead.rows.length} leads for ${email}`);
 
       if (lead.rows.length > 0) {
         // Create user profile from lead data
         const leadData = lead.rows[0];
+        console.log(`Creating user profile from lead data for ${email}`);
+        
         const newUser = await query(
-          'INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (email) DO UPDATE SET subscription_status = $4, name = COALESCE(user_profiles.name, $2), goal = COALESCE(user_profiles.goal, $3) RETURNING *',
-          [email, leadData.name, leadData.goals, 'active']
+          'INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (email) DO UPDATE SET subscription_status = EXCLUDED.subscription_status, name = COALESCE(user_profiles.name, EXCLUDED.name), goal = COALESCE(user_profiles.goal, EXCLUDED.goal) RETURNING *',
+          [email, leadData.name, leadData.goals, leadData.status === 'active_subscriber' ? 'active' : 'pending']
         );
         user = newUser;
+        console.log(`User profile created/updated for ${email}`);
       }
     }
 
     if (user.rows.length === 0) {
+      console.log(`No user or lead found for ${email}, redirecting to onboarding`);
       return res.status(404).json({
         error: 'User not found',
         message: 'Please complete the onboarding process first',
@@ -471,8 +483,22 @@ app.post('/api/authenticate', async (req, res) => {
     }
 
     const userProfile = user.rows[0];
+    console.log(`User profile found for ${email}, status: ${userProfile.subscription_status}`);
+
+    // Allow access for active, pending, and trial users
+    const allowedStatuses = ['active', 'pending', 'trial'];
+    
+    if (!allowedStatuses.includes(userProfile.subscription_status)) {
+      console.log(`User ${email} has inactive status: ${userProfile.subscription_status}`);
+      return res.status(403).json({
+        error: 'Subscription inactive',
+        message: 'Please renew your subscription to continue',
+        redirectTo: '/onboarding'
+      });
+    }
 
     // Successful authentication - user should go to dashboard
+    console.log(`Authentication successful for ${email}`);
     res.json({
       success: true,
       redirectTo: '/dashboard',
@@ -486,7 +512,10 @@ app.post('/api/authenticate', async (req, res) => {
     });
   } catch (error) {
     console.error('Authentication error:', error);
-    res.status(500).json({ error: 'Authentication failed' });
+    res.status(500).json({ 
+      error: 'Authentication failed',
+      message: 'Please try again in a moment'
+    });
   }
 });
 
