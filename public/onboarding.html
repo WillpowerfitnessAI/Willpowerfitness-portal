@@ -185,6 +185,49 @@
             left: 0;
         }
         .hidden { display: none; }
+        .cta-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+        .ai-message {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            border-left: 4px solid #667eea;
+        }
+        .user-message {
+            text-align: right;
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            margin: 15px 0;
+            max-width: 80%;
+            margin-left: auto;
+        }
+        #typing-indicator {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-style: italic;
+            color: #666;
+        }
     </style>
 </head>
 <body>
@@ -242,7 +285,7 @@
                             <option value="expert">Expert/Competitive</option>
                         </select>
                     </div>
-                    
+
 
                     <button type="submit" class="btn">Continue to AI Assessment</button>
                 </form>
@@ -294,7 +337,7 @@
                         <li>24/7 Support & Motivation</li>
                         <li>Access to Premium AI Chat Interface</li>
                     </ul>
-                    
+
                     <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #e2e8f0;">
                         <h4 style="color: #1e3c72; margin-bottom: 15px;">👕 Welcome Apparel Shipping</h4>
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
@@ -342,6 +385,18 @@
         let currentStep = 1;
         let userData = {};
         let consultationComplete = false;
+
+        function startOnboarding() {
+            currentStep = 1;
+            document.getElementById('step1-content').classList.remove('hidden');
+            document.getElementById('step2-content').classList.add('hidden');
+            document.getElementById('step3-content').classList.add('hidden');
+
+            document.getElementById('step-1').classList.add('active');
+            document.getElementById('step-1').classList.remove('inactive');
+            document.getElementById('step-2').classList.add('inactive');
+            document.getElementById('step-3').classList.add('inactive');
+        }
 
         // Step 1 Form Handler
         document.getElementById('step1-form').addEventListener('submit', async (e) => {
@@ -403,7 +458,7 @@
         // AI Consultation Handler
         async function startConsultation() {
             const chatDiv = document.getElementById('consultation-chat');
-            chatDiv.innerHTML = '<div class="ai-message" style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #667eea;">Hello ' + userData.name + '! I\'m excited to help you achieve your ' + userData.goal + ' goals. To provide you with the most effective personalized plan, I need to understand your current situation better. What days of the week are you typically available to exercise?</div>';
+            chatDiv.innerHTML = '<div class="ai-message">Hello ' + userData.name + '! I\'m excited to help you achieve your ' + userData.goal + ' goals. To provide you with the most effective personalized plan, I need to understand your current situation better. What days of the week are you typically available to exercise?</div>';
 
             // Remove any existing event listeners
             const sendBtn = document.getElementById('consultation-send');
@@ -446,7 +501,7 @@
             sendBtn.textContent = 'Sending...';
 
             const chatDiv = document.getElementById('consultation-chat');
-            chatDiv.innerHTML += '<div class="user-message" style="text-align: right; background: #667eea; color: white; padding: 15px; border-radius: 12px; margin: 15px 0; max-width: 80%; margin-left: auto;">' + message + '</div>';
+            chatDiv.innerHTML += '<div class="user-message">' + message + '</div>';
             input.value = '';
 
             // Scroll to bottom
@@ -455,7 +510,7 @@
             // Show typing indicator
             const typingDiv = document.createElement('div');
             typingDiv.id = 'typing-indicator';
-            typingDiv.innerHTML = '<div style="background: #f1f5f9; padding: 10px; border-radius: 8px; margin: 10px 0; font-style: italic; color: #666;">AI Coach is typing...</div>';
+            typingDiv.innerHTML = 'AI Coach is typing...';
             chatDiv.appendChild(typingDiv);
 
             try {
@@ -484,7 +539,7 @@
                 console.log('Consultation response data:', data);
 
                 if (data.response) {
-                    chatDiv.innerHTML += '<div class="ai-message" style="background: #f1f5f9; padding: 15px; border-radius: 12px; margin: 15px 0; border-left: 4px solid #667eea;">' + data.response + '</div>';
+                    chatDiv.innerHTML += '<div class="ai-message">' + data.response + '</div>';
 
                     // Scroll to bottom
                     chatDiv.scrollTop = chatDiv.scrollHeight;
@@ -511,7 +566,7 @@
                     document.getElementById('typing-indicator').remove();
                 }
 
-                chatDiv.innerHTML += '<div class="ai-message" style="background: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 12px; margin: 15px 0; color: #dc2626;">I apologize, there was a connection error. Please try again or proceed to the next step if you\'d like to continue.<br><br>Error details: ' + error.message + '</div>';
+                chatDiv.innerHTML += '<div style="background: #fee2e2; border: 1px solid #fecaca; padding: 15px; border-radius: 12px; margin: 15px 0; color: #dc2626;">I apologize, there was a connection error. Please try again or proceed to the next step if you\'d like to continue.<br><br>Error details: ' + error.message + '</div>';
 
                 // Still allow proceeding if there's an error
                 consultationComplete = true;

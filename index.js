@@ -363,16 +363,16 @@ app.get('/', (req, res) => {
 
                         <!-- Clear options for members vs new users -->
                         <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
-                            <a href="/login" class="cta-button" style="background: linear-gradient(135deg, #10b981, #059669);">
+                            <button onclick="window.location.href='/login'" class="cta-button" style="background: linear-gradient(135deg, #10b981, #059669);">
                                 🔑 Member Login
-                            </a>
+                            </button>
                             <div style="color: #6b7280; font-size: 0.9rem;">Already a member? Access your AI trainer</div>
                             
                             <div style="margin: 20px 0; color: #9ca3af;">— OR —</div>
                             
-                            <a href="/onboarding" class="cta-button">
+                            <button onclick="window.location.href='/onboarding'" class="cta-button">
                                 💬 Start Free Consultation
-                            </a>
+                            </button>
                             <div style="color: #6b7280; font-size: 0.9rem;">New to WillpowerFitness AI? Get personalized fitness guidance</div>
                         </div>
 
