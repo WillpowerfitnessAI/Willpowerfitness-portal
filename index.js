@@ -1711,8 +1711,7 @@ Make this feel like a complete, thorough consultation they'd get from a $225/mon
     console.log(`Consultation progress for ${userData.email}: ${exchangeCount + 1}/4 questions, Complete: ${consultationComplete}`);
 
     res.json({ 
-      response: aiResponse,
-      consultationComplete,
+      response: aiResponse,      consultationComplete,
       progressInfo: {
         currentStep: exchangeCount + 1,
         totalSteps: 4,
