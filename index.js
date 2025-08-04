@@ -361,20 +361,19 @@ app.get('/', (req, res) => {
                             </div>
                         </div>
 
-                        <!-- Dynamic CTA based on member status -->
-                        <div id="non-member-cta">
-                            <a href="/onboarding" class="cta-button">Start Your Free Consultation</a>
-                            <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
-                                Begin with a personalized consultation to unlock your elite fitness coaching experience.
-                            </p>
-                        </div>
-
-                        <div id="member-cta" style="display: none;">
-                            <a href="/dashboard" class="cta-button">Access Your AI Trainer</a>
-                            <a href="/login" class="cta-button" style="background: linear-gradient(135deg, #10b981, #059669); margin-top: 10px;">Member Login</a>
-                            <p style="margin-top: 20px; color: #6b7280; font-size: 0.9rem;">
-                                Welcome back! Continue your fitness journey with your AI personal trainer.
-                            </p>
+                        <!-- Clear options for members vs new users -->
+                        <div style="display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                            <a href="/login" class="cta-button" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                🔑 Member Login
+                            </a>
+                            <div style="color: #6b7280; font-size: 0.9rem;">Already a member? Access your AI trainer</div>
+                            
+                            <div style="margin: 20px 0; color: #9ca3af;">— OR —</div>
+                            
+                            <a href="/onboarding" class="cta-button">
+                                💬 Start Free Consultation
+                            </a>
+                            <div style="color: #6b7280; font-size: 0.9rem;">New to WillpowerFitness AI? Get personalized fitness guidance</div>
                         </div>
 
                         <!-- Member Workout Export (hidden by default, shown for active members) -->

@@ -242,48 +242,7 @@
                             <option value="expert">Expert/Competitive</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label for="shirt-size">Welcome Shirt Size (Optional)</label>
-                        <select id="shirt-size">
-                            <option value="">Select size for free welcome shirt</option>
-                            <option value="S">Small</option>
-                            <option value="M" selected>Medium</option>
-                            <option value="L">Large</option>
-                            <option value="XL">X-Large</option>
-                            <option value="XXL">XX-Large</option>
-                        </select>
-                    </div>
-
-                    <div class="shipping-section" style="margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0;">
-                        <h4 style="color: #1e3c72; margin-bottom: 15px;">📦 Shipping Address (For Welcome Shirt)</h4>
-                        <div class="form-group">
-                            <input type="text" id="address-line1" placeholder="Street Address">
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div class="form-group">
-                                <input type="text" id="city" placeholder="City">
-                            </div>
-                            <div class="form-group">
-                                <input type="text" id="state" placeholder="State/Province">
-                            </div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div class="form-group">
-                                <input type="text" id="postal-code" placeholder="ZIP/Postal Code">
-                            </div>
-                            <div class="form-group">
-                                <select id="country">
-                                    <option value="US" selected>United States</option>
-                                    <option value="CA">Canada</option>
-                                    <option value="UK">United Kingdom</option>
-                                    <option value="AU">Australia</option>
-                                </select>
-                            </div>
-                        </div>
-                        <p style="font-size: 0.8rem; color: #6b7280; margin-top: 10px;">
-                            We'll send you a complimentary WillpowerFitnessAI shirt to celebrate your membership!
-                        </p>
-                    </div>
+                    
 
                     <button type="submit" class="btn">Continue to AI Assessment</button>
                 </form>
@@ -331,10 +290,45 @@
                         <li>Personalized Nutrition Coaching</li>
                         <li>Real-time Form & Technique Feedback</li>
                         <li>Progress Analytics & Goal Tracking</li>
-                        <li>Complimentary Welcome FitnessAI apparel</li>
+                        <li>Complimentary Welcome WillpowerFitnessAI Apparel</li>
                         <li>24/7 Support & Motivation</li>
                         <li>Access to Premium AI Chat Interface</li>
                     </ul>
+                    
+                    <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 20px 0; border: 1px solid #e2e8f0;">
+                        <h4 style="color: #1e3c72; margin-bottom: 15px;">👕 Welcome Apparel Shipping</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                            <div>
+                                <label style="display: block; font-size: 0.9rem; margin-bottom: 5px;">Shirt Size</label>
+                                <select id="member-shirt-size" style="width: 100%; padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                                    <option value="S">Small</option>
+                                    <option value="M" selected>Medium</option>
+                                    <option value="L">Large</option>
+                                    <option value="XL">X-Large</option>
+                                    <option value="XXL">XX-Large</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="member-address" placeholder="Street Address" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                            <input type="text" id="member-city" placeholder="City" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                            <input type="text" id="member-state" placeholder="State" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <input type="text" id="member-postal" placeholder="ZIP Code" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                            <select id="member-country" style="padding: 8px; border: 1px solid #d1d5db; border-radius: 6px;">
+                                <option value="US" selected>United States</option>
+                                <option value="CA">Canada</option>
+                                <option value="UK">United Kingdom</option>
+                                <option value="AU">Australia</option>
+                            </select>
+                        </div>
+                        <p style="font-size: 0.8rem; color: #6b7280; margin-top: 10px;">
+                            We'll ship your complimentary WillpowerFitnessAI apparel once your membership is active!
+                        </p>
+                    </div>
                     <button type="button" id="start-subscription" class="btn">Start 7-Day FREE Trial</button>
                     <p style="text-align: center; margin-top: 15px; font-size: 0.9rem; color: #6b7280;">
                         Only after membership activation will you gain access to your personal AI trainer
@@ -642,6 +636,21 @@ Thank you for choosing WillpowerFitness AI!
                 console.log('Starting subscription process...');
                 this.disabled = true;
                 this.innerHTML = '⏳ Creating your membership...';
+
+                // Collect shipping information
+                const shippingInfo = {
+                    shirtSize: document.getElementById('member-shirt-size').value,
+                    address: {
+                        line1: document.getElementById('member-address').value,
+                        city: document.getElementById('member-city').value,
+                        state: document.getElementById('member-state').value,
+                        postal_code: document.getElementById('member-postal').value,
+                        country: document.getElementById('member-country').value
+                    }
+                };
+
+                // Add shipping info to userData
+                userData.shippingInfo = shippingInfo;
 
                 // Add loading indicator
                 const loadingDiv = document.createElement('div');
