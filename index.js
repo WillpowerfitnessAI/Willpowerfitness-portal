@@ -456,7 +456,7 @@ app.post('/api/authenticate', async (req, res) => {
         // Create user profile from lead data
         const leadData = lead.rows[0];
         const newUser = await query(
-          'INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (email) DO UPDATE SET subscription_status = $4, name = COALESCE(name, $2), goal = COALESCE(goal, $3) RETURNING *',
+          'INSERT INTO user_profiles (email, name, goal, subscription_status, created_at) VALUES ($1, $2, $3, $4, NOW()) ON CONFLICT (email) DO UPDATE SET subscription_status = $4, name = COALESCE(user_profiles.name, $2), goal = COALESCE(user_profiles.goal, $3) RETURNING *',
           [email, leadData.name, leadData.goals, 'active']
         );
         user = newUser;
