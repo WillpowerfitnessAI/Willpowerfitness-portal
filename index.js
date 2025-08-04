@@ -29,12 +29,13 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(express.json());
-// Serve static files with proper headers
+// Serve static files with no caching for development
 app.use(express.static('public', {
   setHeaders: (res, path) => {
-    if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.jpeg')) {
-      res.setHeader('Cache-Control', 'public, max-age=31536000');
-    }
+    // Disable caching for development
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
   }
 }));
 
