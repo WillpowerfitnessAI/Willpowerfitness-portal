@@ -409,7 +409,7 @@ app.get('/', (req, res) => {
 
               // Update page title for members
               document.querySelector('.header h1').textContent = 'Welcome Back to WillpowerFitnessAI';
-              document.querySelector('.header p').textContent = `Continue your elite fitness journey, ${localStorage.getItem('willpower_member_name') || 'Member'}!`;
+              document.querySelector('.header p').textContent = \`Continue your elite fitness journey, \${localStorage.getItem('willpower_member_name') || 'Member'}!\`;
             }
 
             // Add smooth hover effects
@@ -428,6 +428,8 @@ app.get('/', (req, res) => {
         </script>
     </body>
     </html>
+  `);
+});
   `);
 });
 
