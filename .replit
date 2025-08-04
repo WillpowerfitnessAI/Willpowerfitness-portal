@@ -22,7 +22,7 @@ localPort = 5000
 externalPort = 80
 
 [workflows]
-runButton = "Run"
+runButton = "Fix and Test"
 
 [[workflows.workflow]]
 name = "Start Server"
@@ -127,6 +127,23 @@ args = "npm start"
 name = "Run"
 author = 42978586
 mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm start"
+
+[[workflows.workflow]]
+name = "Fix and Test"
+author = 42978586
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node setup_database.js"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "echo \"Database setup complete\""
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
