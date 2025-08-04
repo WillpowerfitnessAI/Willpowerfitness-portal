@@ -400,12 +400,12 @@ app.get('/', (req, res) => {
             // Check if user is already a member
             const memberStatus = localStorage.getItem('willpower_member_status');
             const userEmail = localStorage.getItem('userEmail');
-            
+
             if (memberStatus === 'active' && userEmail) {
               // Show member-specific CTA
               document.getElementById('non-member-cta').style.display = 'none';
               document.getElementById('member-cta').style.display = 'block';
-              
+
               // Update page title for members
               document.querySelector('.header h1').textContent = 'Welcome Back to WillpowerFitnessAI';
               document.querySelector('.header p').textContent = `Continue your elite fitness journey, ${localStorage.getItem('willpower_member_name') || 'Member'}!`;
@@ -648,7 +648,7 @@ app.post('/api/chat', async (req, res) => {
 
     // Build conversation messages with history
     const conversationMessages = [];
-    
+
     // Add recent conversation history
     recentMessages.forEach(conv => {
       conversationMessages.push({ role: "user", content: conv.user_message });
@@ -693,7 +693,7 @@ app.post('/api/chat', async (req, res) => {
       ${currentWorkout ? `Active workout: ${JSON.stringify(currentWorkout)}` : 'No active workout'}
       ${workoutSets?.length ? `Sets completed: ${workoutSets.length}` : 'No sets logged yet'}
       ${buttonInteractionContext ? `Last action: ${buttonInteractionContext}` : ''}
-      
+
       Give real-time workout support and coaching.` : ''}
 
       Never switch to consultation mode - just be their responsive AI trainer!`
@@ -1502,19 +1502,16 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
       // Get user profile for shipping
       const userProfile = await getUserProfile(customerId);
 
-      // Send welcome t-shirt if it's their first payment
-      if (userProfile.welcome_shirt_sent !== true) {
+      // Send welcome shirt if it's their first payment and we have shipping address
+      if (userProfile.welcome_shirt_sent !== true && userProfile.shipping_address) {
         try {
-          const order = await createWelcomeShirtOrder({
-            name: userProfile.name,
-            address: userProfile.shipping_address || {
-              line1: '123 Main St', // You'll need to collect this
-              city: 'City',
-              state: 'State',
-              country: 'US',
-              postal_code: '12345'
-            }
-          });
+          const order = await createWelcomeShirtOrder(
+            {
+              name: userProfile.name,
+              address: userProfile.shipping_address
+            },
+            userProfile.shirt_size || 'M'
+          );
 
           await confirmOrder(order.id);
 
@@ -1524,10 +1521,13 @@ app.post('/api/stripe-webhook', express.raw({ type: 'application/json' }), async
             printful_order_id: order.id
           });
 
-          console.log(`Welcome shirt ordered for customer ${customerId}`);
+          console.log(`✅ Welcome shirt ordered for customer ${customerId}`);
         } catch (shirtError) {
-          console.error('Failed to send welcome shirt:', shirtError);
+          console.error('⚠️ Failed to send welcome shirt:', shirtError.message);
+          // Don't throw - continue with user activation even if shirt fails
         }
+      } else if (!userProfile.shipping_address) {
+        console.log(`⚠️ No shipping address for ${customerId} - welcome shirt skipped`);
       }
     }
 
@@ -1865,27 +1865,23 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
         );
       }
 
-      // Send welcome shirt (if address available)
-      if (userProfile.welcome_shirt_sent !== true) {
+      // Send welcome shirt if it's their first payment and we have shipping address
+      if (userProfile.welcome_shirt_sent !== true && userProfile.shipping_address) {
         try {
-          // You'll need to collect shipping address in onboarding
-          const order = await createWelcomeShirtOrder({
-            name: userProfile.name,
-            address: {
-              line1: '123 Main St', // Collect this in onboarding
-              city: 'City',
-              state: 'State', 
-              country: 'US',
-              postal_code: '12345'
-            }
-          });
+          const order = await createWelcomeShirtOrder(
+            {
+              name: userProfile.name,
+              address: userProfile.shipping_address
+            },
+            userProfile.shirt_size || 'M'
+          );
 
           await confirmOrder(order.id);
           await updateUserProfile(customerId, { welcome_shirt_sent: true });
 
-          console.log(`Welcome shirt ordered for ${userProfile.name}`);
+          console.log(`✅ Welcome shirt ordered for ${userProfile.name}`);
         } catch (shirtError) {
-          console.error('Welcome shirt error:', shirtError);
+          console.error('⚠️ Welcome shirt error:', shirtError);
         }
       }
 
@@ -2116,13 +2112,13 @@ app.get('/api/admin/stats', async (req, res) => {
 app.get('/api/member-status/:email', async (req, res) => {
   try {
     const { email } = req.params;
-    
+
     // Check if user has active subscription
     const userProfile = await query(
       'SELECT subscription_status, name FROM user_profiles WHERE email = $1',
       [email]
     );
-    
+
     if (userProfile.rows.length > 0) {
       const profile = userProfile.rows[0];
       res.json({

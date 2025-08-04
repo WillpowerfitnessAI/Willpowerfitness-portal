@@ -337,19 +337,130 @@
             cursor: pointer;
         }
 
+        /* Laptop/Desktop Responsive */
+        @media (max-width: 1200px) {
+            .dashboard-container { max-width: 95%; }
+            .quick-actions { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        /* Tablet Responsive */
+        @media (max-width: 768px) {
+            body { padding: 8px; }
+            .dashboard-container { 
+                min-height: calc(100vh - 16px);
+                border-radius: 16px;
+                max-width: none;
+                width: calc(100vw - 16px);
+            }
+            .header { padding: 15px; }
+            .header h1 { font-size: 1.2rem; margin: 0 20px; }
+            .main-content { margin: 12px; }
+            .quick-actions { 
+                grid-template-columns: repeat(2, 1fr); 
+                gap: 10px; 
+            }
+            .chat-box { 
+                height: 300px; 
+                padding: 15px; 
+            }
+            .message { 
+                max-width: 90%; 
+                padding: 12px 15px; 
+                font-size: 0.9rem; 
+            }
+            .chat-input-area { padding: 12px; }
+            .chat-input { font-size: 16px; } /* Prevents zoom on iOS */
+            .quick-workout-screen .workout-options { gap: 8px; }
+        }
+
+        /* Mobile Responsive - iPhone/Android */
         @media (max-width: 480px) {
-            body { padding: 4px; }
+            body { 
+                padding: 4px; 
+                overflow-x: hidden;
+            }
             .dashboard-container { 
                 min-height: calc(100vh - 8px);
                 border-radius: 12px;
+                width: calc(100vw - 8px);
+                max-width: none;
             }
-            .header { padding: 10px 12px; }
-            .header h1 { font-size: 1rem; margin: 0 40px; }
-            .main-content { margin: 10px; }
-            .chat-box { padding: 12px; }
-            .quick-actions { gap: 8px; }
-            .action-card { padding: 10px; }
-            .chat-input-area { padding: 10px; }
+            .header { 
+                padding: 10px 12px; 
+                text-align: center;
+            }
+            .header h1 { 
+                font-size: 1rem; 
+                margin: 0; 
+                line-height: 1.2;
+            }
+            .logout-btn {
+                font-size: 10px;
+                padding: 4px 8px;
+            }
+            .main-content { 
+                margin: 8px; 
+                min-height: calc(100vh - 120px);
+            }
+            .chat-box { 
+                padding: 10px; 
+                height: 250px;
+                font-size: 0.85rem;
+            }
+            .message { 
+                max-width: 85%; 
+                padding: 10px 12px; 
+                font-size: 0.85rem;
+                margin: 8px 0;
+            }
+            .quick-actions { 
+                grid-template-columns: 1fr; 
+                gap: 8px; 
+                margin: 8px 0;
+            }
+            .action-card { 
+                padding: 12px; 
+                text-align: center;
+            }
+            .action-card h4 { font-size: 0.9rem; }
+            .action-card p { font-size: 0.75rem; }
+            .chat-input-area { 
+                padding: 8px; 
+                gap: 8px;
+                flex-direction: column;
+            }
+            .chat-input { 
+                font-size: 16px; /* Prevent zoom on iOS */
+                padding: 12px;
+                border-radius: 8px;
+                width: 100%;
+                box-sizing: border-box;
+            }
+            .send-btn { 
+                width: 100%;
+                padding: 12px;
+                font-size: 14px;
+            }
+            .quick-workout-screen .workout-options { 
+                grid-template-columns: 1fr; 
+                gap: 6px; 
+            }
+            .workout-option { 
+                padding: 10px; 
+                font-size: 0.8rem;
+            }
+            .back-btn {
+                font-size: 10px;
+                padding: 3px 6px;
+            }
+        }
+
+        /* Extra small screens - very small phones */
+        @media (max-width: 320px) {
+            .header h1 { font-size: 0.9rem; }
+            .chat-box { height: 200px; }
+            .message { font-size: 0.8rem; }
+            .action-card { padding: 8px; }
         }
     </style>
 </head>
