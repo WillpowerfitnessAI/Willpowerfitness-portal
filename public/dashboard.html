@@ -369,7 +369,7 @@
                 font-size: 0.9rem; 
             }
             .chat-input-area { padding: 12px; }
-            .chat-input { font-size: 16px; } /* Prevents zoom on iOS */
+            .chat-input { font-size: 16px; /* Prevents zoom on iOS */ }
             .quick-workout-screen .workout-options { gap: 8px; }
         }
 
@@ -535,8 +535,8 @@
                 <h3>📋 Member Features</h3>
                 <div class="feature-buttons">
                     <button onclick="exportWorkout()" class="feature-btn">📄 Export Workout</button>
-                    <button onclick="emailWorkout()" class="feature-btn">📧 Email Plan</button>
-                    <button onclick="generateProgressReport()" class="feature-btn">📊 Progress Report</button>
+                    <button onclick="emailWorkout()" class="feature-btn">📧 Email Workout</button>
+                    <button onclick="cancelSubscriptionForTesting()" class="feature-btn" style="background: #dc2626; margin-left: 20px;">🗑️ Cancel Subscription (Testing)</button>
                 </div>
             </div>
 
@@ -598,7 +598,7 @@
             localStorage.removeItem('willpower_member_name');
             localStorage.removeItem('willpower_member_status');
             localStorage.removeItem('willpower_trial_start');
-            
+
             // Redirect to main landing page
             window.location.href = '/';
         }
@@ -762,341 +762,73 @@
             addAIMessage("📄 Generating your personalized workout export...");
         }
 
+        // Email workout plan
         async function emailWorkout() {
-            addAIMessage("📧 Sending your workout plan to your email...");
-        }
+            try {
+                const response = await fetch('/api/email-workout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        userId: currentUserId, // Assuming currentUserId is available and represents the logged-in user
+                        email: currentUserId // Assuming currentUserId is the email address
+                    })
+                });
 
-        async function generateProgressReport() {
-            addAIMessage("📊 Creating your progress report. You're making incredible improvements!");
-        }
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - WillpowerFitness AI</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            min-height: 100vh;
-            padding: 20px;
-        }
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 24px;
-            overflow: hidden;
-            box-shadow: 0 25px 50px rgba(0,0,0,0.2);
-        }
-        .header {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 30px;
-            text-align: center;
-        }
-        .header h1 { font-size: 2.5rem; font-weight: 700; margin-bottom: 10px; }
-        .content {
-            padding: 40px;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 30px;
-        }
-        .feature-card {
-            background: white;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            border: 1px solid #e2e8f0;
-            text-align: center;
-        }
-        .feature-icon {
-            font-size: 3rem;
-            margin-bottom: 20px;
-        }
-        .btn {
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            padding: 15px 30px;
-            border: none;
-            border-radius: 12px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            width: 100%;
-            margin-top: 20px;
-        }
-        .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
-        }
-        .logout-btn {
-            background: linear-gradient(135deg, #6b7280, #4b5563);
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            position: absolute;
-            top: 20px;
-            right: 20px;
-        }
-        @media (max-width: 768px) {
-            .content {
-                grid-template-columns: 1fr;
-                padding: 20px;
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(`✅ Workout plan emailed to ${result.recipient}`);
+                } else {
+                    const error = await response.json();
+                    alert(`❌ ${error.error || 'Failed to email workout'}`);
+                }
+            } catch (error) {
+                console.error('Email workout error:', error);
+                alert('❌ Failed to email workout plan');
             }
         }
-    </style>
-</head>
-<body>
-    <div class="dashboard-container">
-        <button class="logout-btn" onclick="logout()">Logout</button>
-        
-        <div class="header">
-            <h1>Welcome to Your AI Fitness Dashboard</h1>
-            <p id="welcome-message">Your personal AI trainer is ready to help you achieve your goals!</p>
-        </div>
-        
-        <div class="content">
-            <div class="feature-card">
-                <div class="feature-icon">🏋️</div>
-                <h3>Generate Workout</h3>
-                <p>Get your personalized workout plan for today based on your goals and progress.</p>
-                <button class="btn" onclick="generateWorkout()">Create Today's Workout</button>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">🍎</div>
-                <h3>Nutrition Plan</h3>
-                <p>Receive custom meal plans and nutrition guidance tailored to your fitness goals.</p>
-                <button class="btn" onclick="getNutritionPlan()">Get Nutrition Plan</button>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">📈</div>
-                <h3>Progress Report</h3>
-                <p>Track your fitness journey with detailed analytics and milestone achievements.</p>
-                <button class="btn" onclick="getProgressReport()">View Progress</button>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">🔥</div>
-                <h3>Daily Motivation</h3>
-                <p>Get personalized motivation and encouragement from your AI coach.</p>
-                <button class="btn" onclick="getMotivation()">Get Motivated</button>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">💬</div>
-                <h3>Chat with AI Trainer</h3>
-                <p>Ask questions, get advice, or chat with your personal AI fitness coach anytime.</p>
-                <button class="btn" onclick="openChat()">Start Chat</button>
-            </div>
-            
-            <div class="feature-card">
-                <div class="feature-icon">📊</div>
-                <h3>Export Data</h3>
-                <p>Download your workout plans, progress reports, and training data.</p>
-                <button class="btn" onclick="exportData()">Export My Data</button>
-            </div>
-        </div>
-    </div>
 
-    <script>
-        // Get user info from URL params or localStorage
-        const urlParams = new URLSearchParams(window.location.search);
-        const userEmail = urlParams.get('email') || localStorage.getItem('userEmail');
-        const userName = localStorage.getItem('willpower_member_name');
-        
-        if (userName) {
-            document.getElementById('welcome-message').textContent = `Welcome back, ${userName}! Your AI trainer is ready to help you achieve your goals.`;
-        }
+        // Cancel subscription for testing - deletes ALL data
+        async function cancelSubscriptionForTesting() {
+            if (!confirm('⚠️ This will DELETE ALL your data and cancel your subscription for testing purposes. You will need to redo the consultation. Continue?')) {
+                return;
+            }
 
-        function generateWorkout() {
-            fetch('/api/generate-workout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: userEmail,
-                    buttonClicked: 'Create Today\'s Workout'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert('Workout generated! Check your email or download from the AI chat.');
-                console.log(data.workout);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error generating workout. Please try again.');
-            });
-        }
+            try {
+                const response = await fetch('/api/cancel-subscription', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        email: currentUserId, // Assuming currentUserId is the email address
+                        reason: 'testing_cancellation'
+                    })
+                });
 
-        function getNutritionPlan() {
-            fetch('/api/nutrition-plan', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: userEmail,
-                    buttonClicked: 'Get Nutrition Plan'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert('Nutrition plan created! Your personalized meal plan is ready.');
-                console.log(data.plan);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error creating nutrition plan. Please try again.');
-            });
-        }
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('✅ Subscription cancelled and all data deleted. Redirecting to home page...');
 
-        function getProgressReport() {
-            fetch('/api/progress-report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: userEmail,
-                    timeframe: '30_days',
-                    buttonClicked: 'View Progress'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert('Progress report generated! Your fitness journey analytics are ready.');
-                console.log(data.report);
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error generating progress report. Please try again.');
-            });
-        }
+                    // Clear local storage
+                    localStorage.removeItem('userEmail');
+                    localStorage.removeItem('userId');
+                    localStorage.removeItem('willpower_customer_id');
+                    localStorage.removeItem('willpower_member_name');
+                    localStorage.removeItem('willpower_member_status');
+                    localStorage.removeItem('willpower_trial_start');
 
-        function getMotivation() {
-            fetch('/api/motivation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: userEmail,
-                    buttonClicked: 'Get Motivated'
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                alert(data.motivation.substring(0, 200) + '...');
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error getting motivation. You\'re still amazing though!');
-            });
-        }
-
-        function openChat() {
-            // Create a simple chat interface
-            const chatWindow = window.open('', 'AIChat', 'width=600,height=700');
-            chatWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>AI Trainer Chat</title>
-                    <style>
-                        body { font-family: 'Inter', sans-serif; margin: 0; padding: 20px; background: #f8fafc; }
-                        .chat-container { max-width: 100%; background: white; border-radius: 12px; padding: 20px; }
-                        .messages { height: 400px; overflow-y: auto; border: 1px solid #e2e8f0; padding: 15px; margin-bottom: 15px; border-radius: 8px; }
-                        .message { margin: 10px 0; padding: 10px; border-radius: 8px; }
-                        .user { background: #667eea; color: white; margin-left: 20%; }
-                        .ai { background: #f1f5f9; color: #374151; margin-right: 20%; }
-                        .input-area { display: flex; gap: 10px; }
-                        input { flex: 1; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
-                        button { padding: 12px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; }
-                    </style>
-                </head>
-                <body>
-                    <div class="chat-container">
-                        <h2>Chat with Your AI Trainer</h2>
-                        <div class="messages" id="messages">
-                            <div class="message ai">Hi! I'm your personal AI trainer. How can I help you today?</div>
-                        </div>
-                        <div class="input-area">
-                            <input type="text" id="messageInput" placeholder="Ask me anything about fitness..." onkeypress="if(event.key==='Enter') sendMessage()">
-                            <button onclick="sendMessage()">Send</button>
-                        </div>
-                    </div>
-                    <script>
-                        function sendMessage() {
-                            const input = document.getElementById('messageInput');
-                            const messages = document.getElementById('messages');
-                            const message = input.value.trim();
-                            
-                            if (!message) return;
-                            
-                            messages.innerHTML += '<div class="message user">' + message + '</div>';
-                            input.value = '';
-                            
-                            fetch('/api/chat', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ 
-                                    message: message,
-                                    userId: '${userEmail}'
-                                })
-                            })
-                            .then(response => response.json())
-                            .then(data => {
-                                messages.innerHTML += '<div class="message ai">' + data.response + '</div>';
-                                messages.scrollTop = messages.scrollHeight;
-                            })
-                            .catch(error => {
-                                messages.innerHTML += '<div class="message ai">Sorry, I\'m experiencing a connection issue. Please try again!</div>';
-                            });
-                        }
-                    </script>
-                </body>
-                </html>
-            `);
-        }
-
-        function exportData() {
-            fetch('/api/export-workout', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    userId: userEmail,
-                    email: userEmail
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const blob = new Blob([data.workoutPlan], { type: 'text/plain' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = data.fileName;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
+                    // Redirect to home
+                    window.location.href = '/';
+                } else {
+                    const error = await response.json();
+                    alert(`❌ ${error.error || 'Failed to cancel subscription'}`);
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error exporting data. Please try again.');
-            });
+            } catch (error) {
+                console.error('Cancellation error:', error);
+                alert('❌ Failed to cancel subscription');
+            }
         }
-
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/';
+        
+        async function generateProgressReport() {
+            addAIMessage("📊 Creating your progress report. You're making incredible improvements!");
         }
     </script>
 </body>

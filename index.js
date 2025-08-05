@@ -1428,7 +1428,7 @@ app.post('/api/delete-user-data', async (req, res) => {
 
     const userIdentifier = email || userId;
 
-    // Delete all user data across all tables
+    // Delete all user data across all tables INCLUDING CONSULTATION DATA
     const deletionTasks = [
       query('DELETE FROM conversations WHERE user_id = $1', [userIdentifier]),
       query('DELETE FROM messages WHERE user_id = $1', [userIdentifier]),
@@ -1447,7 +1447,9 @@ app.post('/api/delete-user-data', async (req, res) => {
       query('DELETE FROM recovery_tracking WHERE user_id = $1', [userIdentifier]),
       query('DELETE FROM sleep_analysis WHERE user_id = $1', [userIdentifier]),
       query('DELETE FROM stress_assessments WHERE user_id = $1', [userIdentifier]),
-      query('DELETE FROM user_profiles WHERE email = $1 OR id::text = $1', [userIdentifier])
+      query('DELETE FROM user_profiles WHERE email = $1 OR id::text = $1', [userIdentifier]),
+      // DELETE CONSULTATION DATA - forces them to redo consultation
+      query('DELETE FROM leads WHERE email = $1', [userIdentifier])
     ];
 
     // Execute all deletions
@@ -1458,7 +1460,7 @@ app.post('/api/delete-user-data', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'All user data has been permanently deleted from our systems',
+      message: 'All user data has been permanently deleted from our systems. User will need to redo consultation if they return.',
       deletedFor: userIdentifier,
       reason: reason,
       deletedAt: new Date().toISOString(),
@@ -1467,12 +1469,72 @@ app.post('/api/delete-user-data', async (req, res) => {
         'form_analyses', 'rpe_tracking', 'progress_tracking', 'progress_reports',
         'progress_photos', 'user_goals', 'milestone_achievements', 'nutrition_plans',
         'nutrition_logs', 'supplement_recommendations', 'recovery_tracking',
-        'sleep_analysis', 'stress_assessments', 'user_profiles'
-      ]
+        'sleep_analysis', 'stress_assessments', 'user_profiles', 'leads'
+      ],
+      consultationDeleted: true
     });
   } catch (error) {
     console.error('Data deletion error:', error);
     res.status(500).json({ error: 'Failed to delete user data' });
+  }
+});
+
+// Manual subscription cancellation for testing
+app.post('/api/cancel-subscription', async (req, res) => {
+  try {
+    const { email, reason = 'manual_testing_cancellation' } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: 'Email required' });
+    }
+
+    console.log(`🔄 MANUAL CANCELLATION for testing: ${email}`);
+
+    // Get user profile
+    const userProfile = await query(
+      'SELECT * FROM user_profiles WHERE email = $1',
+      [email]
+    );
+
+    // Delete everything including consultation data
+    const deletionTasks = [
+      query('DELETE FROM conversations WHERE user_id = $1', [email]),
+      query('DELETE FROM messages WHERE user_id = $1', [email]),
+      query('DELETE FROM workouts WHERE user_id = $1', [email]),
+      query('DELETE FROM workout_adjustments WHERE user_id = $1', [email]),
+      query('DELETE FROM form_analyses WHERE user_id = $1', [email]),
+      query('DELETE FROM rpe_tracking WHERE user_id = $1', [email]),
+      query('DELETE FROM progress_tracking WHERE user_id = $1', [email]),
+      query('DELETE FROM progress_reports WHERE user_id = $1', [email]),
+      query('DELETE FROM progress_photos WHERE user_id = $1', [email]),
+      query('DELETE FROM user_goals WHERE user_id = $1', [email]),
+      query('DELETE FROM milestone_achievements WHERE user_id = $1', [email]),
+      query('DELETE FROM nutrition_plans WHERE user_id = $1', [email]),
+      query('DELETE FROM nutrition_logs WHERE user_id = $1', [email]),
+      query('DELETE FROM supplement_recommendations WHERE user_id = $1', [email]),
+      query('DELETE FROM recovery_tracking WHERE user_id = $1', [email]),
+      query('DELETE FROM sleep_analysis WHERE user_id = $1', [email]),
+      query('DELETE FROM stress_assessments WHERE user_id = $1', [email]),
+      query('DELETE FROM user_profiles WHERE email = $1', [email]),
+      query('DELETE FROM leads WHERE email = $1', [email])
+    ];
+
+    await Promise.all(deletionTasks);
+
+    console.log(`✅ TESTING CANCELLATION COMPLETE for ${email} - all data wiped`);
+
+    res.json({
+      success: true,
+      message: `Subscription cancelled and all data deleted for ${email}. They will need to start fresh with consultation.`,
+      email: email,
+      reason: reason,
+      resetToFresh: true,
+      consultationRequired: true
+    });
+
+  } catch (error) {
+    console.error('Manual cancellation error:', error);
+    res.status(500).json({ error: 'Failed to cancel subscription' });
   }
 });
 
@@ -1910,6 +1972,56 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
       }
 
       console.log(`✓ New subscriber activated: ${customerId}`);
+    }
+
+    // Handle subscription cancellation - DELETE ALL USER DATA
+    if (event.type === 'customer.subscription.deleted' || 
+        event.type === 'invoice.payment_failed' ||
+        event.type === 'customer.subscription.canceled') {
+      
+      const customerId = event.data.object.customer || event.data.object.id;
+      
+      try {
+        // Get user profile to find email
+        const userProfile = await getUserProfile(customerId);
+        const userEmail = userProfile?.email;
+
+        console.log(`🗑️ SUBSCRIPTION CANCELLED - Deleting ALL data for customer: ${customerId}, email: ${userEmail}`);
+
+        // Delete all user data across ALL tables - complete wipe
+        const deletionTasks = [
+          query('DELETE FROM conversations WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM messages WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM workouts WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM workout_adjustments WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM form_analyses WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM rpe_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM progress_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM progress_reports WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM progress_photos WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM user_goals WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM milestone_achievements WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM nutrition_plans WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM nutrition_logs WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM supplement_recommendations WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM recovery_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM sleep_analysis WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM stress_assessments WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+          query('DELETE FROM user_profiles WHERE email = $1 OR stripe_customer_id = $2', [userEmail, customerId]),
+          // DELETE CONSULTATION DATA - this is key for your testing
+          query('DELETE FROM leads WHERE email = $1', [userEmail])
+        ];
+
+        // Execute all deletions
+        await Promise.all(deletionTasks);
+
+        console.log(`✅ COMPLETE DATA WIPE for cancelled subscription: ${customerId}`);
+        console.log(`🔄 User will need to redo consultation if they return`);
+
+      } catch (deleteError) {
+        console.error('❌ Data deletion failed:', deleteError);
+        // Continue anyway - webhook should still return 200
+      }
     }
 
     res.status(200).send('OK');
