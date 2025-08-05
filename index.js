@@ -1490,107 +1490,157 @@ app.post('/api/cancel-subscription', async (req, res) => {
 
     console.log(`🔄 MANUAL CANCELLATION for testing: ${email}`);
 
-    // Enhanced complete data wipe with multiple identifier checks
-    const deletionQueries = [
-      // Delete all activity data with multiple identifier patterns
-      { query: 'DELETE FROM conversations WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM messages WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM workouts WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM workout_adjustments WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM form_analyses WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM rpe_tracking WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM progress_tracking WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM progress_reports WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM progress_photos WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM user_goals WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM milestone_achievements WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM nutrition_plans WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM nutrition_logs WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM supplement_recommendations WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM recovery_tracking WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM sleep_analysis WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      { query: 'DELETE FROM stress_assessments WHERE user_id = $1 OR user_id = $2', params: [email, email] },
-      
-      // CRITICAL: Delete ALL consultation data completely - this is the key fix
-      { query: 'DELETE FROM leads WHERE email = $1 OR email ILIKE $2', params: [email, `%${email}%`] },
-      
-      // Delete profile with all possible email patterns
-      { query: 'DELETE FROM user_profiles WHERE email = $1 OR email ILIKE $2', params: [email, `%${email}%`] }
+    // NUCLEAR DATA DELETION - Delete EVERYTHING multiple times to ensure complete removal
+    console.log('🗑️ Starting NUCLEAR deletion process...');
+
+    // Step 1: Delete consultation data FIRST and AGGRESSIVELY
+    const consultationDeletions = [
+      `DELETE FROM leads WHERE email = '${email}'`,
+      `DELETE FROM leads WHERE email ILIKE '%${email}%'`,
+      `DELETE FROM leads WHERE message LIKE '%${email}%'`,
+      `DELETE FROM leads WHERE ai_response LIKE '%${email}%'`,
+      `DELETE FROM leads WHERE phone LIKE '%${email}%'`,
+      `DELETE FROM leads WHERE name LIKE '%${email}%'`
     ];
 
-    let deletedTables = 0;
-    let errors = [];
-    let totalRowsDeleted = 0;
-
-    // Execute deletions sequentially with enhanced logging
-    for (const deletion of deletionQueries) {
+    for (const deleteQuery of consultationDeletions) {
       try {
-        const result = await query(deletion.query, deletion.params);
-        if (result.rowCount > 0) {
-          deletedTables++;
-          totalRowsDeleted += result.rowCount;
-          console.log(`✓ Deleted ${result.rowCount} records from table`);
-        }
-      } catch (deleteError) {
-        console.error(`❌ Deletion error: ${deleteError.message}`);
-        errors.push(deleteError.message);
+        const result = await query(deleteQuery);
+        console.log(`✓ Consultation deletion: ${result.rowCount} rows deleted`);
+      } catch (error) {
+        console.log(`- Consultation deletion failed (may not exist): ${error.message}`);
       }
     }
 
-    // Additional nuclear cleanup - delete ANY remaining traces
-    try {
-      await query("DELETE FROM leads WHERE message LIKE $1 OR ai_response LIKE $1", [`%${email}%`]);
-      await query("DELETE FROM conversations WHERE ai_response LIKE $1 OR context::text LIKE $1", [`%${email}%`]);
-      console.log('✓ Nuclear cleanup completed');
-    } catch (nuclearError) {
-      console.log('Nuclear cleanup skipped:', nuclearError.message);
-    }
-
-    // Wait a moment for database consistency
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Final verification with enhanced checks
-    const verificationChecks = [
-      query('SELECT COUNT(*) FROM leads WHERE email = $1 OR email ILIKE $2', [email, `%${email}%`]),
-      query('SELECT COUNT(*) FROM user_profiles WHERE email = $1 OR email ILIKE $2', [email, `%${email}%`]),
-      query('SELECT COUNT(*) FROM conversations WHERE user_id = $1 OR user_id = $2', [email, email])
+    // Step 2: Delete ALL user activity data
+    const userDataDeletions = [
+      `DELETE FROM conversations WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM messages WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM workouts WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM workout_adjustments WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM form_analyses WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM rpe_tracking WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM progress_tracking WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM progress_reports WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM progress_photos WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM user_goals WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM milestone_achievements WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM nutrition_plans WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM nutrition_logs WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM supplement_recommendations WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM recovery_tracking WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM sleep_analysis WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
+      `DELETE FROM stress_assessments WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`
     ];
 
-    const [leadsCheck, profilesCheck, conversationsCheck] = await Promise.all(verificationChecks);
+    let totalDeleted = 0;
+    for (const deleteQuery of userDataDeletions) {
+      try {
+        const result = await query(deleteQuery);
+        totalDeleted += result.rowCount;
+        if (result.rowCount > 0) {
+          console.log(`✓ User data deletion: ${result.rowCount} rows deleted`);
+        }
+      } catch (error) {
+        console.log(`- User data deletion failed: ${error.message}`);
+      }
+    }
 
-    const leadsCount = parseInt(leadsCheck.rows[0].count);
-    const profilesCount = parseInt(profilesCheck.rows[0].count);
-    const conversationsCount = parseInt(conversationsCheck.rows[0].count);
+    // Step 3: Delete user profile LAST
+    const profileDeletions = [
+      `DELETE FROM user_profiles WHERE email = '${email}'`,
+      `DELETE FROM user_profiles WHERE email ILIKE '%${email}%'`,
+      `DELETE FROM user_profiles WHERE name LIKE '%${email}%'`
+    ];
 
-    console.log(`✅ COMPLETE TESTING CANCELLATION for ${email}`);
-    console.log(`📊 Verification - Leads: ${leadsCount}, Profiles: ${profilesCount}, Conversations: ${conversationsCount}`);
-    console.log(`🗑️ Tables affected: ${deletedTables}, Total rows deleted: ${totalRowsDeleted}`);
+    for (const deleteQuery of profileDeletions) {
+      try {
+        const result = await query(deleteQuery);
+        totalDeleted += result.rowCount;
+        console.log(`✓ Profile deletion: ${result.rowCount} rows deleted`);
+      } catch (error) {
+        console.log(`- Profile deletion failed: ${error.message}`);
+      }
+    }
 
-    // Ensure complete wipe success
-    const completeWipe = leadsCount === 0 && profilesCount === 0;
+    // Step 4: Nuclear cleanup - search and destroy ANY remaining references
+    const nuclearCleanup = [
+      `DELETE FROM conversations WHERE ai_response LIKE '%${email}%' OR context::text LIKE '%${email}%'`,
+      `DELETE FROM leads WHERE status LIKE '%${email}%' OR source LIKE '%${email}%'`,
+      `DELETE FROM messages WHERE message LIKE '%${email}%'`
+    ];
+
+    for (const nukeQuery of nuclearCleanup) {
+      try {
+        const result = await query(nukeQuery);
+        if (result.rowCount > 0) {
+          console.log(`☢️ Nuclear cleanup: ${result.rowCount} additional references destroyed`);
+          totalDeleted += result.rowCount;
+        }
+      } catch (error) {
+        console.log(`- Nuclear cleanup skipped: ${error.message}`);
+      }
+    }
+
+    // Step 5: Wait for database consistency and verify COMPLETE deletion
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Enhanced verification - check EVERY possible table
+    const verificationQueries = [
+      { name: 'leads', query: `SELECT COUNT(*) FROM leads WHERE email ILIKE '%${email}%' OR message LIKE '%${email}%' OR ai_response LIKE '%${email}%'` },
+      { name: 'user_profiles', query: `SELECT COUNT(*) FROM user_profiles WHERE email ILIKE '%${email}%'` },
+      { name: 'conversations', query: `SELECT COUNT(*) FROM conversations WHERE user_id LIKE '%${email}%' OR ai_response LIKE '%${email}%'` },
+      { name: 'messages', query: `SELECT COUNT(*) FROM messages WHERE user_id LIKE '%${email}%'` },
+      { name: 'workouts', query: `SELECT COUNT(*) FROM workouts WHERE user_id LIKE '%${email}%'` }
+    ];
+
+    const verification = {};
+    let totalRemaining = 0;
+
+    for (const check of verificationQueries) {
+      try {
+        const result = await query(check.query);
+        const count = parseInt(result.rows[0].count);
+        verification[check.name] = count;
+        totalRemaining += count;
+        
+        if (count > 0) {
+          console.log(`⚠️ ${check.name}: ${count} records still remain for ${email}`);
+        } else {
+          console.log(`✅ ${check.name}: completely clean`);
+        }
+      } catch (error) {
+        verification[check.name] = 'error';
+        console.log(`❌ Verification failed for ${check.name}: ${error.message}`);
+      }
+    }
+
+    const isCompletelyDeleted = totalRemaining === 0;
+
+    console.log(`🎯 CANCELLATION COMPLETE for ${email}`);
+    console.log(`📊 Total rows deleted: ${totalDeleted}`);
+    console.log(`📊 Total remaining: ${totalRemaining}`);
+    console.log(`✅ Complete deletion: ${isCompletelyDeleted ? 'YES' : 'NO'}`);
 
     res.json({
       success: true,
-      message: completeWipe 
-        ? `✅ COMPLETE data wipe for ${email}. All consultation history deleted. User must start completely fresh.`
-        : `⚠️ Partial deletion for ${email}. Some data may remain.`,
+      message: isCompletelyDeleted 
+        ? `✅ COMPLETE NUCLEAR DELETION for ${email}. All data obliterated. User must start completely fresh.`
+        : `⚠️ Partial deletion for ${email}. ${totalRemaining} records may remain.`,
       email: email,
       reason: reason,
-      resetToFresh: completeWipe,
+      resetToFresh: isCompletelyDeleted,
       consultationRequired: true,
-      completeWipe: completeWipe,
-      verification: {
-        remainingLeads: leadsCount,
-        remainingProfiles: profilesCount,
-        remainingConversations: conversationsCount
-      },
+      completeWipe: isCompletelyDeleted,
+      verification: verification,
       deletionStats: {
-        tablesAffected: deletedTables,
-        totalRowsDeleted: totalRowsDeleted,
-        errors: errors.length
+        totalRowsDeleted: totalDeleted,
+        totalRemaining: totalRemaining,
+        isCompletelyDeleted: isCompletelyDeleted
       },
       clearBrowserStorage: true,
-      forceLogout: true
+      forceLogout: true,
+      instructions: 'Clear browser storage and start fresh consultation'
     });
 
   } catch (error) {
