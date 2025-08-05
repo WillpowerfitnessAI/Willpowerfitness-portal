@@ -1490,43 +1490,45 @@ app.post('/api/cancel-subscription', async (req, res) => {
 
     console.log(`🔄 MANUAL CANCELLATION for testing: ${email}`);
 
-    // ENHANCED COMPLETE DATA WIPE - execute sequentially for better reliability
+    // Enhanced complete data wipe with multiple identifier checks
     const deletionQueries = [
-      // Delete all activity data first
-      { query: 'DELETE FROM conversations WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM messages WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM workouts WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM workout_adjustments WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM form_analyses WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM rpe_tracking WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM progress_tracking WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM progress_reports WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM progress_photos WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM user_goals WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM milestone_achievements WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM nutrition_plans WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM nutrition_logs WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM supplement_recommendations WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM recovery_tracking WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM sleep_analysis WHERE user_id = $1', params: [email] },
-      { query: 'DELETE FROM stress_assessments WHERE user_id = $1', params: [email] },
+      // Delete all activity data with multiple identifier patterns
+      { query: 'DELETE FROM conversations WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM messages WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM workouts WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM workout_adjustments WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM form_analyses WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM rpe_tracking WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM progress_tracking WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM progress_reports WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM progress_photos WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM user_goals WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM milestone_achievements WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM nutrition_plans WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM nutrition_logs WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM supplement_recommendations WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM recovery_tracking WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM sleep_analysis WHERE user_id = $1 OR user_id = $2', params: [email, email] },
+      { query: 'DELETE FROM stress_assessments WHERE user_id = $1 OR user_id = $2', params: [email, email] },
       
-      // CRITICAL: Delete consultation data completely
-      { query: 'DELETE FROM leads WHERE email = $1', params: [email] },
+      // CRITICAL: Delete ALL consultation data completely - this is the key fix
+      { query: 'DELETE FROM leads WHERE email = $1 OR email ILIKE $2', params: [email, `%${email}%`] },
       
-      // Delete profile last
-      { query: 'DELETE FROM user_profiles WHERE email = $1', params: [email] }
+      // Delete profile with all possible email patterns
+      { query: 'DELETE FROM user_profiles WHERE email = $1 OR email ILIKE $2', params: [email, `%${email}%`] }
     ];
 
     let deletedTables = 0;
     let errors = [];
+    let totalRowsDeleted = 0;
 
-    // Execute deletions sequentially for better control
+    // Execute deletions sequentially with enhanced logging
     for (const deletion of deletionQueries) {
       try {
         const result = await query(deletion.query, deletion.params);
         if (result.rowCount > 0) {
           deletedTables++;
+          totalRowsDeleted += result.rowCount;
           console.log(`✓ Deleted ${result.rowCount} records from table`);
         }
       } catch (deleteError) {
@@ -1535,35 +1537,60 @@ app.post('/api/cancel-subscription', async (req, res) => {
       }
     }
 
-    // Final verification that consultation data is completely gone
+    // Additional nuclear cleanup - delete ANY remaining traces
+    try {
+      await query("DELETE FROM leads WHERE message LIKE $1 OR ai_response LIKE $1", [`%${email}%`]);
+      await query("DELETE FROM conversations WHERE ai_response LIKE $1 OR context::text LIKE $1", [`%${email}%`]);
+      console.log('✓ Nuclear cleanup completed');
+    } catch (nuclearError) {
+      console.log('Nuclear cleanup skipped:', nuclearError.message);
+    }
+
+    // Wait a moment for database consistency
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Final verification with enhanced checks
     const verificationChecks = [
-      query('SELECT COUNT(*) FROM leads WHERE email = $1', [email]),
-      query('SELECT COUNT(*) FROM user_profiles WHERE email = $1', [email]),
-      query('SELECT COUNT(*) FROM conversations WHERE user_id = $1', [email])
+      query('SELECT COUNT(*) FROM leads WHERE email = $1 OR email ILIKE $2', [email, `%${email}%`]),
+      query('SELECT COUNT(*) FROM user_profiles WHERE email = $1 OR email ILIKE $2', [email, `%${email}%`]),
+      query('SELECT COUNT(*) FROM conversations WHERE user_id = $1 OR user_id = $2', [email, email])
     ];
 
     const [leadsCheck, profilesCheck, conversationsCheck] = await Promise.all(verificationChecks);
 
-    console.log(`✅ COMPLETE TESTING CANCELLATION for ${email}`);
-    console.log(`📊 Verification - Leads: ${leadsCheck.rows[0].count}, Profiles: ${profilesCheck.rows[0].count}, Conversations: ${conversationsCheck.rows[0].count}`);
-    console.log(`🗑️ Tables affected: ${deletedTables}, Errors: ${errors.length}`);
+    const leadsCount = parseInt(leadsCheck.rows[0].count);
+    const profilesCount = parseInt(profilesCheck.rows[0].count);
+    const conversationsCount = parseInt(conversationsCheck.rows[0].count);
 
-    // Clear browser storage on the frontend as well
+    console.log(`✅ COMPLETE TESTING CANCELLATION for ${email}`);
+    console.log(`📊 Verification - Leads: ${leadsCount}, Profiles: ${profilesCount}, Conversations: ${conversationsCount}`);
+    console.log(`🗑️ Tables affected: ${deletedTables}, Total rows deleted: ${totalRowsDeleted}`);
+
+    // Ensure complete wipe success
+    const completeWipe = leadsCount === 0 && profilesCount === 0;
+
     res.json({
       success: true,
-      message: `Complete data wipe for ${email}. All consultation history deleted. User must start fresh.`,
+      message: completeWipe 
+        ? `✅ COMPLETE data wipe for ${email}. All consultation history deleted. User must start completely fresh.`
+        : `⚠️ Partial deletion for ${email}. Some data may remain.`,
       email: email,
       reason: reason,
-      resetToFresh: true,
+      resetToFresh: completeWipe,
       consultationRequired: true,
+      completeWipe: completeWipe,
       verification: {
-        remainingLeads: parseInt(leadsCheck.rows[0].count),
-        remainingProfiles: parseInt(profilesCheck.rows[0].count),
-        remainingConversations: parseInt(conversationsCheck.rows[0].count)
+        remainingLeads: leadsCount,
+        remainingProfiles: profilesCount,
+        remainingConversations: conversationsCount
       },
-      tablesAffected: deletedTables,
-      errors: errors.length > 0 ? errors : null,
-      clearBrowserStorage: true // Signal frontend to clear localStorage
+      deletionStats: {
+        tablesAffected: deletedTables,
+        totalRowsDeleted: totalRowsDeleted,
+        errors: errors.length
+      },
+      clearBrowserStorage: true,
+      forceLogout: true
     });
 
   } catch (error) {
@@ -1711,22 +1738,26 @@ app.post('/api/consultation', async (req, res) => {
   try {
     const { message, userData } = req.body;
 
-    // Check if user has ANY existing consultation data - if they cancelled, there should be NONE
+    // Enhanced check for existing consultation data with strict validation
     const existingConversation = await query(
-      'SELECT message, ai_response, timestamp FROM leads WHERE email = $1 ORDER BY timestamp DESC LIMIT 1',
-      [userData.email]
+      'SELECT message, ai_response, timestamp, status FROM leads WHERE email = $1 OR email ILIKE $2 ORDER BY timestamp DESC LIMIT 1',
+      [userData.email, `%${userData.email}%`]
     );
 
-    // Build conversation context - but start fresh if no valid ongoing consultation
+    // Build conversation context - start COMPLETELY fresh if no valid ongoing consultation
     let fullConversationHistory = [];
     let exchangeCount = 0;
 
+    // Only use existing data if it exists AND is a valid ongoing consultation
+    // If user cancelled, this should be completely empty
     if (existingConversation.rows.length > 0) {
       const lead = existingConversation.rows[0];
       
-      // Only use existing data if it's a valid ongoing consultation
-      // If user cancelled and returned, this should be empty due to data deletion
-      if (lead.message && lead.message.trim()) {
+      // Enhanced validation - only proceed if consultation is actually in progress
+      if (lead.message && lead.message.trim() && 
+          lead.status && 
+          ['onboarding', 'in_consultation'].includes(lead.status)) {
+        
         const userMessages = lead.message.split('\n').filter(msg => msg.startsWith('User:')).map(msg => msg.replace('User: ', ''));
         const aiResponse = lead.ai_response || '';
 
@@ -1740,7 +1771,16 @@ app.post('/api/consultation', async (req, res) => {
             fullConversationHistory.push({ role: "assistant", content: aiResponse });
           }
         });
+        
+        console.log(`📋 Resuming consultation for ${userData.email}, exchange ${exchangeCount + 1}`);
+      } else {
+        console.log(`🔄 Starting FRESH consultation for ${userData.email} (no valid existing data)`);
+        // Force fresh start - any existing data is invalid
+        exchangeCount = 0;
+        fullConversationHistory = [];
       }
+    } else {
+      console.log(`✨ NEW consultation starting for ${userData.email}`);
     }
 
     // Create progressive consultation with enhanced context

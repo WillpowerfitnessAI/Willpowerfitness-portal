@@ -789,7 +789,7 @@
 
         // Cancel subscription for testing - deletes ALL data
         async function cancelSubscriptionForTesting() {
-            if (!confirm('⚠️ This will DELETE ALL your data and cancel your subscription for testing purposes. You will need to redo the consultation. Continue?')) {
+            if (!confirm('⚠️ This will DELETE ALL your data and cancel your subscription for testing purposes. You will need to redo the consultation completely. Continue?')) {
                 return;
             }
 
@@ -805,11 +805,31 @@
 
                 if (response.ok) {
                     const result = await response.json();
-                    alert('✅ Subscription cancelled and all data deleted. Redirecting to home page...');
+                    
+                    // Enhanced success message based on complete wipe status
+                    if (result.completeWipe) {
+                        alert('✅ COMPLETE data deletion successful! All consultation history erased. You will start completely fresh. Redirecting...');
+                    } else {
+                        alert('⚠️ Subscription cancelled but some data may remain. Contact support if needed. Redirecting...');
+                    }
 
-                    // Clear local storage
-                    localStorage.removeItem('userEmail');
-                    localStorage.removeItem('userId');
+                    // NUCLEAR localStorage clearing - remove ALL possible stored data
+                    localStorage.clear(); // Clear everything
+                    sessionStorage.clear(); // Clear session data too
+                    
+                    // Also remove specific keys that might persist
+                    const keysToRemove = [
+                        'userEmail', 'userId', 'currentUserId',
+                        'willpower_customer_id', 'willpower_member_name', 
+                        'willpower_member_status', 'willpower_trial_start',
+                        'consultationData', 'userData', 'authToken',
+                        'memberData', 'workoutData', 'progressData'
+                    ];
+                    
+                    keysToRemove.forEach(key => {
+                        localStorage.removeItem(key);
+                        sessionStorage.removeItem(key);
+                    });
                     localStorage.removeItem('willpower_customer_id');
                     localStorage.removeItem('willpower_member_name');
                     localStorage.removeItem('willpower_member_status');
