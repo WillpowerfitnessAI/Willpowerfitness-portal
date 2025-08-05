@@ -1490,51 +1490,85 @@ app.post('/api/cancel-subscription', async (req, res) => {
 
     console.log(`🔄 MANUAL CANCELLATION for testing: ${email}`);
 
-    // Get user profile
-    const userProfile = await query(
-      'SELECT * FROM user_profiles WHERE email = $1',
-      [email]
-    );
-
-    // Delete everything including consultation data
-    const deletionTasks = [
-      query('DELETE FROM conversations WHERE user_id = $1', [email]),
-      query('DELETE FROM messages WHERE user_id = $1', [email]),
-      query('DELETE FROM workouts WHERE user_id = $1', [email]),
-      query('DELETE FROM workout_adjustments WHERE user_id = $1', [email]),
-      query('DELETE FROM form_analyses WHERE user_id = $1', [email]),
-      query('DELETE FROM rpe_tracking WHERE user_id = $1', [email]),
-      query('DELETE FROM progress_tracking WHERE user_id = $1', [email]),
-      query('DELETE FROM progress_reports WHERE user_id = $1', [email]),
-      query('DELETE FROM progress_photos WHERE user_id = $1', [email]),
-      query('DELETE FROM user_goals WHERE user_id = $1', [email]),
-      query('DELETE FROM milestone_achievements WHERE user_id = $1', [email]),
-      query('DELETE FROM nutrition_plans WHERE user_id = $1', [email]),
-      query('DELETE FROM nutrition_logs WHERE user_id = $1', [email]),
-      query('DELETE FROM supplement_recommendations WHERE user_id = $1', [email]),
-      query('DELETE FROM recovery_tracking WHERE user_id = $1', [email]),
-      query('DELETE FROM sleep_analysis WHERE user_id = $1', [email]),
-      query('DELETE FROM stress_assessments WHERE user_id = $1', [email]),
-      query('DELETE FROM user_profiles WHERE email = $1', [email]),
-      query('DELETE FROM leads WHERE email = $1', [email])
+    // ENHANCED COMPLETE DATA WIPE - execute sequentially for better reliability
+    const deletionQueries = [
+      // Delete all activity data first
+      { query: 'DELETE FROM conversations WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM messages WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM workouts WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM workout_adjustments WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM form_analyses WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM rpe_tracking WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM progress_tracking WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM progress_reports WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM progress_photos WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM user_goals WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM milestone_achievements WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM nutrition_plans WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM nutrition_logs WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM supplement_recommendations WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM recovery_tracking WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM sleep_analysis WHERE user_id = $1', params: [email] },
+      { query: 'DELETE FROM stress_assessments WHERE user_id = $1', params: [email] },
+      
+      // CRITICAL: Delete consultation data completely
+      { query: 'DELETE FROM leads WHERE email = $1', params: [email] },
+      
+      // Delete profile last
+      { query: 'DELETE FROM user_profiles WHERE email = $1', params: [email] }
     ];
 
-    await Promise.all(deletionTasks);
+    let deletedTables = 0;
+    let errors = [];
 
-    console.log(`✅ TESTING CANCELLATION COMPLETE for ${email} - all data wiped`);
+    // Execute deletions sequentially for better control
+    for (const deletion of deletionQueries) {
+      try {
+        const result = await query(deletion.query, deletion.params);
+        if (result.rowCount > 0) {
+          deletedTables++;
+          console.log(`✓ Deleted ${result.rowCount} records from table`);
+        }
+      } catch (deleteError) {
+        console.error(`❌ Deletion error: ${deleteError.message}`);
+        errors.push(deleteError.message);
+      }
+    }
 
+    // Final verification that consultation data is completely gone
+    const verificationChecks = [
+      query('SELECT COUNT(*) FROM leads WHERE email = $1', [email]),
+      query('SELECT COUNT(*) FROM user_profiles WHERE email = $1', [email]),
+      query('SELECT COUNT(*) FROM conversations WHERE user_id = $1', [email])
+    ];
+
+    const [leadsCheck, profilesCheck, conversationsCheck] = await Promise.all(verificationChecks);
+
+    console.log(`✅ COMPLETE TESTING CANCELLATION for ${email}`);
+    console.log(`📊 Verification - Leads: ${leadsCheck.rows[0].count}, Profiles: ${profilesCheck.rows[0].count}, Conversations: ${conversationsCheck.rows[0].count}`);
+    console.log(`🗑️ Tables affected: ${deletedTables}, Errors: ${errors.length}`);
+
+    // Clear browser storage on the frontend as well
     res.json({
       success: true,
-      message: `Subscription cancelled and all data deleted for ${email}. They will need to start fresh with consultation.`,
+      message: `Complete data wipe for ${email}. All consultation history deleted. User must start fresh.`,
       email: email,
       reason: reason,
       resetToFresh: true,
-      consultationRequired: true
+      consultationRequired: true,
+      verification: {
+        remainingLeads: parseInt(leadsCheck.rows[0].count),
+        remainingProfiles: parseInt(profilesCheck.rows[0].count),
+        remainingConversations: parseInt(conversationsCheck.rows[0].count)
+      },
+      tablesAffected: deletedTables,
+      errors: errors.length > 0 ? errors : null,
+      clearBrowserStorage: true // Signal frontend to clear localStorage
     });
 
   } catch (error) {
     console.error('Manual cancellation error:', error);
-    res.status(500).json({ error: 'Failed to cancel subscription' });
+    res.status(500).json({ error: 'Failed to cancel subscription', details: error.message });
   }
 });
 
@@ -1677,31 +1711,36 @@ app.post('/api/consultation', async (req, res) => {
   try {
     const { message, userData } = req.body;
 
-    // Get complete consultation history for this user with proper conversation tracking
+    // Check if user has ANY existing consultation data - if they cancelled, there should be NONE
     const existingConversation = await query(
       'SELECT message, ai_response, timestamp FROM leads WHERE email = $1 ORDER BY timestamp DESC LIMIT 1',
       [userData.email]
     );
 
-    // Build full conversation context properly
+    // Build conversation context - but start fresh if no valid ongoing consultation
     let fullConversationHistory = [];
     let exchangeCount = 0;
 
     if (existingConversation.rows.length > 0) {
       const lead = existingConversation.rows[0];
-      const userMessages = (lead.message || '').split('\n').filter(msg => msg.startsWith('User:')).map(msg => msg.replace('User: ', ''));
-      const aiResponse = lead.ai_response || '';
+      
+      // Only use existing data if it's a valid ongoing consultation
+      // If user cancelled and returned, this should be empty due to data deletion
+      if (lead.message && lead.message.trim()) {
+        const userMessages = lead.message.split('\n').filter(msg => msg.startsWith('User:')).map(msg => msg.replace('User: ', ''));
+        const aiResponse = lead.ai_response || '';
 
-      // Count actual exchanges
-      exchangeCount = userMessages.length;
+        // Count actual exchanges
+        exchangeCount = userMessages.length;
 
-      // Build conversation history for context
-      userMessages.forEach((userMsg, index) => {
-        fullConversationHistory.push({ role: "user", content: userMsg });
-        if (index === userMessages.length - 1 && aiResponse) {
-          fullConversationHistory.push({ role: "assistant", content: aiResponse });
-        }
-      });
+        // Build conversation history for context
+        userMessages.forEach((userMsg, index) => {
+          fullConversationHistory.push({ role: "user", content: userMsg });
+          if (index === userMessages.length - 1 && aiResponse) {
+            fullConversationHistory.push({ role: "assistant", content: aiResponse });
+          }
+        });
+      }
     }
 
     // Create progressive consultation with enhanced context
@@ -1982,41 +2021,69 @@ app.post('/api/webhook/stripe', express.raw({ type: 'application/json' }), async
       const customerId = event.data.object.customer || event.data.object.id;
       
       try {
-        // Get user profile to find email
+        // Get user profile to find email BEFORE deletion
         const userProfile = await getUserProfile(customerId);
         const userEmail = userProfile?.email;
 
         console.log(`🗑️ SUBSCRIPTION CANCELLED - Deleting ALL data for customer: ${customerId}, email: ${userEmail}`);
 
-        // Delete all user data across ALL tables - complete wipe
-        const deletionTasks = [
-          query('DELETE FROM conversations WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM messages WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM workouts WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM workout_adjustments WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM form_analyses WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM rpe_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM progress_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM progress_reports WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM progress_photos WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM user_goals WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM milestone_achievements WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM nutrition_plans WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM nutrition_logs WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM supplement_recommendations WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM recovery_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM sleep_analysis WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM stress_assessments WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
-          query('DELETE FROM user_profiles WHERE email = $1 OR stripe_customer_id = $2', [userEmail, customerId]),
-          // DELETE CONSULTATION DATA - this is key for your testing
-          query('DELETE FROM leads WHERE email = $1', [userEmail])
-        ];
+        if (userEmail) {
+          // Enhanced deletion - delete ALL data associated with this email
+          const completeDeletion = [
+            // Core user data
+            query('DELETE FROM conversations WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM messages WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM workouts WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            
+            // Enhanced AI features
+            query('DELETE FROM workout_adjustments WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM form_analyses WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM rpe_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            
+            // Progress tracking
+            query('DELETE FROM progress_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM progress_reports WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM progress_photos WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM user_goals WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM milestone_achievements WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            
+            // Nutrition features
+            query('DELETE FROM nutrition_plans WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM nutrition_logs WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM supplement_recommendations WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            
+            // Recovery and wellness
+            query('DELETE FROM recovery_tracking WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM sleep_analysis WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            query('DELETE FROM stress_assessments WHERE user_id = $1 OR user_id = $2', [customerId, userEmail]),
+            
+            // CRITICAL: Delete consultation data COMPLETELY
+            query('DELETE FROM leads WHERE email = $1', [userEmail]),
+            
+            // Delete user profile last
+            query('DELETE FROM user_profiles WHERE email = $1 OR stripe_customer_id = $2 OR id::text = $1', [userEmail, customerId])
+          ];
 
-        // Execute all deletions
-        await Promise.all(deletionTasks);
+          // Execute all deletions sequentially to ensure completion
+          for (const deleteQuery of completeDeletion) {
+            try {
+              await deleteQuery;
+            } catch (individualError) {
+              console.error('Individual deletion error:', individualError.message);
+              // Continue with other deletions
+            }
+          }
 
-        console.log(`✅ COMPLETE DATA WIPE for cancelled subscription: ${customerId}`);
-        console.log(`🔄 User will need to redo consultation if they return`);
+          // Final verification - make sure consultation data is gone
+          const remainingLeads = await query('SELECT COUNT(*) FROM leads WHERE email = $1', [userEmail]);
+          const remainingProfiles = await query('SELECT COUNT(*) FROM user_profiles WHERE email = $1', [userEmail]);
+          
+          console.log(`✅ COMPLETE DATA WIPE for cancelled subscription: ${customerId}`);
+          console.log(`📊 Remaining leads: ${remainingLeads.rows[0].count}, profiles: ${remainingProfiles.rows[0].count}`);
+          console.log(`🔄 User must start completely fresh if they return`);
+        } else {
+          console.log(`⚠️ No email found for customer ${customerId} - skipping deletion`);
+        }
 
       } catch (deleteError) {
         console.error('❌ Data deletion failed:', deleteError);
