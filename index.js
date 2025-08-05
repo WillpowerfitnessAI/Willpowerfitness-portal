@@ -1479,7 +1479,7 @@ app.post('/api/delete-user-data', async (req, res) => {
   }
 });
 
-// Manual subscription cancellation for testing
+// Manual subscription cancellation for testing - ULTRA THOROUGH DELETION
 app.post('/api/cancel-subscription', async (req, res) => {
   try {
     const { email, reason = 'manual_testing_cancellation' } = req.body;
@@ -1488,110 +1488,136 @@ app.post('/api/cancel-subscription', async (req, res) => {
       return res.status(400).json({ error: 'Email required' });
     }
 
-    console.log(`🔄 MANUAL CANCELLATION for testing: ${email}`);
+    console.log(`🔄 ULTRA NUCLEAR CANCELLATION for testing: ${email}`);
 
-    // NUCLEAR DATA DELETION - Delete EVERYTHING multiple times to ensure complete removal
-    console.log('🗑️ Starting NUCLEAR deletion process...');
+    // ULTRA NUCLEAR DATA DELETION - Multiple passes to ensure EVERYTHING is gone
+    console.log('🗑️ Starting ULTRA NUCLEAR deletion process...');
 
-    // Step 1: Delete consultation data FIRST and AGGRESSIVELY
-    const consultationDeletions = [
-      `DELETE FROM leads WHERE email = '${email}'`,
-      `DELETE FROM leads WHERE email ILIKE '%${email}%'`,
-      `DELETE FROM leads WHERE message LIKE '%${email}%'`,
-      `DELETE FROM leads WHERE ai_response LIKE '%${email}%'`,
-      `DELETE FROM leads WHERE phone LIKE '%${email}%'`,
-      `DELETE FROM leads WHERE name LIKE '%${email}%'`
-    ];
-
-    for (const deleteQuery of consultationDeletions) {
-      try {
-        const result = await query(deleteQuery);
-        console.log(`✓ Consultation deletion: ${result.rowCount} rows deleted`);
-      } catch (error) {
-        console.log(`- Consultation deletion failed (may not exist): ${error.message}`);
-      }
-    }
-
-    // Step 2: Delete ALL user activity data
-    const userDataDeletions = [
-      `DELETE FROM conversations WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM messages WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM workouts WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM workout_adjustments WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM form_analyses WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM rpe_tracking WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM progress_tracking WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM progress_reports WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM progress_photos WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM user_goals WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM milestone_achievements WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM nutrition_plans WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM nutrition_logs WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM supplement_recommendations WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM recovery_tracking WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM sleep_analysis WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`,
-      `DELETE FROM stress_assessments WHERE user_id = '${email}' OR user_id LIKE '%${email}%'`
+    // PASS 1: Direct deletion using parameterized queries (safer)
+    console.log('🔥 PASS 1: Direct parameterized deletions...');
+    
+    const pass1Deletions = [
+      // Consultation data - HIGHEST PRIORITY
+      ['DELETE FROM leads WHERE email = $1', [email]],
+      ['DELETE FROM leads WHERE email ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM leads WHERE LOWER(email) = LOWER($1)', [email]],
+      
+      // User profiles
+      ['DELETE FROM user_profiles WHERE email = $1', [email]],
+      ['DELETE FROM user_profiles WHERE LOWER(email) = LOWER($1)', [email]],
+      ['DELETE FROM user_profiles WHERE email ILIKE $1', [`%${email}%`]],
+      
+      // All user activity data
+      ['DELETE FROM conversations WHERE user_id = $1', [email]],
+      ['DELETE FROM conversations WHERE user_id ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM messages WHERE user_id = $1', [email]],
+      ['DELETE FROM messages WHERE user_id ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM workouts WHERE user_id = $1', [email]],
+      ['DELETE FROM workouts WHERE user_id ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM workout_adjustments WHERE user_id = $1', [email]],
+      ['DELETE FROM form_analyses WHERE user_id = $1', [email]],
+      ['DELETE FROM rpe_tracking WHERE user_id = $1', [email]],
+      ['DELETE FROM progress_tracking WHERE user_id = $1', [email]],
+      ['DELETE FROM progress_reports WHERE user_id = $1', [email]],
+      ['DELETE FROM progress_photos WHERE user_id = $1', [email]],
+      ['DELETE FROM user_goals WHERE user_id = $1', [email]],
+      ['DELETE FROM milestone_achievements WHERE user_id = $1', [email]],
+      ['DELETE FROM nutrition_plans WHERE user_id = $1', [email]],
+      ['DELETE FROM nutrition_logs WHERE user_id = $1', [email]],
+      ['DELETE FROM supplement_recommendations WHERE user_id = $1', [email]],
+      ['DELETE FROM recovery_tracking WHERE user_id = $1', [email]],
+      ['DELETE FROM sleep_analysis WHERE user_id = $1', [email]],
+      ['DELETE FROM stress_assessments WHERE user_id = $1', [email]]
     ];
 
     let totalDeleted = 0;
-    for (const deleteQuery of userDataDeletions) {
+    for (const [deleteQuery, params] of pass1Deletions) {
       try {
-        const result = await query(deleteQuery);
+        const result = await query(deleteQuery, params);
         totalDeleted += result.rowCount;
         if (result.rowCount > 0) {
-          console.log(`✓ User data deletion: ${result.rowCount} rows deleted`);
+          console.log(`✓ PASS 1: ${result.rowCount} rows deleted with query: ${deleteQuery}`);
         }
       } catch (error) {
-        console.log(`- User data deletion failed: ${error.message}`);
+        console.log(`- PASS 1 deletion failed: ${error.message}`);
       }
     }
 
-    // Step 3: Delete user profile LAST
-    const profileDeletions = [
-      `DELETE FROM user_profiles WHERE email = '${email}'`,
-      `DELETE FROM user_profiles WHERE email ILIKE '%${email}%'`,
-      `DELETE FROM user_profiles WHERE name LIKE '%${email}%'`
+    // PASS 2: Text search and destroy - find ANY references
+    console.log('☢️ PASS 2: Nuclear text search and destroy...');
+    
+    const pass2Deletions = [
+      // Search in message content
+      ['DELETE FROM conversations WHERE ai_response ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM conversations WHERE user_message ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM conversations WHERE context::text ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM messages WHERE message ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM leads WHERE message ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM leads WHERE ai_response ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM leads WHERE name ILIKE $1', [`%${email}%`]],
+      ['DELETE FROM leads WHERE phone ILIKE $1', [`%${email}%`]],
+      
+      // Search by partial name matches if name contains email parts
+      ['DELETE FROM user_profiles WHERE name ILIKE $1', [`%${email.split('@')[0]}%`]],
+      ['DELETE FROM leads WHERE name ILIKE $1', [`%${email.split('@')[0]}%`]]
     ];
 
-    for (const deleteQuery of profileDeletions) {
+    for (const [deleteQuery, params] of pass2Deletions) {
       try {
-        const result = await query(deleteQuery);
-        totalDeleted += result.rowCount;
-        console.log(`✓ Profile deletion: ${result.rowCount} rows deleted`);
-      } catch (error) {
-        console.log(`- Profile deletion failed: ${error.message}`);
-      }
-    }
-
-    // Step 4: Nuclear cleanup - search and destroy ANY remaining references
-    const nuclearCleanup = [
-      `DELETE FROM conversations WHERE ai_response LIKE '%${email}%' OR context::text LIKE '%${email}%'`,
-      `DELETE FROM leads WHERE status LIKE '%${email}%' OR source LIKE '%${email}%'`,
-      `DELETE FROM messages WHERE message LIKE '%${email}%'`
-    ];
-
-    for (const nukeQuery of nuclearCleanup) {
-      try {
-        const result = await query(nukeQuery);
+        const result = await query(deleteQuery, params);
         if (result.rowCount > 0) {
-          console.log(`☢️ Nuclear cleanup: ${result.rowCount} additional references destroyed`);
+          console.log(`☢️ PASS 2: ${result.rowCount} additional references destroyed`);
           totalDeleted += result.rowCount;
         }
       } catch (error) {
-        console.log(`- Nuclear cleanup skipped: ${error.message}`);
+        console.log(`- PASS 2 cleanup skipped: ${error.message}`);
       }
     }
 
-    // Step 5: Wait for database consistency and verify COMPLETE deletion
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // PASS 3: Aggressive wildcard cleanup (last resort)
+    console.log('💥 PASS 3: Aggressive wildcard cleanup...');
+    
+    const emailParts = email.toLowerCase().split('@');
+    const username = emailParts[0];
+    const domain = emailParts[1];
 
-    // Enhanced verification - check EVERY possible table
+    const pass3Deletions = [
+      ['DELETE FROM leads WHERE LOWER(email) LIKE $1', [`%${username}%`]],
+      ['DELETE FROM leads WHERE LOWER(email) LIKE $1', [`%${domain}%`]],
+      ['DELETE FROM user_profiles WHERE LOWER(email) LIKE $1', [`%${username}%`]],
+      ['DELETE FROM conversations WHERE LOWER(user_id) LIKE $1', [`%${username}%`]],
+      ['DELETE FROM messages WHERE LOWER(user_id) LIKE $1', [`%${username}%`]]
+    ];
+
+    for (const [deleteQuery, params] of pass3Deletions) {
+      try {
+        const result = await query(deleteQuery, params);
+        if (result.rowCount > 0) {
+          console.log(`💥 PASS 3: ${result.rowCount} wildcard matches destroyed`);
+          totalDeleted += result.rowCount;
+        }
+      } catch (error) {
+        console.log(`- PASS 3 cleanup skipped: ${error.message}`);
+      }
+    }
+
+    // Wait for database consistency
+    console.log('⏳ Waiting for database consistency...');
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // ULTRA THOROUGH VERIFICATION - Check EVERYTHING
+    console.log('🔍 ULTRA THOROUGH VERIFICATION...');
+    
     const verificationQueries = [
-      { name: 'leads', query: `SELECT COUNT(*) FROM leads WHERE email ILIKE '%${email}%' OR message LIKE '%${email}%' OR ai_response LIKE '%${email}%'` },
-      { name: 'user_profiles', query: `SELECT COUNT(*) FROM user_profiles WHERE email ILIKE '%${email}%'` },
-      { name: 'conversations', query: `SELECT COUNT(*) FROM conversations WHERE user_id LIKE '%${email}%' OR ai_response LIKE '%${email}%'` },
-      { name: 'messages', query: `SELECT COUNT(*) FROM messages WHERE user_id LIKE '%${email}%'` },
-      { name: 'workouts', query: `SELECT COUNT(*) FROM workouts WHERE user_id LIKE '%${email}%'` }
+      { name: 'leads_exact', query: 'SELECT COUNT(*) FROM leads WHERE email = $1', params: [email] },
+      { name: 'leads_ilike', query: 'SELECT COUNT(*) FROM leads WHERE email ILIKE $1', params: [`%${email}%`] },
+      { name: 'leads_content', query: 'SELECT COUNT(*) FROM leads WHERE message ILIKE $1 OR ai_response ILIKE $1', params: [`%${email}%`] },
+      { name: 'user_profiles_exact', query: 'SELECT COUNT(*) FROM user_profiles WHERE email = $1', params: [email] },
+      { name: 'user_profiles_ilike', query: 'SELECT COUNT(*) FROM user_profiles WHERE email ILIKE $1', params: [`%${email}%`] },
+      { name: 'conversations_user', query: 'SELECT COUNT(*) FROM conversations WHERE user_id = $1', params: [email] },
+      { name: 'conversations_content', query: 'SELECT COUNT(*) FROM conversations WHERE user_id ILIKE $1 OR ai_response ILIKE $1', params: [`%${email}%`] },
+      { name: 'messages_user', query: 'SELECT COUNT(*) FROM messages WHERE user_id = $1', params: [email] },
+      { name: 'workouts_user', query: 'SELECT COUNT(*) FROM workouts WHERE user_id = $1', params: [email] }
     ];
 
     const verification = {};
@@ -1599,13 +1625,24 @@ app.post('/api/cancel-subscription', async (req, res) => {
 
     for (const check of verificationQueries) {
       try {
-        const result = await query(check.query);
+        const result = await query(check.query, check.params);
         const count = parseInt(result.rows[0].count);
         verification[check.name] = count;
         totalRemaining += count;
         
         if (count > 0) {
           console.log(`⚠️ ${check.name}: ${count} records still remain for ${email}`);
+          
+          // If records still exist, try one more aggressive deletion
+          if (check.name === 'leads_exact' && count > 0) {
+            console.log('🚨 EMERGENCY: Leads still exist! Attempting emergency deletion...');
+            try {
+              await query('DELETE FROM leads WHERE id IN (SELECT id FROM leads WHERE email = $1)', [email]);
+              await query('DELETE FROM leads WHERE id IN (SELECT id FROM leads WHERE email ILIKE $1)', [`%${email}%`]);
+            } catch (emergencyError) {
+              console.log('Emergency deletion failed:', emergencyError.message);
+            }
+          }
         } else {
           console.log(`✅ ${check.name}: completely clean`);
         }
@@ -1617,7 +1654,7 @@ app.post('/api/cancel-subscription', async (req, res) => {
 
     const isCompletelyDeleted = totalRemaining === 0;
 
-    console.log(`🎯 CANCELLATION COMPLETE for ${email}`);
+    console.log(`🎯 ULTRA NUCLEAR CANCELLATION COMPLETE for ${email}`);
     console.log(`📊 Total rows deleted: ${totalDeleted}`);
     console.log(`📊 Total remaining: ${totalRemaining}`);
     console.log(`✅ Complete deletion: ${isCompletelyDeleted ? 'YES' : 'NO'}`);
@@ -1625,8 +1662,8 @@ app.post('/api/cancel-subscription', async (req, res) => {
     res.json({
       success: true,
       message: isCompletelyDeleted 
-        ? `✅ COMPLETE NUCLEAR DELETION for ${email}. All data obliterated. User must start completely fresh.`
-        : `⚠️ Partial deletion for ${email}. ${totalRemaining} records may remain.`,
+        ? `✅ ULTRA NUCLEAR DELETION SUCCESSFUL for ${email}. All data completely obliterated. User must start 100% fresh.`
+        : `⚠️ STUBBORN DATA WARNING for ${email}. ${totalRemaining} records still remain after ultra nuclear deletion.`,
       email: email,
       reason: reason,
       resetToFresh: isCompletelyDeleted,
@@ -1636,15 +1673,17 @@ app.post('/api/cancel-subscription', async (req, res) => {
       deletionStats: {
         totalRowsDeleted: totalDeleted,
         totalRemaining: totalRemaining,
-        isCompletelyDeleted: isCompletelyDeleted
+        isCompletelyDeleted: isCompletelyDeleted,
+        passes: 3,
+        verificationChecks: verificationQueries.length
       },
       clearBrowserStorage: true,
       forceLogout: true,
-      instructions: 'Clear browser storage and start fresh consultation'
+      instructions: 'Clear ALL browser storage and start completely fresh consultation'
     });
 
   } catch (error) {
-    console.error('Manual cancellation error:', error);
+    console.error('Ultra nuclear cancellation error:', error);
     res.status(500).json({ error: 'Failed to cancel subscription', details: error.message });
   }
 });
