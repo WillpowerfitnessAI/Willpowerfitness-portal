@@ -31,7 +31,18 @@ except ValueError as e:
 
 # Initialize Flask app
 app = Flask(__name__)
-CORS(app, origins=["*"])
+CORS(app, resources={
+    r"/*": {
+        "origins": [
+            "https://willpowerfitness-frontend.vercel.app",
+            "https://willpowerfitnessai.vercel.app",
+            "https://app.willpowerfitnessai.com"
+        ],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": "*"
+    }
+})
+
 
 # Initialize services
 db = Database(Config.DATABASE_PATH)
