@@ -1,14 +1,16 @@
 from supabase import create_client, Client
 import os
+import logging
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
-import os
-import logging
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
-from datetime import datetime
+# Debug: confirm env vars are present
+logging.getLogger().setLevel(logging.INFO)
+logging.info("SUPABASE_URL set? %s", bool(SUPABASE_URL))
+logging.info("SUPABASE_KEY set? %s", bool(SUPABASE_KEY))
+
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Import our services
 from config import Config, setup_logging
