@@ -7,3 +7,4 @@ replit
 flask-cors
 stripe
 python-dotenv
+gunicorn
