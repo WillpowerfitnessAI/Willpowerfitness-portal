@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import logging
 import stripe
+import re
 
 from supabase import create_client, Client
 
@@ -17,7 +18,7 @@ from services.payment_service import PaymentService
 SUPABASE_URL = os.getenv("SUPABASE_URL")  # URL is public-ish; no default needed
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # NO default — treat like a secret
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")        # <-- fixed name
+STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 PRINTFUL_API_KEY = os.getenv("PRINTFUL_API_KEY")
 
 # Debug: confirm env vars are present (do NOT log the actual values)
@@ -37,22 +38,20 @@ if SUPABASE_URL and SUPABASE_KEY:
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Validate configuration
+# Validate required configuration (fail fast if missing)
 try:
     Config.validate_required_keys()
 except ValueError as e:
     logger.error(f"Configuration error: {e}")
     exit(1)
 
-# Initialize Flask app
+# ---------------- Flask App ----------------
 app = Flask(__name__)
 
-# Allowed origins for your production sites
+# Allowed origins (prod domain + any Vercel preview)
 ALLOWED_ORIGINS = [
     "https://app.willpowerfitnessai.com",
-    "https://willpowerfitness-frontend.vercel.app",
-    "https://willpowerfitness-frontend-clwj.vercel.app",
-    # "https://www.app.willpowerfitnessai.com",  # if you add www
+    re.compile(r"https://.*\.vercel\.app"),
 ]
 
 # CORS: restrict to API routes only
@@ -63,19 +62,44 @@ CORS(
             "origins": ALLOWED_ORIGINS,
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Authorization", "Content-Type"],
-            "expose_headers": [],
             "supports_credentials": False,
             "max_age": 86400,
         }
     },
 )
 
-# Initialize services
+# --- Health + Debug -------------------------------------------------
+@app.get("/api/status")
+def api_status():
+    return jsonify(
+        status="online",
+        service="willpowerfitness-api",
+        time=datetime.utcnow().isoformat() + "Z",
+    ), 200
+
+@app.get("/api/_debug/cors")
+def debug_cors():
+    return jsonify(
+        origin=request.headers.get("Origin"),
+        allowed=str(ALLOWED_ORIGINS),
+    ), 200
+
+@app.before_first_request
+def _log_routes():
+    for r in app.url_map.iter_rules():
+        logging.info("Route: %s -> %s", r.rule, sorted(list(r.methods)))
+
+# ---------------- Services ----------------
 db = Database(Config.DATABASE_PATH)
 ai_service = AIService(db)
 payment_service = PaymentService(db)
 
-# Initialize Stripe (optional)
+# Stripe (optional)
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
+
+# Local dev entrypoint (Railway will use your start command, e.g., gunicorn main:app)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
 
