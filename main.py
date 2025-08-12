@@ -4,7 +4,6 @@ from datetime import datetime
 import os
 import logging
 import stripe
-import re
 
 from supabase import create_client, Client
 
@@ -15,13 +14,13 @@ from services.ai_service import AIService
 from services.payment_service import PaymentService
 
 # -------- Environment variables --------
-SUPABASE_URL = os.getenv("SUPABASE_URL")  # URL is public-ish; no default needed
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # NO default — treat like a secret
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 PRINTFUL_API_KEY = os.getenv("PRINTFUL_API_KEY")
 
-# Debug: confirm env vars are present (do NOT log the actual values)
+# Debug: confirm env vars are present (do NOT log actual values)
 logging.getLogger().setLevel(logging.INFO)
 logging.info("SUPABASE_URL set? %s", bool(SUPABASE_URL))
 logging.info("SUPABASE_KEY set? %s", bool(SUPABASE_KEY))
@@ -38,7 +37,7 @@ if SUPABASE_URL and SUPABASE_KEY:
 setup_logging()
 logger = logging.getLogger(__name__)
 
-# Validate required configuration (fail fast if missing)
+# Validate configuration (fail fast if missing)
 try:
     Config.validate_required_keys()
 except ValueError as e:
@@ -48,10 +47,10 @@ except ValueError as e:
 # ---------------- Flask App ----------------
 app = Flask(__name__)
 
-# Allowed origins (prod domain + any Vercel preview)
+# Allowed origins (prod domain + any Vercel preview via regex string)
 ALLOWED_ORIGINS = [
     "https://app.willpowerfitnessai.com",
-    re.compile(r"https://.*\.vercel\.app"),
+    r"https://.*\.vercel\.app$",   # allow all vercel.app previews
 ]
 
 # CORS: restrict to API routes only
@@ -81,13 +80,8 @@ def api_status():
 def debug_cors():
     return jsonify(
         origin=request.headers.get("Origin"),
-        allowed=str(ALLOWED_ORIGINS),
+        allowed_origins=ALLOWED_ORIGINS,
     ), 200
-
-@app.before_first_request
-def _log_routes():
-    for r in app.url_map.iter_rules():
-        logging.info("Route: %s -> %s", r.rule, sorted(list(r.methods)))
 
 # ---------------- Services ----------------
 db = Database(Config.DATABASE_PATH)
@@ -98,8 +92,6 @@ payment_service = PaymentService(db)
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
-# Local dev entrypoint (Railway will use your start command, e.g., gunicorn main:app)
+# Local dev entrypoint (Railway uses your start command, e.g., gunicorn main:app)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
-
-
