@@ -4,6 +4,7 @@ from datetime import datetime
 import os
 import logging
 import stripe
+import re
 
 from supabase import create_client, Client
 
@@ -15,10 +16,12 @@ from services.payment_service import PaymentService
 
 # -------- Environment variables --------
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # service role key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
 PRINTFUL_API_KEY = os.getenv("PRINTFUL_API_KEY")
+STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # price_...
+FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "https://app.willpowerfitnessai.com")
 
 # Debug: confirm env vars are present (do NOT log actual values)
 logging.getLogger().setLevel(logging.INFO)
@@ -42,15 +45,15 @@ try:
     Config.validate_required_keys()
 except ValueError as e:
     logger.error(f"Configuration error: {e}")
-    exit(1)
+    raise SystemExit(1)
 
 # ---------------- Flask App ----------------
 app = Flask(__name__)
 
-# Allowed origins (prod domain + any Vercel preview via regex string)
+# Allowed origins (prod + any vercel preview via regex)
 ALLOWED_ORIGINS = [
     "https://app.willpowerfitnessai.com",
-    r"https://.*\.vercel\.app$",   # allow all vercel.app previews
+    re.compile(r"https://.*\.vercel\.app$"),
 ]
 
 # CORS: restrict to API routes only
@@ -67,7 +70,7 @@ CORS(
     },
 )
 
-# --- Health + Debug -------------------------------------------------
+# --- Health -----------------------------------------------------------
 @app.get("/api/status")
 def api_status():
     return jsonify(
@@ -76,11 +79,54 @@ def api_status():
         time=datetime.utcnow().isoformat() + "Z",
     ), 200
 
+# --- Leads: store name/goal server-side -------------------------------
+@app.post("/api/leads")
+def create_lead():
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("name") or "").strip()
+    goal = (payload.get("goal") or "").strip()
+    if not name or not goal:
+        return jsonify(error="name and goal are required"), 400
+
+    if not supabase:
+        return jsonify(error="Supabase client not initialized"), 500
+
+    try:
+        res = supabase.table("clients").insert({"name": name, "goal": goal}).execute()
+        return jsonify(data=res.data or []), 201
+    except Exception as e:
+        logger.exception("Lead insert failed")
+        return jsonify(error=str(e)), 500
+
+# --- Stripe init & Checkout ------------------------------------------
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY  # set once at import time
+
+@app.post("/api/checkout")
+def create_checkout():
+    if not stripe.api_key:
+        return jsonify(error="STRIPE_SECRET_KEY missing"), 500
+    if not STRIPE_PRICE_ID:
+        return jsonify(error="STRIPE_PRICE_ID missing"), 500
+
+    try:
+        session = stripe.checkout.Session.create(
+            mode="subscription",
+            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
+            success_url=f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{FRONTEND_ORIGIN}/subscribe?canceled=1",
+        )
+        return jsonify(url=session.url), 200
+    except Exception as e:
+        logger.exception("Stripe checkout session failed")
+        return jsonify(error=str(e)), 500
+
+# --- Debug ------------------------------------------------------------
 @app.get("/api/_debug/cors")
 def debug_cors():
     return jsonify(
         origin=request.headers.get("Origin"),
-        allowed_origins=ALLOWED_ORIGINS,
+        allowed_origins=[str(x) for x in ALLOWED_ORIGINS],
     ), 200
 
 # ---------------- Services ----------------
@@ -88,10 +134,6 @@ db = Database(Config.DATABASE_PATH)
 ai_service = AIService(db)
 payment_service = PaymentService(db)
 
-# Stripe (optional)
-if STRIPE_SECRET_KEY:
-    stripe.api_key = STRIPE_SECRET_KEY
-
-# Local dev entrypoint (Railway uses your start command, e.g., gunicorn main:app)
+# Local dev entrypoint (Railway uses gunicorn main:app)
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
