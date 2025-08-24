@@ -1,7 +1,9 @@
-# main.py  — WillpowerFitness Portal API (Buy-Button model)
+# main.py — WillpowerFitness Portal API (Buy-Button model) + security headers + rate limit
 
 import os, re, json, logging, requests
 from datetime import datetime
+from time import time
+from collections import defaultdict
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -9,7 +11,7 @@ import stripe
 
 from supabase import create_client, Client
 
-# ----- Local modules (unchanged in your repo) -----
+# ----- Local modules (unchanged) -----
 from config import Config, setup_logging
 from database import Database
 from services.ai_service import AIService
@@ -60,6 +62,42 @@ except ValueError as e:
 # ---------------- APP ----------------
 app = Flask(__name__)
 
+# ---- Security headers on every API response ----
+@app.after_request
+def secure_headers(resp):
+    resp.headers['X-Content-Type-Options'] = 'nosniff'
+    resp.headers['X-Frame-Options'] = 'DENY'
+    resp.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow'  # keep API host out of search
+    resp.headers['Strict-Transport-Security'] = 'max-age=63072000; includeSubDomains; preload'
+    return resp
+
+# ---- Simple rate limiter for lead endpoints (no extra deps) ----
+_BUCKET = defaultdict(list)
+
+def _too_many(ip, limit=30, window=60):
+    now = time()
+    q = _BUCKET[ip]
+    # drop old hits
+    while q and now - q[0] > window:
+        q.pop(0)
+    if len(q) >= limit:
+        return True
+    q.append(now)
+    return False
+
+@app.before_request
+def throttle():
+    if request.path in ("/api/lead", "/api/lead-min"):
+        ip = (
+            request.headers.get("cf-connecting-ip")
+            or (request.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+            or request.remote_addr
+            or "anon"
+        )
+        if _too_many(ip):
+            return jsonify(error="rate limited"), 429
+
 # CORS: restrict to Frontend + Vercel previews
 ALLOWED_ORIGINS = [
     FRONTEND_ORIGIN,
@@ -83,10 +121,10 @@ def api_status():
                    time=datetime.utcnow().isoformat() + "Z"), 200
 
 # ============================================================
-#   LEADS  (GDPR-ish: minimal vs full intake)
+#   LEADS  (minimal vs full intake)
 #   - /api/lead-min : keep ONLY name + email (non-members)
 #   - /api/lead     : store full intake (trial/join click)
-#   Create tables in Supabase:
+#   Supabase tables to create:
 #   leads_min(name text, email text, source text, created_at timestamptz default now())
 #   leads(intent text, name text, email text, goal text, schedule text,
 #         experience text, constraints text, prefs text, plan_headline text, created_at timestamptz default now())
@@ -119,8 +157,8 @@ def lead_full():
         summary  = data.get("summary") or {}
         intent   = data.get("intent","unknown")
 
-        name = (answers.get("name") or "").strip()
-        email= (answers.get("email") or "").strip()
+        name  = (answers.get("name") or "").strip()
+        email = (answers.get("email") or "").strip()
         if not (name and email):
             return jsonify(error="name and email required"), 400
 
@@ -143,7 +181,7 @@ def lead_full():
 #   STRIPE WEBHOOK  (must match your Stripe endpoint path)
 #   Endpoint configured in Stripe: /api/webhooks/stripe
 # ============================================================
-def maybe_send_printful_order(email: str, name: str | None = None):
+def maybe_send_printful_order(email: str, name: str = None):
     if not (PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANT_ID and email):
         return
     try:
@@ -247,4 +285,3 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
-
