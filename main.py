@@ -1,306 +1,189 @@
-import json
-import requests
+# main.py  — WillpowerFitness Portal API (Buy-Button model)
 
-from flask import Flask, request, jsonify, send_from_directory
-from flask_cors import CORS
+import os, re, json, logging, requests
 from datetime import datetime
-import os
-import logging
+
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import stripe
-import re
 
 from supabase import create_client, Client
 
-# Import our services
+# ----- Local modules (unchanged in your repo) -----
 from config import Config, setup_logging
 from database import Database
 from services.ai_service import AIService
-from services.payment_service import PaymentService
+from services.payment_service import PaymentService  # kept for compatibility
 
-# -------- Environment variables --------
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")  # service role key
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-STRIPE_SECRET_KEY = os.getenv("STRIPE_SECRET_KEY")
-PRINTFUL_API_KEY = os.getenv("PRINTFUL_API_KEY")
-STRIPE_PRICE_ID = os.getenv("STRIPE_PRICE_ID")  # price_...
+# ---------------- ENV ----------------
+SUPABASE_URL  = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY  = os.getenv("SUPABASE_KEY", "")        # service-role key
+GROQ_API_KEY  = os.getenv("GROQ_API_KEY")            # optional
+OPENAI_API_KEY= os.getenv("OPENAI_API_KEY")          # optional
+
+STRIPE_SECRET_KEY     = os.getenv("STRIPE_SECRET_KEY", "")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
+PRINTFUL_API_KEY           = os.getenv("PRINTFUL_API_KEY")
+PRINTFUL_TSHIRT_VARIANT_ID = os.getenv("PRINTFUL_TSHIRT_VARIANT_ID")
+
 FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "https://app.willpowerfitnessai.com")
 
-# Debug: confirm env vars are present (do NOT log actual values)
+# Log presence of critical envs (not values)
 logging.getLogger().setLevel(logging.INFO)
 logging.info("SUPABASE_URL set? %s", bool(SUPABASE_URL))
 logging.info("SUPABASE_KEY set? %s", bool(SUPABASE_KEY))
+logging.info("STRIPE_SECRET_KEY set? %s", bool(STRIPE_SECRET_KEY))
+logging.info("STRIPE_WEBHOOK_SECRET set? %s", bool(STRIPE_WEBHOOK_SECRET))
 
-# Initialize Supabase (one time)
+# Stripe
+if STRIPE_SECRET_KEY:
+    stripe.api_key = STRIPE_SECRET_KEY
+
+# Supabase client
 supabase: Client | None = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     except Exception as e:
-        logging.error(f"Supabase initialization failed: {e}")
+        logging.error(f"Supabase init failed: {e}")
 
-# Setup logging
+# Config validation
 setup_logging()
 logger = logging.getLogger(__name__)
-
-# Validate configuration (fail fast if missing)
 try:
     Config.validate_required_keys()
 except ValueError as e:
     logger.error(f"Configuration error: {e}")
     raise SystemExit(1)
 
-# ---------------- Flask App ----------------
+# ---------------- APP ----------------
 app = Flask(__name__)
 
-# Allowed origins (prod + any vercel preview via regex)
+# CORS: restrict to Frontend + Vercel previews
 ALLOWED_ORIGINS = [
-    "https://app.willpowerfitnessai.com",
+    FRONTEND_ORIGIN,
     re.compile(r"https://.*\.vercel\.app$"),
 ]
-
-# CORS: restrict to API routes only
 CORS(
     app,
-    resources={
-        r"/api/*": {
-            "origins": ALLOWED_ORIGINS,
-            "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-            "allow_headers": ["Authorization", "Content-Type"],
-            "supports_credentials": False,
-            "max_age": 86400,
-        }
-    },
+    resources={r"/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": ["GET","POST","OPTIONS"],
+        "allow_headers": ["Authorization","Content-Type"],
+        "supports_credentials": False,
+        "max_age": 86400,
+    }}
 )
 
-# --- Health -----------------------------------------------------------
+# -------- Health --------
 @app.get("/api/status")
 def api_status():
-    return jsonify(
-        status="online",
-        service="willpowerfitness-api",
-        time=datetime.utcnow().isoformat() + "Z",
-    ), 200
+    return jsonify(status="online", service="willpowerfitness-api",
+                   time=datetime.utcnow().isoformat() + "Z"), 200
 
-# --- Leads: store name/goal server-side -------------------------------
-@app.post("/api/leads")
-def create_lead():
-    payload = request.get_json(silent=True) or {}
-    name = (payload.get("name") or "").strip()
-    goal = (payload.get("goal") or "").strip()
-    if not name or not goal:
-        return jsonify(error="name and goal are required"), 400
+# ============================================================
+#   LEADS  (GDPR-ish: minimal vs full intake)
+#   - /api/lead-min : keep ONLY name + email (non-members)
+#   - /api/lead     : store full intake (trial/join click)
+#   Create tables in Supabase:
+#   leads_min(name text, email text, source text, created_at timestamptz default now())
+#   leads(intent text, name text, email text, goal text, schedule text,
+#         experience text, constraints text, prefs text, plan_headline text, created_at timestamptz default now())
+#   RLS: service role only.
+# ============================================================
 
+def _sb_upsert(table: str, payload: dict):
     if not supabase:
-        return jsonify(error="Supabase client not initialized"), 500
+        raise RuntimeError("Supabase client not initialized")
+    return supabase.table(table).upsert(payload).execute()
 
+@app.post("/api/lead-min")
+def lead_min():
     try:
-        res = supabase.table("clients").insert({"name": name, "goal": goal}).execute()
-        return jsonify(data=res.data or []), 201
+        data = request.get_json(force=True) or {}
+        name  = (data.get("name") or "").strip()
+        email = (data.get("email") or "").strip()
+        if not (name and email):
+            return jsonify(error="name and email required"), 400
+        _sb_upsert("leads_min", {"name": name, "email": email, "source": data.get("source","consult")})
     except Exception as e:
-        logger.exception("Lead insert failed")
-        return jsonify(error=str(e)), 500
+        logger.warning("lead-min insert failed: %s", e)
+    return jsonify(ok=True), 200
 
-# --- Stripe init & Checkout ------------------------------------------
-if STRIPE_SECRET_KEY:
-    stripe.api_key = STRIPE_SECRET_KEY  # set once at import time
-TRIAL_DAYS = int(os.getenv("STRIPE_TRIAL_DAYS", "0") or "0")
-
-@app.post("/api/checkout")
-def create_checkout():
-    if not stripe.api_key:
-        return jsonify(error="STRIPE_SECRET_KEY missing"), 500
-    if not STRIPE_PRICE_ID:
-        return jsonify(error="STRIPE_PRICE_ID missing"), 500
-
+@app.post("/api/lead")
+def lead_full():
     try:
-        params = dict(
-            mode="subscription",
-            line_items=[{"price": STRIPE_PRICE_ID, "quantity": 1}],
-            success_url=f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}",
-            cancel_url=f"{FRONTEND_ORIGIN}/subscribe?canceled=1",
-        )
-        if TRIAL_DAYS > 0:
-            params["subscription_data"] = {"trial_period_days": TRIAL_DAYS}
+        data     = request.get_json(force=True) or {}
+        answers  = data.get("answers") or {}
+        summary  = data.get("summary") or {}
+        intent   = data.get("intent","unknown")
 
-        session = stripe.checkout.Session.create(**params)
-        return jsonify(url=session.url), 200
+        name = (answers.get("name") or "").strip()
+        email= (answers.get("email") or "").strip()
+        if not (name and email):
+            return jsonify(error="name and email required"), 400
+
+        payload = {
+            "intent": intent,
+            "name": name, "email": email,
+            "goal": answers.get("goal"),
+            "schedule": answers.get("schedule"),
+            "experience": answers.get("experience"),
+            "constraints": answers.get("constraints"),
+            "prefs": answers.get("prefs"),
+            "plan_headline": summary.get("headline") if isinstance(summary, dict) else None,
+        }
+        _sb_upsert("leads", payload)
     except Exception as e:
-        logger.exception("Stripe checkout session failed")
-        return jsonify(error=str(e)), 500
+        logger.warning("lead (full) insert failed: %s", e)
+    return jsonify(ok=True), 200
 
-# --- Consultation: generate plan + store lead --------------------------------
-@app.post("/api/consult")
-def create_consultation():
-    payload = request.get_json(silent=True) or {}
-    name = (payload.get("name") or "Friend").strip()
-    email = (payload.get("email") or "").strip()
-    goals = (payload.get("goals") or "").strip()
-    experience = (payload.get("experience") or "").strip()
-    injuries = (payload.get("injuries") or "").strip()
-    equipment = (payload.get("equipment") or "").strip()
-    schedule = (payload.get("schedule") or "").strip()
-
-    # 1) store lead
-    try:
-        if supabase:
-            supabase.table("clients").insert({
-                "name": name, "email": email, "goal": goals,
-                "experience": experience, "injuries": injuries,
-                "equipment": equipment, "schedule": schedule
-            }).execute()
-    except Exception as e:
-        logger.warning("Lead insert (consult) warning: %s", e)
-
-    # 2) generate plan
-    plan_text = None
-    try:
-        # If your AIService exists, call it. Otherwise fallback template.
-        if hasattr(ai_service, "generate_plan"):
-            plan_text = ai_service.generate_plan(
-                name=name, goal=goals, experience=experience,
-                injuries=injuries, equipment=equipment, schedule=schedule
-            )
-    except Exception as e:
-        logger.warning("AIService.generate_plan failed, using fallback: %s", e)
-
-    if not plan_text:
-        plan_text = f"""WillpowerFitness AI — Personalized Starter Plan for {name}
-
-Goals: {goals or 'not specified'}
-Experience: {experience or 'not specified'}
-Injuries: {injuries or 'none'}
-Equipment: {equipment or 'bodyweight'}
-Schedule: {schedule or '3-4 days/week'}
-
-TRAINING (3x/week):
-- Full-body (Squat, Hinge, Push, Pull, Carry, Core)
-- 3 sets x 8–12 reps; progress load when you hit 12 reps with good form
-- Finisher: 5–10 min intervals (bike/rower/walk incline)
-
-CARDIO (2–3x/week):
-- Zone 2: 25–35 min conversational pace
-- Optional HIIT: 6–8 x (30s hard / 90s easy)
-
-NUTRITION:
-- Protein: ~0.7–1.0 g/lb of goal BW
-- Modest deficit for fat loss (−300 to −500/day) or surplus +200–300 for gain
-- 25–35 g fiber/day; 2–3 L water/day
-
-RECOVERY:
-- Sleep 7–9 h; 7–10k steps/day; mobility 10 min post-workout
-
-SCHEDULE (example week):
-- Mon: Strength A
-- Tue: Zone 2
-- Thu: Strength B
-- Sat: Zone 2 + mobility
-
-We’ll auto-tune volume/macros based on check-ins. Tough love included. 😉
-"""
-
-    # 3) store plan text (optional)
-    try:
-        if supabase:
-            supabase.table("messages").insert({
-                "email": email, "content": plan_text, "type": "plan"
-            }).execute()
-    except Exception as e:
-        logger.warning("Message insert warning: %s", e)
-
-    return jsonify({"plan": plan_text}), 200
-
-# --- Debug ------------------------------------------------------------
-@app.get("/api/_debug/cors")
-def debug_cors():
-    return jsonify(
-        origin=request.headers.get("Origin"),
-        allowed_origins=[str(x) for x in ALLOWED_ORIGINS],
-    ), 200
-@app.get("/api/success")
-def success():
-    sid = request.args.get("session_id", "")
-    if not sid:
-        return jsonify(error="missing session_id"), 400
-    try:
-        sess = stripe.checkout.Session.retrieve(sid, expand=["customer", "subscription"])
-        email = (sess.get("customer_details") or {}).get("email") or sess.get("customer_email")
-        sub = sess.get("subscription")
-        active = bool(sub and sub.get("status") in ("active", "trialing"))
-        # upsert into Supabase
-        if supabase and email:
-            supabase.table("user_profiles").upsert(
-                {"email": email, "is_member": active}
-            ).execute()
-            if sub:
-                supabase.table("subscriptions").upsert({
-                    "email": email,
-                    "stripe_subscription_id": sub.get("id"),
-                    "status": sub.get("status"),
-                    "current_period_end": sub.get("current_period_end")
-                }).execute()
-        return jsonify({"email": email, "member": active}), 200
-    except Exception as e:
-        logger.exception("Success verify failed")
-        return jsonify(error=str(e)), 500
-# --- Optional: welcome swag via Printful --------------------------------------
-def maybe_send_printful_order(email: str, name: str = "New Member"):
-    """Fire-and-forget Printful order if keys/variant are configured."""
-    if not (PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANT_ID):
+# ============================================================
+#   STRIPE WEBHOOK  (must match your Stripe endpoint path)
+#   Endpoint configured in Stripe: /api/webhooks/stripe
+# ============================================================
+def maybe_send_printful_order(email: str, name: str | None = None):
+    if not (PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANT_ID and email):
         return
     try:
-        payload = {
-            "recipient": {"name": name, "email": email},
-            "items": [{
-                "variant_id": int(PRINTFUL_TSHIRT_VARIANT_ID),
-                "quantity": 1
-            }],
-        }
-        r = requests.post(
+        req = requests.post(
             "https://api.printful.com/orders",
-            headers={
-                "Authorization": f"Bearer {PRINTFUL_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            data=json.dumps(payload),
+            headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}", "Content-Type": "application/json"},
+            data=json.dumps({
+                "recipient": {"name": name or "New Member", "email": email},
+                "items": [{"variant_id": int(PRINTFUL_TSHIRT_VARIANT_ID), "quantity": 1}],
+            }),
             timeout=20,
         )
-        if r.status_code >= 300:
-            logger.warning("Printful order failed: %s %s", r.status_code, r.text[:300])
-        else:
-            logger.info("Printful order created: %s", r.status_code)
+        if req.status_code >= 300:
+            logger.warning("Printful order failed: %s %s", req.status_code, req.text[:300])
     except Exception as e:
         logger.warning("Printful order exception: %s", e)
 
-
-# --- Stripe Webhook: membership lifecycle -------------------------------------
 @app.post("/api/webhooks/stripe")
 def stripe_webhook():
     if not STRIPE_WEBHOOK_SECRET:
         return jsonify(error="STRIPE_WEBHOOK_SECRET not set"), 500
 
     payload = request.data
-    sig_header = request.headers.get("Stripe-Signature", "")
-
+    sig = request.headers.get("Stripe-Signature", "")
     try:
-        event = stripe.Webhook.construct_event(
-            payload=payload, sig_header=sig_header, secret=STRIPE_WEBHOOK_SECRET
-        )
+        event = stripe.Webhook.construct_event(payload=payload, sig_header=sig, secret=STRIPE_WEBHOOK_SECRET)
     except Exception as e:
-        logger.exception("Stripe webhook signature verify failed")
+        logger.exception("Stripe signature verify failed")
         return jsonify(error="invalid signature"), 400
 
     etype = event.get("type")
-    data = (event.get("data") or {}).get("object") or {}
+    data  = (event.get("data") or {}).get("object") or {}
 
     try:
-        # 1) Checkout completed → mark member + record subscription
+        # Checkout completed -> mark membership + record subscription
         if etype == "checkout.session.completed":
             email = (data.get("customer_details") or {}).get("email") or data.get("customer_email")
             sub_id = data.get("subscription")
             status = None
             period_end = None
-            sub_obj = None
 
             if sub_id:
                 try:
@@ -310,12 +193,10 @@ def stripe_webhook():
                 except Exception:
                     pass
 
-            is_member = (status in ("active", "trialing"))
+            is_member = status in ("active","trialing")
 
             if supabase and email:
-                supabase.table("user_profiles").upsert(
-                    {"email": email, "is_member": is_member}
-                ).execute()
+                supabase.table("user_profiles").upsert({"email": email, "is_member": is_member}).execute()
                 if sub_id:
                     supabase.table("subscriptions").upsert({
                         "email": email,
@@ -324,16 +205,15 @@ def stripe_webhook():
                         "current_period_end": period_end,
                     }).execute()
 
-            # optional welcome apparel
             if email:
                 maybe_send_printful_order(email)
 
-        # 2) Subscription updated/deleted → sync membership
-        elif etype in ("customer.subscription.updated", "customer.subscription.deleted"):
+        # Subscription lifecycle -> keep membership in sync
+        elif etype in ("customer.subscription.updated","customer.subscription.deleted"):
             sub = data
             status = sub.get("status")
             period_end = sub.get("current_period_end")
-            is_member = (status in ("active", "trialing"))
+            is_member = status in ("active","trialing")
 
             email = None
             try:
@@ -345,9 +225,7 @@ def stripe_webhook():
                 pass
 
             if supabase and email:
-                supabase.table("user_profiles").upsert(
-                    {"email": email, "is_member": is_member}
-                ).execute()
+                supabase.table("user_profiles").upsert({"email": email, "is_member": is_member}).execute()
                 supabase.table("subscriptions").upsert({
                     "email": email,
                     "stripe_subscription_id": sub.get("id"),
@@ -355,19 +233,18 @@ def stripe_webhook():
                     "current_period_end": period_end,
                 }).execute()
 
-        # (You can add more handlers later if needed)
-
     except Exception as e:
         logger.exception("Webhook handler failed")
         return jsonify(success=False), 500
 
     return jsonify(received=True), 200
 
-# ---------------- Services ----------------
+# ---------------- Services (unchanged) ----------------
 db = Database(Config.DATABASE_PATH)
 ai_service = AIService(db)
 payment_service = PaymentService(db)
 
-# Local dev entrypoint (Railway uses gunicorn main:app)
+# ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
