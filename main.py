@@ -304,9 +304,10 @@ def start_checkout():
         session = stripe.checkout.Session.create(**params)
         return jsonify(url=session.url), 200
 
-    except Exception as e:
+        except Exception as e:
         logger.exception("checkout failed")
-        return jsonify(error="checkout_failed", message=str(e)), 500)
+        return jsonify(error="checkout_failed", message=str(e)), 500
+
 
 # ---------------- Services (unchanged) ----------------
 db = Database(Config.DATABASE_PATH)
