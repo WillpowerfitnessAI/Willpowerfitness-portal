@@ -25,6 +25,9 @@ OPENAI_API_KEY= os.getenv("OPENAI_API_KEY")          # optional
 
 STRIPE_SECRET_KEY     = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+# Price & trial settings for Checkout
+STRIPE_PRICE_MONTHLY_ID = os.getenv("STRIPE_PRICE_MONTHLY_ID", "")
+STRIPE_TRIAL_DAYS = int(os.getenv("STRIPE_TRIAL_DAYS", "0") or "0")
 
 PRINTFUL_API_KEY           = os.getenv("PRINTFUL_API_KEY")
 PRINTFUL_TSHIRT_VARIANT_ID = os.getenv("PRINTFUL_TSHIRT_VARIANT_ID")
