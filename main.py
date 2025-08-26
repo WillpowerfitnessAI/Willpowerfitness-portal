@@ -125,6 +125,25 @@ def api_status():
                    time=datetime.utcnow().isoformat() + "Z"), 200
 
 # ============================================================
+#   MEMBERSHIP LOOKUP (used by frontend after magic-link)
+# ============================================================
+@app.get("/api/me")
+def me():
+    email = (request.args.get("email") or "").strip().lower()
+    if not email:
+        return jsonify(error="email_required"), 400
+    if not supabase:
+        return jsonify(error="supabase_not_configured"), 500
+    try:
+        r = supabase.table("user_profiles").select("is_member").eq("email", email).limit(1).execute()
+        rows = getattr(r, "data", []) or r.data
+        is_member = bool(rows and rows[0].get("is_member"))
+        return jsonify(email=email, is_member=is_member), 200
+    except Exception:
+        logger.exception("me lookup failed")
+        return jsonify(error="lookup_failed"), 500
+
+# ============================================================
 #   LEADS  (minimal vs full intake)
 # ============================================================
 
@@ -317,3 +336,4 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
