@@ -105,7 +105,7 @@ def throttle():
 # CORS: restrict to Frontend + Vercel previews
 ALLOWED_ORIGINS = [
     FRONTEND_ORIGIN,
-    re.compile(r"https://.*\.vercel\.app$"),
+    r"^https://.*\.vercel\.app$",
 ]
 CORS(
     app,
@@ -205,7 +205,7 @@ def stripe_webhook():
     sig = request.headers.get("Stripe-Signature", "")
     try:
         event = stripe.Webhook.construct_event(payload=payload, sig_header=sig, secret=STRIPE_WEBHOOK_SECRET)
-    except Exception as e:
+    except Exception:
         logger.exception("Stripe signature verify failed")
         return jsonify(error="invalid signature"), 400
 
@@ -268,7 +268,7 @@ def stripe_webhook():
                     "current_period_end": period_end,
                 }).execute()
 
-    except Exception as e:
+    except Exception:
         logger.exception("Webhook handler failed")
         return jsonify(success=False), 500
 
@@ -304,7 +304,7 @@ def start_checkout():
         session = stripe.checkout.Session.create(**params)
         return jsonify(url=session.url), 200
 
-        except Exception as e:
+    except Exception as e:
         logger.exception("checkout failed")
         return jsonify(error="checkout_failed", message=str(e)), 500
 
