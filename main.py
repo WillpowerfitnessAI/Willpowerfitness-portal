@@ -25,6 +25,7 @@ OPENAI_API_KEY= os.getenv("OPENAI_API_KEY")          # optional
 
 STRIPE_SECRET_KEY     = os.getenv("STRIPE_SECRET_KEY", "")
 STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+
 # Price & trial settings for Checkout
 STRIPE_PRICE_MONTHLY_ID = os.getenv("STRIPE_PRICE_MONTHLY_ID", "")
 STRIPE_TRIAL_DAYS = int(os.getenv("STRIPE_TRIAL_DAYS", "0") or "0")
@@ -125,13 +126,6 @@ def api_status():
 
 # ============================================================
 #   LEADS  (minimal vs full intake)
-#   - /api/lead-min : keep ONLY name + email (non-members)
-#   - /api/lead     : store full intake (trial/join click)
-#   Supabase tables to create:
-#   leads_min(name text, email text, source text, created_at timestamptz default now())
-#   leads(intent text, name text, email text, goal text, schedule text,
-#         experience text, constraints text, prefs text, plan_headline text, created_at timestamptz default now())
-#   RLS: service role only.
 # ============================================================
 
 def _sb_upsert(table: str, payload: dict):
@@ -279,6 +273,40 @@ def stripe_webhook():
         return jsonify(success=False), 500
 
     return jsonify(received=True), 200
+
+# ============================================================
+#   CHECKOUT (create Stripe Checkout Session)
+#   Body: { intent: "trial" | "join" }
+#   Returns: { url: "https://checkout.stripe.com/..." }
+# ============================================================
+@app.post("/api/checkout")
+def start_checkout():
+    if not (stripe.api_key and STRIPE_PRICE_MONTHLY_ID):
+        return jsonify(error="stripe_not_configured"), 500
+
+    try:
+        data = request.get_json(silent=True) or {}
+        intent = (data.get("intent") or "join").lower()
+
+        params = {
+            "mode": "subscription",
+            "line_items": [{"price": STRIPE_PRICE_MONTHLY_ID, "quantity": 1}],
+            # After payment, send them to your login page
+            "success_url": f"{FRONTEND_ORIGIN}/login?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+            "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
+            "allow_promotion_codes": True,
+        }
+
+        # Add a trial if requested and configured
+        if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
+            params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
+
+        session = stripe.checkout.Session.create(**params)
+        return jsonify(url=session.url), 200
+
+    except Exception as e:
+        logger.exception("checkout failed")
+        return jsonify(error="checkout_failed", message=str(e)), 500)
 
 # ---------------- Services (unchanged) ----------------
 db = Database(Config.DATABASE_PATH)
