@@ -325,12 +325,11 @@ def start_checkout():
 
     except Exception as e:
         logger.exception("checkout failed")
-        return jsonify(error="checkout_failed", message=str(e)), 500)
+        return jsonify(error="checkout_failed", message=str(e)), 500
 
 # ============================================================
 #   AI CHAT ENDPOINT
 # ============================================================
-
 def _is_member(email: str) -> bool:
     """Return True if the user is an active/trialing member in Supabase."""
     if not (supabase and email):
@@ -421,5 +420,3 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
-
-
