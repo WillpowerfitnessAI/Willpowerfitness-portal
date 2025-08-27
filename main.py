@@ -325,8 +325,93 @@ def start_checkout():
 
     except Exception as e:
         logger.exception("checkout failed")
-        return jsonify(error="checkout_failed", message=str(e)), 500
+        return jsonify(error="checkout_failed", message=str(e)), 500)
 
+# ============================================================
+#   AI CHAT ENDPOINT
+# ============================================================
+
+def _is_member(email: str) -> bool:
+    """Return True if the user is an active/trialing member in Supabase."""
+    if not (supabase and email):
+        return False
+    try:
+        r = supabase.table("user_profiles").select("is_member").eq("email", email).limit(1).execute()
+        rows = getattr(r, "data", []) or r.data
+        return bool(rows and rows[0].get("is_member"))
+    except Exception as e:
+        logger.warning("membership check failed: %s", e)
+        return False
+
+def _llm_chat(messages: list[dict]) -> str:
+    """Call OpenAI first; fall back to Groq. Return the assistant text."""
+    # OpenAI
+    if OPENAI_API_KEY:
+        try:
+            resp = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+                json={"model": "gpt-4o-mini", "messages": messages, "temperature": 0.3},
+                timeout=30,
+            )
+            j = resp.json()
+            out = (j.get("choices") or [{}])[0].get("message", {}).get("content", "")
+            if out:
+                return out.strip()
+        except Exception as e:
+            logger.warning("OpenAI call failed: %s", e)
+
+    # Groq fallback (OpenAI-compatible)
+    if GROQ_API_KEY:
+        try:
+            resp = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={"model": "llama-3.1-70b-versatile", "messages": messages, "temperature": 0.3},
+                timeout=30,
+            )
+            j = resp.json()
+            out = (j.get("choices") or [{}])[0].get("message", {}).get("content", "")
+            if out:
+                return out.strip()
+        except Exception as e:
+            logger.warning("Groq call failed: %s", e)
+
+    raise RuntimeError("no_model_available")
+
+@app.post("/api/chat")
+def api_chat():
+    """Minimal chat endpoint used by the dashboard UI."""
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+        user_msg = (data.get("message") or data.get("prompt") or "").strip()
+        if not user_msg:
+            return jsonify(error="message_required"), 400
+
+        # Optional paywall: if we know the email, require membership
+        if email and not _is_member(email):
+            return jsonify(error="not_member"), 403
+
+        system = (
+            "You are Coach Will, a concise, upbeat fitness coach. "
+            "Give practical workout, nutrition, and recovery guidance. "
+            "Favor simple, sustainable plans. Keep answers short and actionable."
+        )
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_msg},
+        ]
+        reply = _llm_chat(messages)
+        if not reply:
+            raise RuntimeError("empty_model_reply")
+
+        return jsonify(reply=reply), 200
+
+    except Exception as e:
+        logger.exception("chat failed")
+        code = "no_model" if str(e) == "no_model_available" else "chat_failed"
+        return jsonify(error=code, message=str(e)), 500
 
 # ---------------- Services (unchanged) ----------------
 db = Database(Config.DATABASE_PATH)
@@ -336,4 +421,5 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
 
