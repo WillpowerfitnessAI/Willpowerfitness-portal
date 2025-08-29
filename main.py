@@ -431,4 +431,54 @@ def _is_member(email: str) -> bool:
     if not (supabase and email):
         return False
     try:
-        r = supabase.table("user
+        r = supabase.table("user_profiles").select("is_member").eq("email", email).limit(1).execute()
+        rows = getattr(r, "data", []) or r.data
+        return bool(rows and rows[0].get("is_member"))
+    except Exception as e:
+        logger.warning("membership check failed: %s", e)
+        return False
+
+
+@app.post("/api/chat")
+def api_chat():
+    """Minimal chat endpoint used by the dashboard UI."""
+    try:
+        data = request.get_json(force=True) or {}
+        email = (data.get("email") or "").strip().lower()
+        user_msg = (data.get("message") or data.get("prompt") or "").strip()
+        if not user_msg:
+            return jsonify(error="message_required"), 400
+
+        # Optional paywall: if we know the email, require membership
+        if email and not _is_member(email):
+            return jsonify(error="not_member"), 403
+
+        system = (
+            "You are Coach Will, a concise, upbeat fitness coach. "
+            "Give practical workout, nutrition, and recovery guidance. "
+            "Favor simple, sustainable plans. Keep answers short and actionable."
+        )
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": user_msg},
+        ]
+        reply = _llm_chat(messages)
+        if not reply:
+            raise RuntimeError("empty_model_reply")
+
+        return jsonify(reply=reply), 200
+
+    except Exception as e:
+        logger.exception("chat failed")
+        code = "no_model" if str(e) == "no_model_available" else "chat_failed"
+        return jsonify(error=code, message=str(e)), 500
+
+
+# ---------------- Services (unchanged) ----------------
+db = Database(Config.DATABASE_PATH)
+ai_service = AIService(db)
+payment_service = PaymentService(db)
+
+# ---------------- Entrypoint ----------------
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
