@@ -63,6 +63,78 @@ except ValueError as e:
     logger.error(f"Configuration error: {e}")
     raise SystemExit(1)
 
+# ---------------- LLM HELPERS (OpenAI first, fallback to Groq) ----------------
+
+def _call_openai(messages: list[dict]) -> str | None:
+    """Return assistant text from OpenAI or None on error."""
+    if not OPENAI_API_KEY:
+        return None
+    try:
+        r = requests.post(
+            "https://api.openai.com/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENAI_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": "gpt-4o-mini",  # light + widely available
+                "messages": messages,
+                "temperature": 0.3,
+            },
+            timeout=30,
+        )
+        if r.status_code >= 400:
+            logger.warning("OpenAI error %s: %s", r.status_code, r.text[:300])
+            return None
+        j = r.json()
+        return ((j.get("choices") or [{}])[0].get("message", {}) or {}).get("content")
+    except Exception as e:
+        logger.warning("OpenAI call failed: %s", e)
+        return None
+
+
+def _call_groq(messages: list[dict]) -> str | None:
+    """Return assistant text from Groq or None on error; tries two model ids."""
+    if not GROQ_API_KEY:
+        return None
+    models = ("llama-3.1-70b-versatile", "llama3-70b-8192")  # current + legacy alias
+    for model in models:
+        try:
+            r = requests.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {GROQ_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "messages": messages,
+                    "temperature": 0.3,
+                },
+                timeout=30,
+            )
+            if r.status_code >= 400:
+                logger.warning("Groq error (%s) %s: %s", model, r.status_code, r.text[:300])
+                continue
+            j = r.json()
+            out = ((j.get("choices") or [{}])[0].get("message", {}) or {}).get("content")
+            if out:
+                return out
+        except Exception as e:
+            logger.warning("Groq call failed (%s): %s", model, e)
+    return None
+
+
+def _llm_chat(messages: list[dict]) -> str:
+    """Call OpenAI first, then Groq; return assistant text or raise."""
+    out = _call_openai(messages)
+    if out:
+        return out.strip()
+    out = _call_groq(messages)
+    if out:
+        return out.strip()
+    raise RuntimeError("no_model_available")
+
 # ---------------- APP ----------------
 app = Flask(__name__)
 
@@ -123,6 +195,30 @@ CORS(
 def api_status():
     return jsonify(status="online", service="willpowerfitness-api",
                    time=datetime.utcnow().isoformat() + "Z"), 200
+
+# -------- LLM Debug (optional helpers) --------
+@app.get("/api/debug/providers")
+def debug_providers():
+    return jsonify(
+        openai_key_present=bool(OPENAI_API_KEY),
+        groq_key_present=bool(GROQ_API_KEY),
+    ), 200
+
+@app.get("/api/debug/ping-openai")
+def ping_openai():
+    try:
+        out = _call_openai([{"role": "user", "content": "Say 'pong'."}])
+        return jsonify(ok=bool(out), reply=(out or "")), 200
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500
+
+@app.get("/api/debug/ping-groq")
+def ping_groq():
+    try:
+        out = _call_groq([{"role": "user", "content": "Say 'pong'."}])
+        return jsonify(ok=bool(out), reply=(out or "")), 200
+    except Exception as e:
+        return jsonify(ok=False, error=str(e)), 500
 
 # ============================================================
 #   MEMBERSHIP LOOKUP (used by frontend after magic-link)
@@ -335,88 +431,4 @@ def _is_member(email: str) -> bool:
     if not (supabase and email):
         return False
     try:
-        r = supabase.table("user_profiles").select("is_member").eq("email", email).limit(1).execute()
-        rows = getattr(r, "data", []) or r.data
-        return bool(rows and rows[0].get("is_member"))
-    except Exception as e:
-        logger.warning("membership check failed: %s", e)
-        return False
-
-def _llm_chat(messages: list[dict]) -> str:
-    """Call OpenAI first; fall back to Groq. Return the assistant text."""
-    # OpenAI
-    if OPENAI_API_KEY:
-        try:
-            resp = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
-                json={"model": "gpt-4o-mini", "messages": messages, "temperature": 0.3},
-                timeout=30,
-            )
-            j = resp.json()
-            out = (j.get("choices") or [{}])[0].get("message", {}).get("content", "")
-            if out:
-                return out.strip()
-        except Exception as e:
-            logger.warning("OpenAI call failed: %s", e)
-
-    # Groq fallback (OpenAI-compatible)
-    if GROQ_API_KEY:
-        try:
-            resp = requests.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
-                json={"model": "llama-3.1-70b-versatile", "messages": messages, "temperature": 0.3},
-                timeout=30,
-            )
-            j = resp.json()
-            out = (j.get("choices") or [{}])[0].get("message", {}).get("content", "")
-            if out:
-                return out.strip()
-        except Exception as e:
-            logger.warning("Groq call failed: %s", e)
-
-    raise RuntimeError("no_model_available")
-
-@app.post("/api/chat")
-def api_chat():
-    """Minimal chat endpoint used by the dashboard UI."""
-    try:
-        data = request.get_json(force=True) or {}
-        email = (data.get("email") or "").strip().lower()
-        user_msg = (data.get("message") or data.get("prompt") or "").strip()
-        if not user_msg:
-            return jsonify(error="message_required"), 400
-
-        # Optional paywall: if we know the email, require membership
-        if email and not _is_member(email):
-            return jsonify(error="not_member"), 403
-
-        system = (
-            "You are Coach Will, a concise, upbeat fitness coach. "
-            "Give practical workout, nutrition, and recovery guidance. "
-            "Favor simple, sustainable plans. Keep answers short and actionable."
-        )
-        messages = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_msg},
-        ]
-        reply = _llm_chat(messages)
-        if not reply:
-            raise RuntimeError("empty_model_reply")
-
-        return jsonify(reply=reply), 200
-
-    except Exception as e:
-        logger.exception("chat failed")
-        code = "no_model" if str(e) == "no_model_available" else "chat_failed"
-        return jsonify(error=code, message=str(e)), 500
-
-# ---------------- Services (unchanged) ----------------
-db = Database(Config.DATABASE_PATH)
-ai_service = AIService(db)
-payment_service = PaymentService(db)
-
-# ---------------- Entrypoint ----------------
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+        r = supabase.table("user
