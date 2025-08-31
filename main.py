@@ -346,7 +346,14 @@ def stripe_webhook():
             is_member = status in ("active","trialing")
 
             if supabase and email:
-                supabase.table("user_profiles").upsert({"email": email, "is_member": is_member}).execute()
+                # ➜ Upsert richer profile (boolean + descriptive status + plan)
+                supabase.table("user_profiles").upsert({
+                    "email": email,
+                    "is_member": is_member,
+                    "stripe_status": (status or None),  # 'trialing' | 'active' | 'past_due' | 'canceled' | ...
+                    "plan": "elite",
+                }).execute()
+
                 if sub_id:
                     supabase.table("subscriptions").upsert({
                         "email": email,
@@ -375,7 +382,14 @@ def stripe_webhook():
                 pass
 
             if supabase and email:
-                supabase.table("user_profiles").upsert({"email": email, "is_member": is_member}).execute()
+                # ➜ Keep profile and subscription record up to date
+                supabase.table("user_profiles").upsert({
+                    "email": email,
+                    "is_member": is_member,
+                    "stripe_status": (status or None),
+                    "plan": "elite",
+                }).execute()
+
                 supabase.table("subscriptions").upsert({
                     "email": email,
                     "stripe_subscription_id": sub.get("id"),
@@ -482,3 +496,4 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
