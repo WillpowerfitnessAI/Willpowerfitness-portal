@@ -222,22 +222,53 @@ def ping_groq():
 
 # ============================================================
 #   MEMBERSHIP LOOKUP (used by frontend after magic-link)
+#   Returns a richer payload for UI and paywall
 # ============================================================
 @app.get("/api/me")
 def me():
+    """
+    Query membership status for a user by email.
+    Returns:
+      {
+        "email": "...",
+        "is_member": true/false,            # from user_profiles.is_member
+        "plan": "elite" | null,             # from user_profiles.plan
+        "stripe_status": "active|trialing|past_due|canceled|null",
+        "current_period_end": 1727673600,   # unix epoch (if known)
+      }
+    """
     email = (request.args.get("email") or "").strip().lower()
     if not email:
         return jsonify(error="email_required"), 400
     if not supabase:
         return jsonify(error="supabase_not_configured"), 500
+
     try:
-        r = supabase.table("user_profiles").select("is_member").eq("email", email).limit(1).execute()
-        rows = getattr(r, "data", []) or r.data
-        is_member = bool(rows and rows[0].get("is_member"))
-        return jsonify(email=email, is_member=is_member), 200
+        # 1) Base truth from user_profiles (fast paywall bit + labels)
+        pr = supabase.table("user_profiles") \
+                     .select("is_member, plan, stripe_status") \
+                     .eq("email", email).limit(1).execute()
+        prow = (getattr(pr, "data", []) or pr.data or [{}])[0] if pr else {}
+
+        # 2) Most-recent subscription snapshot (for renewal dates / status)
+        sr = supabase.table("subscriptions") \
+                     .select("status, current_period_end") \
+                     .eq("email", email).order("updated_at", desc=True) \
+                     .limit(1).execute()
+        srow = (getattr(sr, "data", []) or sr.data or [{}])[0] if sr else {}
+
+        return jsonify(
+            email=email,
+            is_member=bool(prow.get("is_member")),
+            plan=prow.get("plan"),
+            stripe_status=prow.get("stripe_status") or srow.get("status"),
+            current_period_end=srow.get("current_period_end"),  # unix epoch or None
+        ), 200
+
     except Exception:
         logger.exception("me lookup failed")
         return jsonify(error="lookup_failed"), 500
+
 
 # ============================================================
 #   LEADS  (minimal vs full intake)
