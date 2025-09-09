@@ -1,20 +1,20 @@
 {
-  "name": "workspace",
+  "name": "willpowerfitness-portal",
   "version": "1.0.0",
-  "main": "index.js",
+  "private": true,
+  "type": "module",
+  "main": "server.js",
   "scripts": {
-  "dev": "next dev",
-  "build": "next build",
-  "start": "next start"
-
+    "start": "node server.js",
+    "dev": "NODE_ENV=development node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "next": "^15.3.5",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "stripe": "^14.0.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
