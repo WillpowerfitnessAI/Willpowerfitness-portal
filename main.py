@@ -52,52 +52,6 @@ if SUPABASE_URL and SUPABASE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     except Exception as e:
         logging.error(f"Supabase init failed: {e}")
-# ================================
-#   AUTH: Email + Password signup
-#   POST /api/auth/register { email, password, name? }
-# ================================
-@app.post("/api/auth/register")
-def auth_register():
-    if not supabase:
-        return jsonify(error="supabase_not_configured"), 500
-
-    data = request.get_json(force=True) or {}
-    email = (data.get("email") or "").strip().lower()
-    password = (data.get("password") or "").strip()
-    name = (data.get("name") or "").strip() or None
-
-    if not (email and password):
-        return jsonify(error="email_and_password_required"), 400
-    if len(password) < 8:
-        return jsonify(error="weak_password"), 400
-
-    try:
-        # Admin create (server-side only; service-role key)
-        # If the user already exists, create_user will raise; we treat it as idempotent.
-        supabase.auth.admin.create_user({
-            "email": email,
-            "password": password,
-            "email_confirm": True  # skip confirmation emails; we don't want magic links
-        })
-    except Exception as e:
-        msg = str(e).lower()
-        if "already registered" not in msg and "user exists" not in msg:
-            logging.warning("auth_register create_user failed: %s", e)
-            return jsonify(error="create_failed"), 400
-
-    # Ensure a profile row exists (member flag flips true via Stripe webhook)
-    try:
-        supabase.table("user_profiles").upsert({
-            "email": email,
-            "name": name,
-            "plan": None,
-            "is_member": False,
-            "stripe_status": None,
-        }).execute()
-    except Exception as e:
-        logging.warning("auth_register profile upsert failed: %s", e)
-
-    return jsonify(ok=True), 200
 
 # Config validation
 setup_logging()
@@ -109,7 +63,6 @@ except ValueError as e:
     raise SystemExit(1)
 
 # ---------------- LLM HELPERS (OpenAI first, fallback to Groq) ----------------
-
 def _call_openai(messages: list[dict]) -> str | None:
     if not OPENAI_API_KEY:
         return None
@@ -176,7 +129,6 @@ def secure_headers(resp):
 
 # ---- Simple rate limiter for lead endpoints ----
 _BUCKET = defaultdict(list)
-
 def _too_many(ip, limit=30, window=60):
     now = time()
     q = _BUCKET[ip]
@@ -199,8 +151,8 @@ def throttle():
         if _too_many(ip):
             return jsonify(error="rate limited"), 429
 
-# CORS: restrict to Frontend + Vercel previews
-ALLOWED_ORIGINS = [FRONTEND_ORIGIN, r"^https://.*\.vercel\.app$"]
+# CORS: restrict to Frontend + Vercel previews (+ localhost for dev)
+ALLOWED_ORIGINS = [FRONTEND_ORIGIN, r"^https://.*\.vercel\.app$", "http://localhost:3000"]
 CORS(app, resources={r"/api/*": {
     "origins": ALLOWED_ORIGINS,
     "methods": ["GET","POST","OPTIONS"],
@@ -236,6 +188,52 @@ def ping_groq():
         return jsonify(ok=bool(out), reply=(out or "")), 200
     except Exception as e:
         return jsonify(ok=False, error=str(e)), 500
+
+# ================================
+#   AUTH: Email + Password signup
+#   POST /api/auth/register { email, password, name? }
+# ================================
+@app.post("/api/auth/register")
+def auth_register():
+    if not supabase:
+        return jsonify(error="supabase_not_configured"), 500
+
+    data = request.get_json(force=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("password") or "").strip()
+    name = (data.get("name") or "").strip() or None
+
+    if not (email and password):
+        return jsonify(error="email_and_password_required"), 400
+    if len(password) < 8:
+        return jsonify(error="weak_password"), 400
+
+    try:
+        # Server-side account create (service-role key)
+        supabase.auth.admin.create_user({
+            "email": email,
+            "password": password,
+            "email_confirm": True  # no magic link
+        })
+    except Exception as e:
+        msg = str(e).lower()
+        if "already" not in msg and "exists" not in msg:
+            logging.warning("auth_register create_user failed: %s", e)
+            return jsonify(error="create_failed"), 400
+
+    # Ensure a profile row exists (webhook flips is_member later)
+    try:
+        supabase.table("user_profiles").upsert({
+            "email": email,
+            "name": name,
+            "plan": None,
+            "is_member": False,
+            "stripe_status": None,
+        }).execute()
+    except Exception as e:
+        logging.warning("auth_register profile upsert failed: %s", e)
+
+    return jsonify(ok=True), 200
 
 # ============================================================
 #   MEMBERSHIP LOOKUP (used by frontend after login)
@@ -459,7 +457,6 @@ def start_checkout():
         if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
             params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
-        # drop any None values
         session = stripe.checkout.Session.create(**{k: v for k, v in params.items() if v is not None})
         return jsonify(url=session.url), 200
 
@@ -517,5 +514,3 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
-
-
