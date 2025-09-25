@@ -1,4 +1,4 @@
-# main.py — WillpowerFitness Portal API (Buy-Button model) + security headers + rate limit
+# main.py — WillpowerFitness Portal API (Checkout Sessions model) + security headers + rate limit
 
 import os, re, json, logging, requests
 from datetime import datetime
@@ -8,7 +8,6 @@ from collections import defaultdict
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import stripe
-
 from supabase import create_client, Client
 
 # ----- Local modules (unchanged) -----
@@ -66,21 +65,13 @@ except ValueError as e:
 # ---------------- LLM HELPERS (OpenAI first, fallback to Groq) ----------------
 
 def _call_openai(messages: list[dict]) -> str | None:
-    """Return assistant text from OpenAI or None on error."""
     if not OPENAI_API_KEY:
         return None
     try:
         r = requests.post(
             "https://api.openai.com/v1/chat/completions",
-            headers={
-                "Authorization": f"Bearer {OPENAI_API_KEY}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": "gpt-4o-mini",  # light + widely available
-                "messages": messages,
-                "temperature": 0.3,
-            },
+            headers={"Authorization": f"Bearer {OPENAI_API_KEY}", "Content-Type": "application/json"},
+            json={"model": "gpt-4o-mini", "messages": messages, "temperature": 0.3},
             timeout=30,
         )
         if r.status_code >= 400:
@@ -92,25 +83,16 @@ def _call_openai(messages: list[dict]) -> str | None:
         logger.warning("OpenAI call failed: %s", e)
         return None
 
-
 def _call_groq(messages: list[dict]) -> str | None:
-    """Return assistant text from Groq or None on error; tries two model ids."""
     if not GROQ_API_KEY:
         return None
-    models = ("llama-3.1-70b-versatile", "llama3-70b-8192")  # current + legacy alias
+    models = ("llama-3.1-70b-versatile", "llama3-70b-8192")
     for model in models:
         try:
             r = requests.post(
                 "https://api.groq.com/openai/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {GROQ_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": model,
-                    "messages": messages,
-                    "temperature": 0.3,
-                },
+                headers={"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"},
+                json={"model": model, "messages": messages, "temperature": 0.3},
                 timeout=30,
             )
             if r.status_code >= 400:
@@ -124,9 +106,7 @@ def _call_groq(messages: list[dict]) -> str | None:
             logger.warning("Groq call failed (%s): %s", model, e)
     return None
 
-
 def _llm_chat(messages: list[dict]) -> str:
-    """Call OpenAI first, then Groq; return assistant text or raise."""
     out = _call_openai(messages)
     if out:
         return out.strip()
@@ -144,17 +124,16 @@ def secure_headers(resp):
     resp.headers['X-Content-Type-Options'] = 'nosniff'
     resp.headers['X-Frame-Options'] = 'DENY'
     resp.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-    resp.headers['X-Robots-Tag'] = 'noindex, nofollow'  # keep API host out of search
+    resp.headers['X-Robots-Tag'] = 'noindex, nofollow'
     resp.headers['Strict-Transport-Security'] = 'max-age=63072000; includeSubDomains; preload'
     return resp
 
-# ---- Simple rate limiter for lead endpoints (no extra deps) ----
+# ---- Simple rate limiter for lead endpoints ----
 _BUCKET = defaultdict(list)
 
 def _too_many(ip, limit=30, window=60):
     now = time()
     q = _BUCKET[ip]
-    # drop old hits
     while q and now - q[0] > window:
         q.pop(0)
     if len(q) >= limit:
@@ -175,20 +154,14 @@ def throttle():
             return jsonify(error="rate limited"), 429
 
 # CORS: restrict to Frontend + Vercel previews
-ALLOWED_ORIGINS = [
-    FRONTEND_ORIGIN,
-    r"^https://.*\.vercel\.app$",
-]
-CORS(
-    app,
-    resources={r"/api/*": {
-        "origins": ALLOWED_ORIGINS,
-        "methods": ["GET","POST","OPTIONS"],
-        "allow_headers": ["Authorization","Content-Type"],
-        "supports_credentials": False,
-        "max_age": 86400,
-    }}
-)
+ALLOWED_ORIGINS = [FRONTEND_ORIGIN, r"^https://.*\.vercel\.app$"]
+CORS(app, resources={r"/api/*": {
+    "origins": ALLOWED_ORIGINS,
+    "methods": ["GET","POST","OPTIONS"],
+    "allow_headers": ["Authorization","Content-Type"],
+    "supports_credentials": False,
+    "max_age": 86400,
+}})
 
 # -------- Health --------
 @app.get("/api/status")
@@ -196,13 +169,11 @@ def api_status():
     return jsonify(status="online", service="willpowerfitness-api",
                    time=datetime.utcnow().isoformat() + "Z"), 200
 
-# -------- LLM Debug (optional helpers) --------
+# -------- LLM debug --------
 @app.get("/api/debug/providers")
 def debug_providers():
-    return jsonify(
-        openai_key_present=bool(OPENAI_API_KEY),
-        groq_key_present=bool(GROQ_API_KEY),
-    ), 200
+    return jsonify(openai_key_present=bool(OPENAI_API_KEY),
+                   groq_key_present=bool(GROQ_API_KEY)), 200
 
 @app.get("/api/debug/ping-openai")
 def ping_openai():
@@ -221,36 +192,21 @@ def ping_groq():
         return jsonify(ok=False, error=str(e)), 500
 
 # ============================================================
-#   MEMBERSHIP LOOKUP (used by frontend after magic-link)
-#   Returns a richer payload for UI and paywall
+#   MEMBERSHIP LOOKUP (used by frontend after login)
 # ============================================================
 @app.get("/api/me")
 def me():
-    """
-    Query membership status for a user by email.
-    Returns:
-      {
-        "email": "...",
-        "is_member": true/false,            # from user_profiles.is_member
-        "plan": "elite" | null,             # from user_profiles.plan
-        "stripe_status": "active|trialing|past_due|canceled|null",
-        "current_period_end": 1727673600,   # unix epoch (if known)
-      }
-    """
     email = (request.args.get("email") or "").strip().lower()
     if not email:
         return jsonify(error="email_required"), 400
     if not supabase:
         return jsonify(error="supabase_not_configured"), 500
-
     try:
-        # 1) Base truth from user_profiles (fast paywall bit + labels)
         pr = supabase.table("user_profiles") \
                      .select("is_member, plan, stripe_status") \
                      .eq("email", email).limit(1).execute()
         prow = (getattr(pr, "data", []) or pr.data or [{}])[0] if pr else {}
 
-        # 2) Most-recent subscription snapshot (for renewal dates / status)
         sr = supabase.table("subscriptions") \
                      .select("status, current_period_end") \
                      .eq("email", email).order("updated_at", desc=True) \
@@ -262,18 +218,15 @@ def me():
             is_member=bool(prow.get("is_member")),
             plan=prow.get("plan"),
             stripe_status=prow.get("stripe_status") or srow.get("status"),
-            current_period_end=srow.get("current_period_end"),  # unix epoch or None
+            current_period_end=srow.get("current_period_end"),
         ), 200
-
     except Exception:
         logger.exception("me lookup failed")
         return jsonify(error="lookup_failed"), 500
 
-
 # ============================================================
-#   LEADS  (minimal vs full intake)
+#   LEADS
 # ============================================================
-
 def _sb_upsert(table: str, payload: dict):
     if not supabase:
         raise RuntimeError("Supabase client not initialized")
@@ -321,8 +274,7 @@ def lead_full():
     return jsonify(ok=True), 200
 
 # ============================================================
-#   STRIPE WEBHOOK  (must match your Stripe endpoint path)
-#   Endpoint configured in Stripe: /api/webhooks/stripe
+#   STRIPE WEBHOOK  (endpoint path: /api/webhooks/stripe)
 # ============================================================
 def maybe_send_printful_order(email: str, name: str = None):
     if not (PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANT_ID and email):
@@ -347,7 +299,7 @@ def stripe_webhook():
     if not STRIPE_WEBHOOK_SECRET:
         return jsonify(error="STRIPE_WEBHOOK_SECRET not set"), 500
 
-    payload = request.data
+    payload = request.data  # RAW BODY
     sig = request.headers.get("Stripe-Signature", "")
     try:
         event = stripe.Webhook.construct_event(payload=payload, sig_header=sig, secret=STRIPE_WEBHOOK_SECRET)
@@ -377,11 +329,10 @@ def stripe_webhook():
             is_member = status in ("active","trialing")
 
             if supabase and email:
-                # ➜ Upsert richer profile (boolean + descriptive status + plan)
                 supabase.table("user_profiles").upsert({
                     "email": email,
                     "is_member": is_member,
-                    "stripe_status": (status or None),  # 'trialing' | 'active' | 'past_due' | 'canceled' | ...
+                    "stripe_status": (status or None),
                     "plan": "elite",
                 }).execute()
 
@@ -413,7 +364,6 @@ def stripe_webhook():
                 pass
 
             if supabase and email:
-                # ➜ Keep profile and subscription record up to date
                 supabase.table("user_profiles").upsert({
                     "email": email,
                     "is_member": is_member,
@@ -436,7 +386,7 @@ def stripe_webhook():
 
 # ============================================================
 #   CHECKOUT (create Stripe Checkout Session)
-#   Body: { intent: "trial" | "join" }
+#   Body: { intent?: "trial" | "join", email?: string }
 #   Returns: { url: "https://checkout.stripe.com/..." }
 # ============================================================
 @app.post("/api/checkout")
@@ -447,21 +397,23 @@ def start_checkout():
     try:
         data = request.get_json(silent=True) or {}
         intent = (data.get("intent") or "join").lower()
+        email  = (data.get("email") or "").strip().lower() or None
 
         params = {
             "mode": "subscription",
             "line_items": [{"price": STRIPE_PRICE_MONTHLY_ID, "quantity": 1}],
-            # After payment, send them to your login page
-            "success_url": f"{FRONTEND_ORIGIN}/login?checkout=success&session_id={{CHECKOUT_SESSION_ID}}",
+            # ✅ After payment, go straight to the dashboard
+            "success_url": f"{FRONTEND_ORIGIN}/dashboard?session_id={{CHECKOUT_SESSION_ID}}",
             "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
             "allow_promotion_codes": True,
+            "client_reference_id": email or None,
+            "customer_email": email,  # ensures webhook has an email to activate
         }
 
-        # Add a trial if requested and configured
         if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
             params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
-        session = stripe.checkout.Session.create(**params)
+        session = stripe.checkout.Session.create(**{k:v for k,v in params.items() if v is not None})
         return jsonify(url=session.url), 200
 
     except Exception as e:
@@ -472,7 +424,6 @@ def start_checkout():
 #   AI CHAT ENDPOINT
 # ============================================================
 def _is_member(email: str) -> bool:
-    """Return True if the user is an active/trialing member in Supabase."""
     if not (supabase and email):
         return False
     try:
@@ -483,10 +434,8 @@ def _is_member(email: str) -> bool:
         logger.warning("membership check failed: %s", e)
         return False
 
-
 @app.post("/api/chat")
 def api_chat():
-    """Minimal chat endpoint used by the dashboard UI."""
     try:
         data = request.get_json(force=True) or {}
         email = (data.get("email") or "").strip().lower()
@@ -494,7 +443,6 @@ def api_chat():
         if not user_msg:
             return jsonify(error="message_required"), 400
 
-        # Optional paywall: if we know the email, require membership
         if email and not _is_member(email):
             return jsonify(error="not_member"), 403
 
@@ -503,21 +451,16 @@ def api_chat():
             "Give practical workout, nutrition, and recovery guidance. "
             "Favor simple, sustainable plans. Keep answers short and actionable."
         )
-        messages = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_msg},
-        ]
+        messages = [{"role": "system", "content": system}, {"role": "user", "content": user_msg}]
         reply = _llm_chat(messages)
         if not reply:
             raise RuntimeError("empty_model_reply")
-
         return jsonify(reply=reply), 200
 
     except Exception as e:
         logger.exception("chat failed")
         code = "no_model" if str(e) == "no_model_available" else "chat_failed"
         return jsonify(error=code, message=str(e)), 500
-
 
 # ---------------- Services (unchanged) ----------------
 db = Database(Config.DATABASE_PATH)
@@ -527,4 +470,5 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
 
