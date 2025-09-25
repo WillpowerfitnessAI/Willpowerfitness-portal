@@ -52,6 +52,52 @@ if SUPABASE_URL and SUPABASE_KEY:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
     except Exception as e:
         logging.error(f"Supabase init failed: {e}")
+# ================================
+#   AUTH: Email + Password signup
+#   POST /api/auth/register { email, password, name? }
+# ================================
+@app.post("/api/auth/register")
+def auth_register():
+    if not supabase:
+        return jsonify(error="supabase_not_configured"), 500
+
+    data = request.get_json(force=True) or {}
+    email = (data.get("email") or "").strip().lower()
+    password = (data.get("password") or "").strip()
+    name = (data.get("name") or "").strip() or None
+
+    if not (email and password):
+        return jsonify(error="email_and_password_required"), 400
+    if len(password) < 8:
+        return jsonify(error="weak_password"), 400
+
+    try:
+        # Admin create (server-side only; service-role key)
+        # If the user already exists, create_user will raise; we treat it as idempotent.
+        supabase.auth.admin.create_user({
+            "email": email,
+            "password": password,
+            "email_confirm": True  # skip confirmation emails; we don't want magic links
+        })
+    except Exception as e:
+        msg = str(e).lower()
+        if "already registered" not in msg and "user exists" not in msg:
+            logging.warning("auth_register create_user failed: %s", e)
+            return jsonify(error="create_failed"), 400
+
+    # Ensure a profile row exists (member flag flips true via Stripe webhook)
+    try:
+        supabase.table("user_profiles").upsert({
+            "email": email,
+            "name": name,
+            "plan": None,
+            "is_member": False,
+            "stripe_status": None,
+        }).execute()
+    except Exception as e:
+        logging.warning("auth_register profile upsert failed: %s", e)
+
+    return jsonify(ok=True), 200
 
 # Config validation
 setup_logging()
