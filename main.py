@@ -443,23 +443,24 @@ def start_checkout():
     try:
         data = request.get_json(silent=True) or {}
         intent = (data.get("intent") or "join").lower()
-        email  = (data.get("email") or "").strip().lower() or None
+        email  = (data.get("email") or "").strip().lower() or None  # <-- capture user email
 
         params = {
             "mode": "subscription",
             "line_items": [{"price": STRIPE_PRICE_MONTHLY_ID, "quantity": 1}],
-            # ✅ After payment, go straight to the dashboard
+            # ✅ redirect to your dashboard after payment
             "success_url": f"{FRONTEND_ORIGIN}/dashboard?session_id={{CHECKOUT_SESSION_ID}}",
             "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
             "allow_promotion_codes": True,
             "client_reference_id": email or None,
-            "customer_email": email,  # ensures webhook has an email to activate
+            "customer_email": email,   # ensures webhook can activate this user
         }
 
         if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
             params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
-        session = stripe.checkout.Session.create(**{k:v for k,v in params.items() if v is not None})
+        # drop any None values
+        session = stripe.checkout.Session.create(**{k: v for k, v in params.items() if v is not None})
         return jsonify(url=session.url), 200
 
     except Exception as e:
