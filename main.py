@@ -474,30 +474,30 @@ def start_checkout():
         intent = (data.get("intent") or "join").lower()
         email  = (data.get("email") or "").strip().lower() or None
 
+        # helpful log (appears in Railway logs)
+        logger.info("checkout: PRICE_ID=%r email=%r", PRICE_ID, email)
+
         params = {
             "mode": "subscription",
             "line_items": [{"price": PRICE_ID, "quantity": 1}],
-            # send them to /success and include email (URL-encoded)
             "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}"
                            f"{('&email=' + requests.utils.quote(email)) if email else ''}",
             "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
             "allow_promotion_codes": True,
             "client_reference_id": email or None,
             "customer_email": email,
-            # shipping (for shirts) + phone
             "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
             "phone_number_collection": {"enabled": True},
         }
-
         if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
             params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
-        session = stripe.checkout.Session.create(**{k: v for k, v in params.items() if v is not None})
+        session = stripe.checkout.Session.create(**params)
         return jsonify(url=session.url), 200
 
     except stripe.error.StripeError as e:
-        # Surface the real Stripe message to the client so we can see it
         logger.exception("Stripe error during checkout")
+        # 400 with Stripe’s human message (visible in DevTools -> Response)
         return jsonify(
             error="stripe_error",
             code=getattr(e, "code", None),
@@ -507,6 +507,7 @@ def start_checkout():
     except Exception as e:
         logger.exception("checkout failed")
         return jsonify(error="checkout_failed", message=str(e)), 500
+
 
 # ============================================================
 #   AI CHAT ENDPOINT
