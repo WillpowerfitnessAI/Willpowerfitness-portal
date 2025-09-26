@@ -327,15 +327,24 @@ def lead_full():
 # ============================================================
 #   STRIPE WEBHOOK  (endpoint path: /api/webhooks/stripe)
 # ============================================================
-def maybe_send_printful_order(email: str, name: str = None):
-    if not (PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANT_ID and email):
+def maybe_send_printful_order(recipient: dict):
+    """
+    recipient example:
+    {
+        "name": "...", "email": "...",
+        "address1": "...", "address2": "...",
+        "city": "...", "state_code": "...",
+        "country_code": "...", "zip": "..."
+    }
+    """
+    if not (PRINTFUL_API_KEY and PRINTFUL_TSHIRT_VARIANT_ID and recipient and recipient.get("email")):
         return
     try:
         req = requests.post(
             "https://api.printful.com/orders",
             headers={"Authorization": f"Bearer {PRINTFUL_API_KEY}", "Content-Type": "application/json"},
             data=json.dumps({
-                "recipient": {"name": name or "New Member", "email": email},
+                "recipient": recipient,
                 "items": [{"variant_id": int(PRINTFUL_TSHIRT_VARIANT_ID), "quantity": 1}],
             }),
             timeout=20,
@@ -396,8 +405,20 @@ def stripe_webhook():
                         "current_period_end": period_end,
                     }).execute()
 
-            if email:
-                maybe_send_printful_order(email)
+            # ---- Build full recipient from Stripe session and send to Printful ----
+            cust = (data.get("customer_details") or {})
+            addr = cust.get("address") or {}
+            recipient = {
+                "name": (cust.get("name") or "New Member"),
+                "email": (cust.get("email") or email),
+                "address1": addr.get("line1"),
+                "address2": addr.get("line2"),
+                "city": addr.get("city"),
+                "state_code": addr.get("state"),
+                "country_code": addr.get("country"),
+                "zip": addr.get("postal_code"),
+            }
+            maybe_send_printful_order(recipient)
 
         elif etype in ("customer.subscription.updated","customer.subscription.deleted"):
             sub = data
@@ -527,4 +548,5 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
+
 
