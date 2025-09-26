@@ -474,7 +474,7 @@ def start_checkout():
         intent = (data.get("intent") or "join").lower()
         email  = (data.get("email") or "").strip().lower() or None
 
-        # helpful log (appears in Railway logs)
+        # helpful log in Railway
         logger.info("checkout: PRICE_ID=%r email=%r", PRICE_ID, email)
 
         params = {
@@ -497,7 +497,6 @@ def start_checkout():
 
     except stripe.error.StripeError as e:
         logger.exception("Stripe error during checkout")
-        # 400 with Stripe’s human message (visible in DevTools -> Response)
         return jsonify(
             error="stripe_error",
             code=getattr(e, "code", None),
@@ -507,7 +506,6 @@ def start_checkout():
     except Exception as e:
         logger.exception("checkout failed")
         return jsonify(error="checkout_failed", message=str(e)), 500
-
 
 # ============================================================
 #   AI CHAT ENDPOINT
