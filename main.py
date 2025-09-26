@@ -477,13 +477,14 @@ def start_checkout():
         params = {
             "mode": "subscription",
             "line_items": [{"price": PRICE_ID, "quantity": 1}],
-            # ✅ success now lands on /success and carries the email (when present)
-            "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}{f'&email={email}' if email else ''}",
+            # send them to /success and include email (URL-encoded)
+            "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}"
+                           f"{('&email=' + requests.utils.quote(email)) if email else ''}",
             "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
             "allow_promotion_codes": True,
             "client_reference_id": email or None,
             "customer_email": email,
-            # Optional but recommended for shirts + contact:
+            # shipping (for shirts) + phone
             "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
             "phone_number_collection": {"enabled": True},
         }
@@ -493,6 +494,15 @@ def start_checkout():
 
         session = stripe.checkout.Session.create(**{k: v for k, v in params.items() if v is not None})
         return jsonify(url=session.url), 200
+
+    except stripe.error.StripeError as e:
+        # Surface the real Stripe message to the client so we can see it
+        logger.exception("Stripe error during checkout")
+        return jsonify(
+            error="stripe_error",
+            code=getattr(e, "code", None),
+            message=getattr(e, "user_message", str(e)) or str(e),
+        ), 400
 
     except Exception as e:
         logger.exception("checkout failed")
