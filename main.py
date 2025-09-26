@@ -186,6 +186,7 @@ def debug_checkout_config():
         frontend_origin=FRONTEND_ORIGIN,
     ), 200
 
+
 # -------- LLM debug --------
 @app.get("/api/debug/providers")
 def debug_providers():
@@ -480,12 +481,13 @@ def start_checkout():
     if not stripe.api_key:
         return jsonify(error="stripe_not_configured", message="Missing STRIPE_SECRET_KEY"), 500
 
-    # 🚨 make price sanity check explicit
-    if not PRICE_ID or not PRICE_ID.startswith("price_"):
+    if not PRICE_ID or not PRICE_ID.startswith("price_"):   # <= guard
         return jsonify(
             error="bad_price_id",
             message=f"Backend PRICE_ID looks wrong: {repr(PRICE_ID)}",
         ), 500
+    ...
+
 
     try:
         data = request.get_json(silent=True) or {}
