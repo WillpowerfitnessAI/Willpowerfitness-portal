@@ -461,34 +461,54 @@ def stripe_webhook():
 #   Body: { intent?: "trial" | "join", email?: string }
 #   Returns: { url: "https://checkout.stripe.com/..." }
 # ============================================================
+# ============================================================
+#   CHECKOUT (create Stripe Checkout Session)
+#   Body: { intent?: "trial" | "join", email?: string }
+#   Returns: { url: "https://checkout.stripe.com/..." }
+# ============================================================
 @app.post("/api/checkout")
 def start_checkout():
-    if not stripe.api_key or not PRICE_ID:
-        return jsonify(
-            error="stripe_not_configured",
-            message="Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID/STRIPE_PRICE_MONTHLY_ID"
-        ), 500
+    if not stripe.api_key:
+        return jsonify(error="stripe_not_configured",
+                       message="Missing STRIPE_SECRET_KEY"), 500
 
     try:
         data = request.get_json(silent=True) or {}
         intent = (data.get("intent") or "join").lower()
         email  = (data.get("email") or "").strip().lower() or None
 
-        # helpful log in Railway
+        # Log what the server actually sees (Railway Logs)
         logger.info("checkout: PRICE_ID=%r email=%r", PRICE_ID, email)
+
+        # Build line item: prefer env PRICE_ID; fall back to price_data
+        line_item = {"quantity": 1}
+        if PRICE_ID:
+            line_item["price"] = PRICE_ID
+        else:
+            # Fallback so we don't crash if the env var is missing / wrong
+            line_item["price_data"] = {
+                "currency": "usd",
+                "unit_amount": 14900,  # $149.00
+                "recurring": { "interval": "month" },
+                "product_data": { "name": "Elite Membership" },
+            }
 
         params = {
             "mode": "subscription",
-            "line_items": [{"price": PRICE_ID, "quantity": 1}],
-            "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}"
-                           f"{('&email=' + requests.utils.quote(email)) if email else ''}",
+            "line_items": [line_item],
+            "success_url": (
+                f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}"
+                f"{('&email=' + requests.utils.quote(email)) if email else ''}"
+            ),
             "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
             "allow_promotion_codes": True,
             "client_reference_id": email or None,
             "customer_email": email,
+            # optional but recommended if you auto-ship shirts:
             "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
             "phone_number_collection": {"enabled": True},
         }
+
         if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
             params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
@@ -496,11 +516,12 @@ def start_checkout():
         return jsonify(url=session.url), 200
 
     except stripe.error.StripeError as e:
+        # Return Stripe’s actual message to the client (super helpful)
         logger.exception("Stripe error during checkout")
         return jsonify(
             error="stripe_error",
             code=getattr(e, "code", None),
-            message=getattr(e, "user_message", str(e)) or str(e),
+            message=getattr(e, "user_message", None) or str(e),
         ), 400
 
     except Exception as e:
