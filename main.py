@@ -176,6 +176,7 @@ def api_status():
 @app.get("/api/ping")
 def api_ping():
     return jsonify(ok=True, time=datetime.utcnow().isoformat() + "Z"), 200
+# --- add/keep this somewhere above checkout ---
 @app.get("/api/debug/checkout-config")
 def debug_checkout_config():
     return jsonify(
@@ -185,6 +186,7 @@ def debug_checkout_config():
         stripe_mode=os.getenv("STRIPE_MODE") or "test",
         frontend_origin=FRONTEND_ORIGIN,
     ), 200
+
 
 
 # -------- LLM debug --------
@@ -478,22 +480,25 @@ def stripe_webhook():
 # ============================================================
 @app.post("/api/checkout")
 def start_checkout():
+    # hard guards so 500s are readable
     if not stripe.api_key:
         return jsonify(error="stripe_not_configured", message="Missing STRIPE_SECRET_KEY"), 500
-
-    if not PRICE_ID or not PRICE_ID.startswith("price_"):   # <= guard
-        return jsonify(
-            error="bad_price_id",
-            message=f"Backend PRICE_ID looks wrong: {repr(PRICE_ID)}",
-        ), 500
-    ...
-
+    if not PRICE_ID or not PRICE_ID.startswith("price_"):
+        return jsonify(error="bad_price_id", message=f"Backend PRICE_ID looks wrong: {repr(PRICE_ID)}"), 500
 
     try:
-        data = request.get_json(silent=True) or {}
+        data   = request.get_json(silent=True) or {}
         intent = (data.get("intent") or "join").lower()
-        email  = (data.get("email")  or "").strip().lower() or None
+        email  = (data.get("email") or "").strip().lower() or None
 
+        # 1) sanity: make sure Stripe can see the Price (mode mismatch would show here)
+        try:
+            _ = stripe.Price.retrieve(PRICE_ID)
+        except Exception as e:
+            logger.exception("Stripe Price.retrieve failed")
+            return jsonify(error="bad_price_id", message=f"Stripe couldn't retrieve {PRICE_ID}: {str(e)}"), 500
+
+        # 2) build params
         params = {
             "mode": "subscription",
             "line_items": [{"price": PRICE_ID, "quantity": 1}],
@@ -502,23 +507,31 @@ def start_checkout():
             "allow_promotion_codes": True,
             "client_reference_id": email or None,
             "customer_email": email,
+            # optional but ok for subs:
             "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
             "phone_number_collection": {"enabled": True},
         }
         if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
             params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
+        # 3) log what we send (shows up in Railway logs)
+        try:
+            logger.info("Creating Stripe Checkout with params: %s", json.dumps(params))
+        except Exception:
+            pass  # don't let logging break the request
+
+        # 4) create session
         session = stripe.checkout.Session.create(**params)
         return jsonify(url=session.url), 200
 
-    except stripe.error.StripeError as e:
-        # show Stripe's friendly error if available
-        msg = getattr(e, "user_message", None) or str(e)
+    except stripe.error.StripeError as se:
+        # Friendlier error for UI
+        msg = getattr(se, "user_message", None) or getattr(se, "code", None) or str(se)
+        logger.exception("Stripe error during checkout: %s", msg)
         return jsonify(error="stripe_error", message=msg), 500
     except Exception as e:
         logger.exception("checkout failed")
         return jsonify(error="checkout_failed", message=str(e)), 500
-
 
 # ============================================================
 #   AI CHAT ENDPOINT
