@@ -4,6 +4,7 @@ import os, re, json, logging, requests
 from datetime import datetime
 from time import time
 from collections import defaultdict
+from typing import Optional
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -17,22 +18,24 @@ from services.ai_service import AIService
 from services.payment_service import PaymentService  # kept for compatibility
 
 # ---------------- ENV ----------------
-SUPABASE_URL  = os.getenv("SUPABASE_URL", "")
-SUPABASE_KEY  = os.getenv("SUPABASE_KEY", "")        # service-role key
-GROQ_API_KEY  = os.getenv("GROQ_API_KEY")            # optional
-OPENAI_API_KEY= os.getenv("OPENAI_API_KEY")          # optional
+SUPABASE_URL   = os.getenv("SUPABASE_URL", "")
+SUPABASE_KEY   = os.getenv("SUPABASE_KEY", "")        # service-role key
+GROQ_API_KEY   = os.getenv("GROQ_API_KEY")            # optional
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")          # optional
 
-STRIPE_SECRET_KEY     = os.getenv("STRIPE_SECRET_KEY", "")
-STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+STRIPE_SECRET_KEY     = (os.getenv("STRIPE_SECRET_KEY") or "").strip()
+STRIPE_WEBHOOK_SECRET = (os.getenv("STRIPE_WEBHOOK_SECRET") or "").strip()
 
-# Price & trial settings for Checkout
-STRIPE_PRICE_MONTHLY_ID = os.getenv("STRIPE_PRICE_MONTHLY_ID", "")
-STRIPE_TRIAL_DAYS = int(os.getenv("STRIPE_TRIAL_DAYS", "0") or "0")
+# Price & trial settings for Checkout (support both names; trim to avoid paste artifacts)
+PRICE_ID = (
+    (os.getenv("STRIPE_PRICE_ID") or os.getenv("STRIPE_PRICE_MONTHLY_ID") or "")
+).strip()
+STRIPE_TRIAL_DAYS = int((os.getenv("STRIPE_TRIAL_DAYS") or "0").strip() or "0")
 
 PRINTFUL_API_KEY           = os.getenv("PRINTFUL_API_KEY")
 PRINTFUL_TSHIRT_VARIANT_ID = os.getenv("PRINTFUL_TSHIRT_VARIANT_ID")
 
-FRONTEND_ORIGIN = os.getenv("FRONTEND_ORIGIN", "https://app.willpowerfitnessai.com")
+FRONTEND_ORIGIN = (os.getenv("FRONTEND_ORIGIN") or "https://app.willpowerfitnessai.com").rstrip("/")
 
 # Log presence of critical envs (not values)
 logging.getLogger().setLevel(logging.INFO)
@@ -40,13 +43,15 @@ logging.info("SUPABASE_URL set? %s", bool(SUPABASE_URL))
 logging.info("SUPABASE_KEY set? %s", bool(SUPABASE_KEY))
 logging.info("STRIPE_SECRET_KEY set? %s", bool(STRIPE_SECRET_KEY))
 logging.info("STRIPE_WEBHOOK_SECRET set? %s", bool(STRIPE_WEBHOOK_SECRET))
+logging.info("Stripe PRICE_ID present? %s", bool(PRICE_ID))
+logging.info("FRONTEND_ORIGIN: %s", FRONTEND_ORIGIN)
 
 # Stripe
 if STRIPE_SECRET_KEY:
     stripe.api_key = STRIPE_SECRET_KEY
 
 # Supabase client
-supabase: Client | None = None
+supabase: Optional[Client] = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
         supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -63,7 +68,7 @@ except ValueError as e:
     raise SystemExit(1)
 
 # ---------------- LLM HELPERS (OpenAI first, fallback to Groq) ----------------
-def _call_openai(messages: list[dict]) -> str | None:
+def _call_openai(messages: list[dict]) -> Optional[str]:
     if not OPENAI_API_KEY:
         return None
     try:
@@ -82,7 +87,7 @@ def _call_openai(messages: list[dict]) -> str | None:
         logger.warning("OpenAI call failed: %s", e)
         return None
 
-def _call_groq(messages: list[dict]) -> str | None:
+def _call_groq(messages: list[dict]) -> Optional[str]:
     if not GROQ_API_KEY:
         return None
     models = ("llama-3.1-70b-versatile", "llama3-70b-8192")
@@ -152,7 +157,8 @@ def throttle():
             return jsonify(error="rate limited"), 429
 
 # CORS: restrict to Frontend + Vercel previews (+ localhost for dev)
-ALLOWED_ORIGINS = [FRONTEND_ORIGIN, r"^https://.*\.vercel\.app$", "http://localhost:3000"]
+VERCEL_RE = re.compile(r"^https://.*\.vercel\.app$")
+ALLOWED_ORIGINS = [FRONTEND_ORIGIN, VERCEL_RE, "http://localhost:3000"]
 CORS(app, resources={r"/api/*": {
     "origins": ALLOWED_ORIGINS,
     "methods": ["GET","POST","OPTIONS"],
@@ -161,11 +167,15 @@ CORS(app, resources={r"/api/*": {
     "max_age": 86400,
 }})
 
-# -------- Health --------
+# -------- Health / Ping --------
 @app.get("/api/status")
 def api_status():
     return jsonify(status="online", service="willpowerfitness-api",
                    time=datetime.utcnow().isoformat() + "Z"), 200
+
+@app.get("/api/ping")
+def api_ping():
+    return jsonify(ok=True, time=datetime.utcnow().isoformat() + "Z"), 200
 
 # -------- LLM debug --------
 @app.get("/api/debug/providers")
@@ -191,7 +201,6 @@ def ping_groq():
 
 # ================================
 #   AUTH: Email + Password signup
-#   POST /api/auth/register { email, password, name? }
 # ================================
 @app.post("/api/auth/register")
 def auth_register():
@@ -209,11 +218,10 @@ def auth_register():
         return jsonify(error="weak_password"), 400
 
     try:
-        # Server-side account create (service-role key)
         supabase.auth.admin.create_user({
             "email": email,
             "password": password,
-            "email_confirm": True  # no magic link
+            "email_confirm": True
         })
     except Exception as e:
         msg = str(e).lower()
@@ -221,7 +229,6 @@ def auth_register():
             logging.warning("auth_register create_user failed: %s", e)
             return jsonify(error="create_failed"), 400
 
-    # Ensure a profile row exists (webhook flips is_member later)
     try:
         supabase.table("user_profiles").upsert({
             "email": email,
@@ -343,8 +350,10 @@ def stripe_webhook():
     if not STRIPE_WEBHOOK_SECRET:
         return jsonify(error="STRIPE_WEBHOOK_SECRET not set"), 500
 
-    payload = request.data  # RAW BODY
+    # RAW BODY (bytes) for signature verification
+    payload = request.get_data(cache=False, as_text=False)
     sig = request.headers.get("Stripe-Signature", "")
+
     try:
         event = stripe.Webhook.construct_event(payload=payload, sig_header=sig, secret=STRIPE_WEBHOOK_SECRET)
     except Exception:
@@ -355,7 +364,6 @@ def stripe_webhook():
     data  = (event.get("data") or {}).get("object") or {}
 
     try:
-        # Checkout completed -> mark membership + record subscription
         if etype == "checkout.session.completed":
             email = (data.get("customer_details") or {}).get("email") or data.get("customer_email")
             sub_id = data.get("subscription")
@@ -391,7 +399,6 @@ def stripe_webhook():
             if email:
                 maybe_send_printful_order(email)
 
-        # Subscription lifecycle -> keep membership in sync
         elif etype in ("customer.subscription.updated","customer.subscription.deleted"):
             sub = data
             status = sub.get("status")
@@ -435,23 +442,25 @@ def stripe_webhook():
 # ============================================================
 @app.post("/api/checkout")
 def start_checkout():
-    if not (stripe.api_key and STRIPE_PRICE_MONTHLY_ID):
-        return jsonify(error="stripe_not_configured"), 500
+    if not stripe.api_key or not PRICE_ID:
+        return jsonify(
+            error="stripe_not_configured",
+            message="Missing STRIPE_SECRET_KEY or STRIPE_PRICE_ID/STRIPE_PRICE_MONTHLY_ID"
+        ), 500
 
     try:
         data = request.get_json(silent=True) or {}
         intent = (data.get("intent") or "join").lower()
-        email  = (data.get("email") or "").strip().lower() or None  # <-- capture user email
+        email  = (data.get("email") or "").strip().lower() or None
 
         params = {
             "mode": "subscription",
-            "line_items": [{"price": STRIPE_PRICE_MONTHLY_ID, "quantity": 1}],
-            # ✅ redirect to your dashboard after payment
+            "line_items": [{"price": PRICE_ID, "quantity": 1}],
             "success_url": f"{FRONTEND_ORIGIN}/dashboard?session_id={{CHECKOUT_SESSION_ID}}",
             "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
             "allow_promotion_codes": True,
             "client_reference_id": email or None,
-            "customer_email": email,   # ensures webhook can activate this user
+            "customer_email": email,
         }
 
         if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
