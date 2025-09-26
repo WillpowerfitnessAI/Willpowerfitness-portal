@@ -176,6 +176,15 @@ def api_status():
 @app.get("/api/ping")
 def api_ping():
     return jsonify(ok=True, time=datetime.utcnow().isoformat() + "Z"), 200
+@app.get("/api/debug/checkout-config")
+def debug_checkout_config():
+    return jsonify(
+        price_id=PRICE_ID,
+        price_id_startswith_price=bool(PRICE_ID and PRICE_ID.startswith("price_")),
+        stripe_key_present=bool(STRIPE_SECRET_KEY),
+        stripe_mode=os.getenv("STRIPE_MODE") or "test",
+        frontend_origin=FRONTEND_ORIGIN,
+    ), 200
 
 # -------- LLM debug --------
 @app.get("/api/debug/providers")
