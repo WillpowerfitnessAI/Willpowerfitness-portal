@@ -176,18 +176,17 @@ def api_status():
 @app.get("/api/ping")
 def api_ping():
     return jsonify(ok=True, time=datetime.utcnow().isoformat() + "Z"), 200
-# --- add/keep this somewhere above checkout ---
+
+# --- Debug: show what the backend will use for checkout ---
 @app.get("/api/debug/checkout-config")
 def debug_checkout_config():
     return jsonify(
         price_id=PRICE_ID,
         price_id_startswith_price=bool(PRICE_ID and PRICE_ID.startswith("price_")),
         stripe_key_present=bool(STRIPE_SECRET_KEY),
-        stripe_mode=os.getenv("STRIPE_MODE") or "test",
+        stripe_mode=(os.getenv("STRIPE_MODE") or ("live" if (STRIPE_SECRET_KEY or "").startswith("sk_live") else "test")),
         frontend_origin=FRONTEND_ORIGIN,
     ), 200
-
-
 
 # -------- LLM debug --------
 @app.get("/api/debug/providers")
@@ -473,14 +472,9 @@ def stripe_webhook():
 #   Body: { intent?: "trial" | "join", email?: string }
 #   Returns: { url: "https://checkout.stripe.com/..." }
 # ============================================================
-# ============================================================
-#   CHECKOUT (create Stripe Checkout Session)
-#   Body: { intent?: "trial" | "join", email?: string }
-#   Returns: { url: "https://checkout.stripe.com/..." }
-# ============================================================
 @app.post("/api/checkout")
 def start_checkout():
-    # hard guards so 500s are readable
+    # Hard guards so 500s are readable
     if not stripe.api_key:
         return jsonify(error="stripe_not_configured", message="Missing STRIPE_SECRET_KEY"), 500
     if not PRICE_ID or not PRICE_ID.startswith("price_"):
@@ -583,5 +577,3 @@ payment_service = PaymentService(db)
 # ---------------- Entrypoint ----------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 8080)))
-
-
