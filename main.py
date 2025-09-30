@@ -121,6 +121,7 @@ def _llm_chat(messages: list[dict]) -> str:
 
 # ---------------- APP ----------------
 app = Flask(__name__)
+app.url_map.strict_slashes = False  # /x and /x/ are treated the same
 
 # ---- Security headers on every API response ----
 @app.after_request
@@ -468,10 +469,12 @@ def stripe_webhook():
 #   CHECKOUT (create Stripe Checkout Session)
 # ============================================================
 @app.route("/api/checkout", methods=["POST", "OPTIONS"])
+@app.route("/api/checkout/", methods=["POST", "OPTIONS"])
 def checkout_route():
     if request.method == "OPTIONS":
-        # Let Flask-CORS handle headers, but return a 204 to satisfy preflight
-        return ("", 204)
+        return ("", 204)  # satisfy CORS preflight
+    # ... keep the rest of your code that builds params and returns jsonify(url=session.url)
+
 
     if not stripe.api_key:
         return jsonify(error="stripe_not_configured", message="Missing STRIPE_SECRET_KEY"), 500
