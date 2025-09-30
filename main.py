@@ -156,11 +156,8 @@ def throttle():
         if _too_many(ip):
             return jsonify(error="rate limited"), 429
 
-# CORS: restrict to Frontend + Vercel previews (+ localhost for dev)
-VERCEL_RE = re.compile(r"^https://.*\.vercel\.app$")
-ALLOWED_ORIGINS = [FRONTEND_ORIGIN, VERCEL_RE, "http://localhost:3000"]
 CORS(app, resources={r"/api/*": {
-    "origins": ALLOWED_ORIGINS,
+    "origins": [FRONTEND_ORIGIN, re.compile(r"^https://.*\.vercel\.app$"), "http://localhost:3000"],
     "methods": ["GET","POST","OPTIONS"],
     "allow_headers": ["Authorization","Content-Type"],
     "supports_credentials": False,
