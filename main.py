@@ -469,63 +469,53 @@ def stripe_webhook():
 
 # ============================================================
 #   CHECKOUT (create Stripe Checkout Session)
-#   Body: { intent?: "trial" | "join", email?: string }
-#   Returns: { url: "https://checkout.stripe.com/..." }
 # ============================================================
-@app.post("/api/checkout")
-def start_checkout():
-    # Hard guards so 500s are readable
+@app.route("/api/checkout", methods=["POST", "OPTIONS"])
+def checkout_route():
+    if request.method == "OPTIONS":
+        # Let Flask-CORS handle headers, but return a 204 to satisfy preflight
+        return ("", 204)
+
     if not stripe.api_key:
         return jsonify(error="stripe_not_configured", message="Missing STRIPE_SECRET_KEY"), 500
+
     if not PRICE_ID or not PRICE_ID.startswith("price_"):
         return jsonify(error="bad_price_id", message=f"Backend PRICE_ID looks wrong: {repr(PRICE_ID)}"), 500
 
     try:
-        data   = request.get_json(silent=True) or {}
-        intent = (data.get("intent") or "join").lower()
-        email  = (data.get("email") or "").strip().lower() or None
+        data  = request.get_json(silent=True) or {}
+        email = (data.get("email") or "").strip().lower() or None
 
-        # 1) sanity: make sure Stripe can see the Price (mode mismatch would show here)
+        # sanity check the price exists
         try:
             _ = stripe.Price.retrieve(PRICE_ID)
         except Exception as e:
             logger.exception("Stripe Price.retrieve failed")
-            return jsonify(error="bad_price_id", message=f"Stripe couldn't retrieve {PRICE_ID}: {str(e)}"), 500
+            return jsonify(error="bad_price_id", message=str(e)), 500
 
-        # 2) build params
         params = {
             "mode": "subscription",
             "line_items": [{"price": PRICE_ID, "quantity": 1}],
             "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}{f'&email={email}' if email else ''}",
-            "cancel_url": f"{FRONTEND_ORIGIN}/?checkout=cancelled",
+            "cancel_url": f"{FRONTEND_ORIGIN}/subscribe?canceled=1",
             "allow_promotion_codes": True,
-            "client_reference_id": email or None,
             "customer_email": email,
-            # optional but ok for subs:
-            "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
+            "client_reference_id": email or None,
+            "shipping_address_collection": {"allowed_countries": ["US","CA"]},
             "phone_number_collection": {"enabled": True},
         }
-        if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
-            params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
-        # 3) log what we send (shows up in Railway logs)
-        try:
-            logger.info("Creating Stripe Checkout with params: %s", json.dumps(params))
-        except Exception:
-            pass  # don't let logging break the request
-
-        # 4) create session
         session = stripe.checkout.Session.create(**params)
         return jsonify(url=session.url), 200
 
     except stripe.error.StripeError as se:
-        # Friendlier error for UI
         msg = getattr(se, "user_message", None) or getattr(se, "code", None) or str(se)
         logger.exception("Stripe error during checkout: %s", msg)
         return jsonify(error="stripe_error", message=msg), 500
     except Exception as e:
         logger.exception("checkout failed")
         return jsonify(error="checkout_failed", message=str(e)), 500
+
 
 # ============================================================
 #   AI CHAT ENDPOINT
