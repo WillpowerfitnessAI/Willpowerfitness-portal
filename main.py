@@ -493,17 +493,32 @@ def checkout_route():
             logger.exception("Stripe Price.retrieve failed")
             return jsonify(error="bad_price_id", message=str(e)), 500
 
-        params = {
-            "mode": "subscription",
-            "line_items": [{"price": PRICE_ID, "quantity": 1}],
-            "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}{f'&email={email}' if email else ''}",
-            "cancel_url": f"{FRONTEND_ORIGIN}/subscribe?canceled=1",
-            "allow_promotion_codes": True,
-            "customer_email": email,
-            "client_reference_id": email or None,
-            "shipping_address_collection": {"allowed_countries": ["US","CA"]},
-            "phone_number_collection": {"enabled": True},
-        }
+       # inside start_checkout() after you parse data/email/intent
+name  = (data.get("name") or "").strip()
+goal  = (data.get("goal") or "").strip()
+
+params = {
+    "mode": "subscription",
+    "line_items": [{"price": PRICE_ID, "quantity": 1}],
+    "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}{f'&email={email}' if email else ''}",
+    "cancel_url": f"{FRONTEND_ORIGIN}/subscribe?canceled=1",
+    "allow_promotion_codes": True,
+    "client_reference_id": email or None,
+    "customer_email": email or None,
+    # collect for Printful shipping
+    "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
+    "phone_number_collection": {"enabled": True},
+    # put extra context on the Session
+    "metadata": {
+        "name": name or "",
+        "goal": goal or "",
+        "intent": intent or "join",
+        "source": "app_subscribe"
+    },
+}
+if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
+    params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
+
 
         session = stripe.checkout.Session.create(**params)
         return jsonify(url=session.url), 200
