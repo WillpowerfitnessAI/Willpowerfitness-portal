@@ -468,68 +468,72 @@ def stripe_webhook():
 # ============================================================
 #   CHECKOUT (create Stripe Checkout Session)
 # ============================================================
-@app.route("/api/checkout", methods=["POST", "OPTIONS"])
-@app.route("/api/checkout/", methods=["POST", "OPTIONS"])
+@app.post("/api/checkout")
 def checkout_route():
-    if request.method == "OPTIONS":
-        return ("", 204)  # satisfy CORS preflight
-    # ... keep the rest of your code that builds params and returns jsonify(url=session.url)
+    # 1) Parse JSON
+    try:
+        data = request.get_json(force=True, silent=False) or {}
+    except Exception as e:
+        return jsonify({"error": "invalid_json", "detail": str(e)}), 400
 
+    # 2) Extract + normalize
+    email  = (data.get("email")  or "").strip().lower()
+    name   = (data.get("name")   or "").strip()
+    goal   = (data.get("goal")   or "").strip()
+    intent = (data.get("intent") or "join").strip() or "join"
+
+    # 3) Validate
+    if not email or not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email):
+        return jsonify({"error": "invalid_email"}), 400
 
     if not stripe.api_key:
-        return jsonify(error="stripe_not_configured", message="Missing STRIPE_SECRET_KEY"), 500
+        return jsonify({"error": "stripe_not_configured", "message": "Missing STRIPE_SECRET_KEY"}), 500
 
     if not PRICE_ID or not PRICE_ID.startswith("price_"):
-        return jsonify(error="bad_price_id", message=f"Backend PRICE_ID looks wrong: {repr(PRICE_ID)}"), 500
+        return jsonify({"error": "bad_price_id", "message": f"Backend PRICE_ID looks wrong: {repr(PRICE_ID)}"}), 500
 
+    # (optional) sanity check price exists
     try:
-        data  = request.get_json(silent=True) or {}
-        email = (data.get("email") or "").strip().lower() or None
+        _ = stripe.Price.retrieve(PRICE_ID)
+    except Exception as e:
+        logger.exception("Stripe Price.retrieve failed")
+        return jsonify({"error": "bad_price_id", "message": str(e)}), 500
 
-        # sanity check the price exists
-        try:
-            _ = stripe.Price.retrieve(PRICE_ID)
-        except Exception as e:
-            logger.exception("Stripe Price.retrieve failed")
-            return jsonify(error="bad_price_id", message=str(e)), 500
+    # 4) Build Checkout params
+    params = {
+        "mode": "subscription",
+        "line_items": [{"price": PRICE_ID, "quantity": 1}],
+        "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}{f'&email={email}' if email else ''}",
+        "cancel_url": f"{FRONTEND_ORIGIN}/subscribe?canceled=1",
+        "allow_promotion_codes": True,
+        "client_reference_id": email or None,
+        "customer_email": email or None,
+        # collect shipping info so Printful can fulfill
+        "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
+        "phone_number_collection": {"enabled": True},
+        # helpful context on the Session
+        "metadata": {
+            "name": name or "",
+            "goal": goal or "",
+            "intent": intent or "join",
+            "source": "app_subscribe",
+        },
+    }
+    if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
+        params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
 
-       # inside start_checkout() after you parse data/email/intent
-name  = (data.get("name") or "").strip()
-goal  = (data.get("goal") or "").strip()
-
-params = {
-    "mode": "subscription",
-    "line_items": [{"price": PRICE_ID, "quantity": 1}],
-    "success_url": f"{FRONTEND_ORIGIN}/success?session_id={{CHECKOUT_SESSION_ID}}{f'&email={email}' if email else ''}",
-    "cancel_url": f"{FRONTEND_ORIGIN}/subscribe?canceled=1",
-    "allow_promotion_codes": True,
-    "client_reference_id": email or None,
-    "customer_email": email or None,
-    # collect for Printful shipping
-    "shipping_address_collection": {"allowed_countries": ["US", "CA"]},
-    "phone_number_collection": {"enabled": True},
-    # put extra context on the Session
-    "metadata": {
-        "name": name or "",
-        "goal": goal or "",
-        "intent": intent or "join",
-        "source": "app_subscribe"
-    },
-}
-if intent == "trial" and STRIPE_TRIAL_DAYS > 0:
-    params["subscription_data"] = {"trial_period_days": STRIPE_TRIAL_DAYS}
-
-
+    # 5) Create session
+    try:
         session = stripe.checkout.Session.create(**params)
-        return jsonify(url=session.url), 200
-
+        return jsonify({"url": session.url}), 200
     except stripe.error.StripeError as se:
         msg = getattr(se, "user_message", None) or getattr(se, "code", None) or str(se)
         logger.exception("Stripe error during checkout: %s", msg)
-        return jsonify(error="stripe_error", message=msg), 500
+        return jsonify({"error": "stripe_error", "message": msg}), 502
     except Exception as e:
         logger.exception("checkout failed")
-        return jsonify(error="checkout_failed", message=str(e)), 500
+        return jsonify({"error": "checkout_failed", "message": str(e)}), 500
+
 
 
 # ============================================================
